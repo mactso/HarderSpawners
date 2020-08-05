@@ -1,10 +1,11 @@
-// 15.2 - 1.0.0.0 Villager Respawn
-package com.mactso.spawnerinlight;
+// 16.1 harder spawners
+package com.mactso.harderspawners;
 
 
-import com.mactso.spawnerinlight.config.MyConfig;
-import com.mactso.spawnerinlight.events.MyPlaceEntityEvent;
-import com.mactso.spawnerinlight.events.SpawnerSpawnEvent;
+import com.mactso.harderspawners.config.MyConfig;
+import com.mactso.harderspawners.events.MyPlaceEntityEvent;
+import com.mactso.harderspawners.events.SpawnerBreakEvent;
+import com.mactso.harderspawners.events.SpawnerSpawnEvent;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -31,6 +32,7 @@ public class Main {
 		@SubscribeEvent 
 		public void preInit (final FMLCommonSetupEvent event) {
 				System.out.println("harderspawners: Registering Handler");
+				MinecraftForge.EVENT_BUS.register(new SpawnerBreakEvent ());
 				MinecraftForge.EVENT_BUS.register(new SpawnerSpawnEvent());
 				MinecraftForge.EVENT_BUS.register(new MyPlaceEntityEvent());
 		}   
