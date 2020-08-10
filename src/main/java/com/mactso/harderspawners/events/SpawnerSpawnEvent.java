@@ -37,16 +37,18 @@ public class SpawnerSpawnEvent {
     	
     	IWorld iWorld = event.getWorld();
     	// check that it's server world.
-    	
-    	System.out.println ("HarderSpawners: Checked Spawner Spawn Event.");
+    	if (MyConfig.debugLevel > 0) {
+        	System.out.println ("HarderSpawners: Checked Spawner Spawn Event.");
+    	}
     	boolean spawnOk = false;
 
     	AbstractSpawner AbSp = event.getSpawner();
 
     	BlockPos AbSpPos = AbSp.getSpawnerPosition();
 
-    	System.out.println ("HarderSpawners: Event has a spawner.");
-
+    	if (MyConfig.debugLevel > 0) {
+    		System.out.println ("HarderSpawners: Event has a spawner.");
+    	}
         LivingEntity le = (LivingEntity) event.getEntityLiving();
         String leStr = le.getType().getRegistryName().toString();
 		MobSpawnerBreakPercentageItem t = MobSpawnerBreakPercentageItemManager.getMobSpawnerBreakPercentage(leStr);

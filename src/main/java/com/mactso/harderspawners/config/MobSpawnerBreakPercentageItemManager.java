@@ -42,6 +42,8 @@ public class MobSpawnerBreakPercentageItemManager {
 		
 		List <String> dTL6464 = new ArrayList<>();
 		
+    	System.out.println ("HarderSpawners: Initialization Commencing.");
+
 		int i = 0;
 		String mobBreakPercentageLine6464 = "";
 		// Forge Issue 6464 patch.
@@ -79,6 +81,7 @@ public class MobSpawnerBreakPercentageItemManager {
 			}
 			i++;
 		}
+    	System.out.println ("HarderSpawners: Initialization complete.");
 
 	}
 
