@@ -95,17 +95,19 @@ public class SpawnerBreakEvent {
 						if (fYmin < 1) fYmin = 1;
 						int fYmax = event.getPos().getY()+4;
 						if (fYmax > 254) fYmin = 254;
-						int scanSize = 6;
+						int scanSize = 7;
 						for (int dy = fYmin; dy<= fYmax; dy++) {
 							for (int dx = fX - scanSize; dx <= fX+scanSize; dx++) {
 								for (int dz = fZ - scanSize; dz <= fZ+scanSize; dz++) {
 									BlockPos bP = new BlockPos(dx,dy,dz);
 									Block b = serverWorld.getBlockState(bP).getBlock();
-
 									int blockLightLevel = serverWorld.getBlockState(bP).getLightValue();
 							    	if ((blockLightLevel > 7)) {
 							    		serverWorld.destroyBlock(bP, true);
 							    	} 
+									if (b == Blocks.LAVA) {
+										serverWorld.setBlockState(bP, Blocks.COBBLESTONE.getDefaultState(), 3);
+									}
 								}
 							}
 						}
