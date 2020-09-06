@@ -23,13 +23,13 @@ import net.minecraftforge.fml.config.ModConfig;
 public class MyConfig
 {
 		private static final Logger LOGGER = LogManager.getLogger();
-		public static final Server SERVER;
-		public static final ForgeConfigSpec SERVER_SPEC;
+		public static final Common COMMON;
+		public static final ForgeConfigSpec COMMON_SPEC;
 		static
 		{
-			final Pair<Server, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Server::new);
-			SERVER_SPEC = specPair.getRight();
-			SERVER = specPair.getLeft();
+			final Pair<Common, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Common::new);
+			COMMON_SPEC = specPair.getRight();
+			COMMON = specPair.getLeft();
 		}
 
 		public static int debugLevel;
@@ -42,7 +42,7 @@ public class MyConfig
 		@SubscribeEvent
 		public static void onModConfigEvent(final ModConfig.ModConfigEvent configEvent)
 		{
-			if (configEvent.getConfig().getSpec() == MyConfig.SERVER_SPEC)
+			if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC)
 			{
 				bakeConfig();
 				MobSpawnerBreakPercentageItemManager.mobBreakPercentageInit();
@@ -53,30 +53,30 @@ public class MyConfig
 			if (debugLevel > 0) {
 				System.out.println("harderspawners debugLevel:"+MyConfig.debugLevel);
 			}
-			SERVER.debugLevel.set( MyConfig.debugLevel);
+			COMMON.debugLevel.set( MyConfig.debugLevel);
 		}
 
 		public static void pushSpawnersExplodePercentage() {
 			if (debugLevel > 0) {
 				System.out.println("harderspawners: explode% :"+MyConfig.spawnersExplodePercentage);
 			}
-			SERVER.spawnersExplodePercentage.set( MyConfig.spawnersExplodePercentage);
+			COMMON.spawnersExplodePercentage.set( MyConfig.spawnersExplodePercentage);
 		}
 
 		public static void pushSpawnerRevenge() {
 			if (debugLevel > 0) {
 				System.out.println("harderspawners: revengeLevel"+MyConfig.spawnerRevengeLevel);
 			}
-			SERVER.spawnerRevengeLevel.set( MyConfig.spawnerRevengeLevel);
+			COMMON.spawnerRevengeLevel.set( MyConfig.spawnerRevengeLevel);
 		}
 		
 		public static void bakeConfig()
 		{
-			debugLevel = SERVER.debugLevel.get();
-			spawnerBreakSpeedMultiplier = SERVER.spawnerBreakSpeedMultiplier.get();
-			spawnersExplodePercentage = SERVER.spawnersExplodePercentage.get();
-			spawnerRevengeLevel = SERVER.spawnerRevengeLevel.get();
-			defaultMobBreakPercentageValues6464 = SERVER.defaultNoBreakMobsActual.get() ;
+			debugLevel = COMMON.debugLevel.get();
+			spawnerBreakSpeedMultiplier = COMMON.spawnerBreakSpeedMultiplier.get();
+			spawnersExplodePercentage = COMMON.spawnersExplodePercentage.get();
+			spawnerRevengeLevel = COMMON.spawnerRevengeLevel.get();
+			defaultMobBreakPercentageValues6464 = COMMON.defaultNoBreakMobsActual.get() ;
 			if (debugLevel > 0) {
 				System.out.println("Harder Spawners Debug: " + debugLevel );
 			}
@@ -84,7 +84,7 @@ public class MyConfig
 
 		
 		
-		public static class Server
+		public static class Common
 		{
 
 			public final IntValue debugLevel;
@@ -102,7 +102,7 @@ public class MyConfig
 					+ "minecraft:blaze,0.0;"
 					;	
 			
-			public Server(ForgeConfigSpec.Builder builder)
+			public Common(ForgeConfigSpec.Builder builder)
 			{
 				builder.push("Spawners Spawn in Light Control Values");
 

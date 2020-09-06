@@ -4,18 +4,10 @@ package com.mactso.harderspawners.events;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.block.TorchBlock;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.item.Items;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.World;
-import net.minecraft.world.gen.feature.GlowstoneBlobFeature;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraftforge.event.entity.living.LivingSpawnEvent;
-import net.minecraftforge.event.world.BlockEvent;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraft.world.World;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class MyPlaceEntityEvent {

@@ -2,22 +2,32 @@ package com.mactso.harderspawners.events;
 
 import com.mactso.harderspawners.config.MyConfig;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.SpawnerBlock;
+import net.minecraft.block.TorchBlock;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvents;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class SpawnerBreakEvent {
 		static int spamLimiter = 0;
+
 		@SubscribeEvent
 		public void blockBreakSpeed(PlayerEvent.BreakSpeed event) {
-	    	final int THREE_SECONDS = 60;
+
+			final int THREE_SECONDS = 60;
 	    	final boolean SHOW_PARTICLES = true;
 
 	    	if (event.getState().getBlock()== null) {
@@ -44,7 +54,13 @@ public class SpawnerBreakEvent {
 	    	if (player.world.isRemote()) {
 	   			debugWorldName = "ClientSide";
 	   		} 
-	   		
+
+	    	if (player instanceof ServerPlayerEntity) {
+	    		debugWorldName = "ServerSide";
+	    		System.out.println(debugWorldName);
+	    	}
+    		System.out.println(debugWorldName);
+	    	
 	    	Item playerItem = player.getHeldItemMainhand().getItem();
 //	    	if (!playerItem.canHarvestBlock(p.getHeldItemMainhand(), event.getState())) {
 //	    		return;
@@ -71,7 +87,29 @@ public class SpawnerBreakEvent {
 				// Serverside
 				if (!(player.world.isRemote())) {
 					ServerPlayerEntity serverPlayer = (ServerPlayerEntity) event.getPlayer();
+					World serverWorld = serverPlayer.getServerWorld();
+					if (serverWorld.getLight(event.getPos()) > 6) {
+						int fX = event.getPos().getX();
+						int fZ = event.getPos().getZ();
+						int fYmin = event.getPos().getY()-4;
+						if (fYmin < 1) fYmin = 1;
+						int fYmax = event.getPos().getY()+4;
+						if (fYmax > 254) fYmin = 254;
+						int scanSize = 6;
+						for (int dy = fYmin; dy<= fYmax; dy++) {
+							for (int dx = fX - scanSize; dx <= fX+scanSize; dx++) {
+								for (int dz = fZ - scanSize; dz <= fZ+scanSize; dz++) {
+									BlockPos bP = new BlockPos(dx,dy,dz);
+									Block b = serverWorld.getBlockState(bP).getBlock();
 
+									int blockLightLevel = serverWorld.getBlockState(bP).getLightValue();
+							    	if ((blockLightLevel > 7)) {
+							    		serverWorld.destroyBlock(bP, true);
+							    	} 
+								}
+							}
+						}
+					}
 		    		// This is tricky--- if the player has a more powerful effect, it sometimes
 		    		// sticks "on" and won't expire so remove it once it has half a second left.
 		 			EffectInstance ei = player.getActivePotionEffect(Effects.POISON);
@@ -85,6 +123,8 @@ public class SpawnerBreakEvent {
 		    		}
 		    		// Apply revenge
 		    		if (revengeLevel >= 0) {
+						serverPlayer.getServerWorld().playSound(null, event.getPos() ,
+								SoundEvents.ENTITY_ENDERMAN_AMBIENT, SoundCategory.AMBIENT, 0.9f, 0.25f);
 		    			if (revengeLevel < 4) {
 		    				serverPlayer.addPotionEffect(new EffectInstance(Effects.POISON, THREE_SECONDS, revengeLevel, true, SHOW_PARTICLES));
 		    			} else 

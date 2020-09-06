@@ -25,7 +25,7 @@ public class Main {
 	    {
 			System.out.println("harderspawners: Registering Mod.");
 			FMLJavaModLoadingContext.get().getModEventBus().register(this);
-	        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER,MyConfig.SERVER_SPEC );
+	        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON,MyConfig.COMMON_SPEC );
 	    }
 
 
