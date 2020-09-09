@@ -10,7 +10,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
-public class MyPlaceEntityEvent {
+public class MyEntityPlaceEvent {
 
     @SubscribeEvent()
     public void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
