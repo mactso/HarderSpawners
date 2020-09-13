@@ -57,9 +57,11 @@ public class SpawnerBreakEvent {
 
 		if (player instanceof ServerPlayerEntity) {
 			debugWorldName = "ServerSide";
+
+		}
+		if (MyConfig.debugLevel > 0) {
 			System.out.println(debugWorldName);
 		}
-		System.out.println(debugWorldName);
 
 		Item playerItem = player.getHeldItemMainhand().getItem();
 //	    	if (!playerItem.canHarvestBlock(p.getHeldItemMainhand(), event.getState())) {
