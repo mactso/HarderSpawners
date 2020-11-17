@@ -16,7 +16,7 @@ apply plugin: 'maven-publish'
 
 version = "${mod_version}"
 group = 'com.mactso.harderspawners' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'HarderSpawners-1.16.2'
+archivesBaseName = 'HarderSpawners-1.16.4'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
