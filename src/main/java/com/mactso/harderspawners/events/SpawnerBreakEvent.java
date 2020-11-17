@@ -15,6 +15,7 @@ import net.minecraft.potion.Effects;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.Color;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
@@ -147,12 +148,12 @@ public class SpawnerBreakEvent {
 		// client side
 		if (player.world.isRemote()) {
 			if ((spamLimiter++) % 20 == 0) {
-				MyConfig.sendChat(player, "The spawner slowly breaks...", TextFormatting.DARK_AQUA);
+				MyConfig.sendChat(player, "The spawner slowly breaks...", Color.fromTextFormatting(TextFormatting.DARK_AQUA));
 				if (MyConfig.debugLevel > 1) {
 					MyConfig.sendChat(player,
 							"Slowed breaking spawner modifier applied: " + MyConfig.spawnerBreakSpeedMultiplier
 									+ " speed reduced from " + baseDestroySpeed + " to " + newDestroySpeed + ".",
-							TextFormatting.AQUA);
+									Color.fromTextFormatting(TextFormatting.AQUA));
 				}
 
 			}

@@ -9,6 +9,7 @@ import com.mactso.harderspawners.Main;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.Color;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
@@ -139,18 +140,18 @@ public class MyConfig
 		}	
 		
 		// support for any color chattext
-		public static void sendChat(PlayerEntity p, String chatMessage, TextFormatting textColor) {
+		public static void sendChat(PlayerEntity p, String chatMessage, Color color) {
 			StringTextComponent component = new StringTextComponent (chatMessage);
-			component.func_240701_a_(textColor);
+			component.getStyle().setColor(color);
 			p.sendMessage(component, p.getUniqueID());
 		}
 		
 		// support for any color, optionally bold text.
-		public static void sendBoldChat(PlayerEntity p, String chatMessage, TextFormatting textColor) {
+		public static void sendBoldChat(PlayerEntity p, String chatMessage, Color color) {
 			StringTextComponent component = new StringTextComponent (chatMessage);
 
-			component.func_240701_a_(TextFormatting.BOLD);
-			component.func_240701_a_(textColor);
+			component.getStyle().setBold(true);
+			component.getStyle().setColor(color);
 			p.sendMessage(component, p.getUniqueID());
 		}	
 }
