@@ -51,14 +51,8 @@ public class MyEntityPlaceEvent {
     	if (isSpawnerNearby(world, placedBlockPos)) {
     		event.setCanceled(true);
     	}
-    	
-//    	boolean torch = (placedBlock == Blocks.TORCH);
-//    	torch = torch | (placedBlock == Blocks.SEA_LANTERN);
-//    	torch = torch | (placedBlock == Blocks.GLOWSTONE);    	
-//    	torch = torch | (placedBlock == Blocks.REDSTONE_LAMP);
-//    	torch = torch | (placedBlock == Blocks.NETHERRACK);
-//    	torch = torch | (placedBlock == Blocks.LAVA);   
-    	
+   	
+  	
     }
     
     private boolean isSpawnerNearby (World world, BlockPos blockPos) {
