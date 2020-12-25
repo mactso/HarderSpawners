@@ -78,7 +78,11 @@ public class SpawnerSpawnEvent {
 			t = MobSpawnerBreakPercentageItemManager.getMobSpawnerBreakPercentage(leStr);
 		}
 		
-		double mobSpawnerBreakPercentage = t.getSpawnerBreakPercentage();
+		double mobSpawnerBreakPercentage = 0.2;
+		if (t != null) {
+			mobSpawnerBreakPercentage = t.getSpawnerBreakPercentage();
+		} 
+		
 		if (mobSpawnerBreakPercentage == 0.0) {
 				return;
 		} 
