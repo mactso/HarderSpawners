@@ -10,6 +10,8 @@ import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.PickaxeItem;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.util.SoundCategory;
@@ -20,17 +22,19 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.world.BlockEvent.BreakEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class SpawnerBreakEvent {
 	static int spamLimiter = 0;
-
+	static boolean SHOW_PARTICLES = true;
+	
 	@SubscribeEvent
 	public void blockBreakSpeed(PlayerEvent.BreakSpeed event) {
 
 		final int THREE_SECONDS = 60;
-		final boolean SHOW_PARTICLES = true;
+
 
 		if (event.getState().getBlock() == null) {
 			return;
@@ -44,6 +48,8 @@ public class SpawnerBreakEvent {
 		if (event.getPlayer().isCreative()) {
 			return;
 		}
+
+		Block spawnerBlock = event.getState().getBlock();
 
 		// this runs on both sides.
 		// On the server to affect the real digging speed.
@@ -68,6 +74,8 @@ public class SpawnerBreakEvent {
 //	    	if (!playerItem.canHarvestBlock(p.getHeldItemMainhand(), event.getState())) {
 //	    		return;
 //	    	}
+		
+	
 		boolean toolHarvestsBlockFaster = false;
 		float originalToolSpeed = event.getOriginalSpeed();
 

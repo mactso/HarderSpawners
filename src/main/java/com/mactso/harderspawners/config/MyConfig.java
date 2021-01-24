@@ -83,8 +83,6 @@ public class MyConfig
 			}
 		}
 
-		
-		
 		public static class Common
 		{
 
@@ -111,7 +109,7 @@ public class MyConfig
 						.comment("Debug Level: 0 = Off, 1 = Log, 2 = Chat+Log")
 						.translation(Main.MODID + ".config." + "debugLevel")
 						.defineInRange("debugLevel", () -> 0, 0, 2);
-				
+			
 				spawnerBreakSpeedMultiplier = builder
 						.comment("Spawner Break Speed Modifier: 0 = Off, 1 = 50% slower, 2-11 times slower")
 						.translation(Main.MODID + ".config." + "spawnerBreakSpeedMultiplier")
