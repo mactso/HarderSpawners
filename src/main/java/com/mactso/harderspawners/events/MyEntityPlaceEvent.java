@@ -4,55 +4,61 @@ package com.mactso.harderspawners.events;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
+import net.minecraft.item.BucketItem;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.RayTraceResult.Type;
 import net.minecraft.world.World;
+import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class MyEntityPlaceEvent {
 
     @SubscribeEvent()
-    public void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
-    	Entity entityPlacingBlock = event.getEntity();
-
-    	if (entityPlacingBlock.world.isRemote()) {
-    		return;
+    public void bucket(FillBucketEvent event)  {
+    	World world = (World) event.getWorld();
+    	ItemStack stack = event.getEmptyBucket();
+    	BlockPos pos = null;
+    	if (event.getTarget().getType() == Type.BLOCK) {
+    		BlockRayTraceResult br = (BlockRayTraceResult) event.getTarget();
+    		pos = br.getPos().offset(br.getFace());
+        	if (pos != null && stack.getItem() instanceof BucketItem) {
+        		BucketItem b = (BucketItem) stack.getItem();
+    	        	if (isSpawnerNearby(world, pos)) {
+    	        		if (b.getFluid().getAttributes().getLuminosity() > 8) {
+    	        			if (!world.isRemote()) {
+    	    					world.playSound(null, pos, SoundEvents.BLOCK_LAVA_EXTINGUISH,
+    	    							SoundCategory.AMBIENT, 0.9f, 0.25f);    	        				
+    	        			}
+    	        			event.setCanceled(true);
+    	        	}
+        		}
+        	}
     	}
-    	World world = entityPlacingBlock.world;
-    	
-
-    	// is player available?
-    	
-    	String name = entityPlacingBlock.getCachedUniqueIdString();
+   }
+	
+	
+    @SubscribeEvent()
+    public void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
+    	World world = (World) event.getWorld();
     	BlockState placedBlockState = event.getPlacedBlock();
-    	int blockLightValue = placedBlockState.getLightValue();
     	BlockPos placedBlockPos = event.getPos();
     	Block placedBlock = placedBlockState.getBlock();
     	
-//    	// okay to place lights outside .
-//    	if (iWorld.canSeeSky(placedBlockPos)) {
-//    		return;
-//    	}
-
-    	if ((blockLightValue < 8)&&(placedBlock != Blocks.REDSTONE_LAMP)) {
-    		return;
+    	int blockLightValue = placedBlockState.getLightValue();
+    	if (placedBlock == Blocks.REDSTONE_LAMP) {
+    		blockLightValue = 15;
     	}  
     	
-    	// okay to place lights in already bright areas.
-    	int light = world.getLight(placedBlockPos);
-
-    	if (light==15) {
-    		return;
+    	if (isSpawnerNearby(world, placedBlockPos) &&
+    			world.getLight(placedBlockPos) < 15 &&
+    			blockLightValue > 8)  {
+    		world.destroyBlock(placedBlockPos, true);
     	}
-    	
-    	// placing dark light that's not a redstone lamp.
-  	
-    	if (isSpawnerNearby(world, placedBlockPos)) {
-    		event.setCanceled(true);
-    	}
-   	
-  	
     }
     
     private boolean isSpawnerNearby (World world, BlockPos blockPos) {
