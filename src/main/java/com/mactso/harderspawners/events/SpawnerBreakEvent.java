@@ -1,17 +1,15 @@
 package com.mactso.harderspawners.events;
 
 import com.mactso.harderspawners.config.MyConfig;
+import com.mactso.harderspawners.util.SharedUtilityMethods;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.SpawnerBlock;
-import net.minecraft.block.TorchBlock;
-import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.PickaxeItem;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.util.SoundCategory;
@@ -20,10 +18,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Color;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.world.BlockEvent.BreakEvent;
-import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class SpawnerBreakEvent {
@@ -100,10 +95,10 @@ public class SpawnerBreakEvent {
 			// Serverside
 			if (!(player.world.isRemote())) {
 				ServerPlayerEntity serverPlayer = (ServerPlayerEntity) event.getPlayer();
-				World serverWorld = serverPlayer.getServerWorld();
-				if (serverWorld.getLight(event.getPos()) > 6) {
-					removeLightNearSpawner(event, serverWorld);
-				}
+				ServerWorld serverWorld = serverPlayer.getServerWorld();
+
+				boolean destroyedLight = SharedUtilityMethods.removeLightNearSpawner(event.getPos(), serverWorld);
+
 				// This is tricky--- if the player has a more powerful effect, it sometimes
 				// sticks "on" and won't expire so remove it once it has half a second left.
 				EffectInstance ei = player.getActivePotionEffect(Effects.POISON);
@@ -164,33 +159,6 @@ public class SpawnerBreakEvent {
 									Color.fromTextFormatting(TextFormatting.AQUA));
 				}
 
-			}
-		}
-	}
-
-	private void removeLightNearSpawner(PlayerEvent.BreakSpeed event, World serverWorld) {
-		int fX = event.getPos().getX();
-		int fZ = event.getPos().getZ();
-		int fYmin = event.getPos().getY() - 4;
-		if (fYmin < 1)
-			fYmin = 1;
-		int fYmax = event.getPos().getY() + 4;
-		if (fYmax > 254)
-			fYmin = 254;
-		int scanSize = 7;
-		for (int dy = fYmin; dy <= fYmax; dy++) {
-			for (int dx = fX - scanSize; dx <= fX + scanSize; dx++) {
-				for (int dz = fZ - scanSize; dz <= fZ + scanSize; dz++) {
-					BlockPos bP = new BlockPos(dx, dy, dz);
-					Block b = serverWorld.getBlockState(bP).getBlock();
-					int blockLightLevel = serverWorld.getBlockState(bP).getLightValue();
-					if ((blockLightLevel > 7)) {
-						serverWorld.destroyBlock(bP, true);
-					}
-					if (b == Blocks.LAVA) {
-						serverWorld.setBlockState(bP, Blocks.COBBLESTONE.getDefaultState(), 3);
-					}
-				}
 			}
 		}
 	}
