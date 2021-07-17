@@ -32,11 +32,21 @@ public class MyConfig
 		}
 
 		public static int debugLevel;
+		public static int destroyLightPercentage;
+		public static int destroyLightRange;
 		public static int spawnerBreakSpeedMultiplier;
 		public static int spawnerRevengeLevel;
 		public static double spawnersExplodePercentage;
 		public static String[]  defaultMobBreakPercentageValues;
 		public static String    defaultMobBreakPercentageValues6464;
+
+		public static int getDestroyLightPercentage() {
+			return destroyLightPercentage;
+		}
+
+		public static int getDestroyLightRange() {
+			return destroyLightRange;
+		}
 		
 		@SubscribeEvent
 		public static void onModConfigEvent(final ModConfig.ModConfigEvent configEvent)
@@ -73,6 +83,8 @@ public class MyConfig
 		{
 			debugLevel = COMMON.debugLevel.get();
 			spawnerBreakSpeedMultiplier = COMMON.spawnerBreakSpeedMultiplier.get();
+			destroyLightPercentage = COMMON.destroyLightPercentage.get();
+			destroyLightRange = COMMON.destroyLightRange.get();
 			spawnersExplodePercentage = COMMON.spawnersExplodePercentage.get();
 			spawnerRevengeLevel = COMMON.spawnerRevengeLevel.get();
 			defaultMobBreakPercentageValues6464 = COMMON.defaultNoBreakMobsActual.get() ;
@@ -85,6 +97,8 @@ public class MyConfig
 		{
 
 			public final IntValue debugLevel;
+			public final IntValue destroyLightPercentage;
+			public final IntValue destroyLightRange;
 			public final IntValue spawnerBreakSpeedMultiplier;
 			public final IntValue spawnerRevengeLevel;
 			public final DoubleValue spawnersExplodePercentage;
@@ -107,7 +121,17 @@ public class MyConfig
 						.comment("Debug Level: 0 = Off, 1 = Log, 2 = Chat+Log")
 						.translation(Main.MODID + ".config." + "debugLevel")
 						.defineInRange("debugLevel", () -> 0, 0, 2);
-			
+
+				destroyLightPercentage = builder
+						.comment("Chance to destroy light sources in range (0-100%)")
+						.translation(Main.MODID + ".config." + "destroyLightPercentage")
+						.defineInRange("destroyLightPercentage", () -> 100, 0, 100);
+
+				destroyLightRange = builder
+						.comment("Range of light source destruction in blocks (1-7)")
+						.translation(Main.MODID + ".config." + "destroyLightRange")
+						.defineInRange("destroyLightRange", () -> 7, 1, 7);
+
 				spawnerBreakSpeedMultiplier = builder
 						.comment("Spawner Break Speed Modifier: 0 = Off, 1 = 50% slower, 2-11 times slower")
 						.translation(Main.MODID + ".config." + "spawnerBreakSpeedMultiplier")
@@ -138,16 +162,16 @@ public class MyConfig
 		// support for any color chattext
 		public static void sendChat(PlayerEntity p, String chatMessage, Color color) {
 			StringTextComponent component = new StringTextComponent (chatMessage);
-			component.getStyle().setColor(color);
-			p.sendMessage(component, p.getUniqueID());
+			component.getStyle().withColor(color);
+			p.sendMessage(component, p.getUUID());
 		}
 		
 		// support for any color, optionally bold text.
 		public static void sendBoldChat(PlayerEntity p, String chatMessage, Color color) {
 			StringTextComponent component = new StringTextComponent (chatMessage);
 
-			component.getStyle().setBold(true);
-			component.getStyle().setColor(color);
-			p.sendMessage(component, p.getUniqueID());
+			component.getStyle().withBold(true);
+			component.getStyle().withColor(color);
+			p.sendMessage(component, p.getUUID());
 		}	
 }

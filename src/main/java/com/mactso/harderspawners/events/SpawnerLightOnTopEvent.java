@@ -14,12 +14,12 @@ public class SpawnerLightOnTopEvent {
 			return;
 		}
 		
-    	if (event.getWorld().getBlockState(event.getPos().down()).getBlock() != Blocks.SPAWNER) {
+    	if (event.getWorld().getBlockState(event.getPos().below()).getBlock() != Blocks.SPAWNER) {
     		return;
     	};
     	
 		BlockState bS = event.getState();
-    	if ((bS.getLightValue() < 8)&&(bS.getBlock() != Blocks.REDSTONE_LAMP)) {
+    	if ((bS.getLightEmission() < 8)&&(bS.getBlock() != Blocks.REDSTONE_LAMP)) {
     		return;
     	}  
 
@@ -37,15 +37,15 @@ public class SpawnerLightOnTopEvent {
     			whileGlowingFluid= false;
     			break;
     		}
-    		if (event.getWorld().getBlockState(event.getPos().up(i)).getLightValue()<8) {
+    		if (event.getWorld().getBlockState(event.getPos().above(i)).getLightEmission()<8) {
     			whileGlowingFluid= false;
     			break;
     		}
 
-    		if (event.getWorld().getFluidState(event.getPos().up(i)).isSource()) {
-            	event.getWorld().setBlockState(event.getPos().up(i), Blocks.COBBLESTONE.getDefaultState(), 3);
+    		if (event.getWorld().getFluidState(event.getPos().above(i)).isSource()) {
+            	event.getWorld().setBlock(event.getPos().above(i), Blocks.COBBLESTONE.defaultBlockState(), 3);
     		} else {
-            	event.getWorld().setBlockState(event.getPos().up(i), Blocks.AIR.getDefaultState(), 3);
+            	event.getWorld().setBlock(event.getPos().above(i), Blocks.AIR.defaultBlockState(), 3);
     		}
     	}
 	}

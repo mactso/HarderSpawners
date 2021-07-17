@@ -4,20 +4,17 @@ import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
 import net.minecraft.block.SpawnerBlock;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraft.item.Item;
 import net.minecraft.potion.EffectInstance;
 import net.minecraft.potion.Effects;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Color;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -50,22 +47,22 @@ public class SpawnerBreakEvent {
 		// On the server to affect the real digging speed.
 		// On the server to inflict revenge
 		// On the client to affect the apparent visual digging speed.
-		String debugWorldName = "ServerSide";
+		String debugSideType = "ServerSide";
 		PlayerEntity player = event.getPlayer();
 
-		if (player.world.isRemote()) {
-			debugWorldName = "ClientSide";
+		if (player.level.isClientSide()) {
+			debugSideType = "ClientSide";
 		}
 
 		if (player instanceof ServerPlayerEntity) {
-			debugWorldName = "ServerSide";
+			debugSideType = "ServerSide";
 
 		}
 		if (MyConfig.debugLevel > 0) {
-			System.out.println(debugWorldName);
+			System.out.println(debugSideType);
 		}
 
-		Item playerItem = player.getHeldItemMainhand().getItem();
+		Item playerItem = player.getMainHandItem().getItem();
 //	    	if (!playerItem.canHarvestBlock(p.getHeldItemMainhand(), event.getState())) {
 //	    		return;
 //	    	}
@@ -83,47 +80,47 @@ public class SpawnerBreakEvent {
 		int revengeLevel = MyConfig.spawnerRevengeLevel - 1;
 
 		if (MyConfig.debugLevel > 0) {
-			System.out.println("Player" + player.getName().toString() + "breaking a spawner:" + debugWorldName);
+			System.out.println("Player" + player.getName().toString() + "breaking a spawner:" + debugSideType);
 		}
 
 		if (MyConfig.spawnerRevengeLevel > 0) {
 			if (MyConfig.debugLevel > 0) {
 				System.out.println("Spawner taking sweet revenge on Player" + player.getName().toString() + " at "
-						+ (int) player.getPosX() + ", " + (int) player.getPosY() + ", " + (int) player.getPosZ() + ".");
+						+ (int) player.getX() + ", " + (int) player.getY() + ", " + (int) player.getZ() + ".");
 			}
 
 			// Serverside
-			if (!(player.world.isRemote())) {
+			if (!(player.level.isClientSide())) {
 				ServerPlayerEntity serverPlayer = (ServerPlayerEntity) event.getPlayer();
-				ServerWorld serverWorld = serverPlayer.getServerWorld();
+				ServerWorld serverWorld = serverPlayer.getLevel();
 
 				boolean destroyedLight = SharedUtilityMethods.removeLightNearSpawner(event.getPos(), serverWorld);
 
 				// This is tricky--- if the player has a more powerful effect, it sometimes
 				// sticks "on" and won't expire so remove it once it has half a second left.
-				EffectInstance ei = player.getActivePotionEffect(Effects.POISON);
+				EffectInstance ei = player.getEffect(Effects.POISON);
 				if (ei != null) {
 					if (ei.getDuration() > 10) {
 						return;
 					}
 					if ((ei.getDuration() < 1) || (ei.getAmplifier() > revengeLevel)) {
-						serverPlayer.removeActivePotionEffect(Effects.POISON);
+						serverPlayer.removeEffectNoUpdate(Effects.POISON);
 					}
 				}
 				// Apply revenge
 				if (revengeLevel >= 0) {
-					serverPlayer.getServerWorld().playSound(null, event.getPos(), SoundEvents.ENTITY_ENDERMAN_AMBIENT,
+					serverPlayer.getLevel().playSound(null, event.getPos(), SoundEvents.ENDERMAN_AMBIENT,
 							SoundCategory.AMBIENT, 0.9f, 0.25f);
 					if (revengeLevel < 4) {
-						serverPlayer.addPotionEffect(
+						serverPlayer.addEffect(
 								new EffectInstance(Effects.POISON, THREE_SECONDS, revengeLevel, true, SHOW_PARTICLES));
 					} else if (revengeLevel < 7) {
-						serverPlayer.addPotionEffect(new EffectInstance(Effects.WITHER, THREE_SECONDS, revengeLevel - 3,
+						serverPlayer.addEffect(new EffectInstance(Effects.WITHER, THREE_SECONDS, revengeLevel - 3,
 								true, SHOW_PARTICLES));
 					} else {
-						serverPlayer.addPotionEffect(new EffectInstance(Effects.BLINDNESS, THREE_SECONDS,
+						serverPlayer.addEffect(new EffectInstance(Effects.BLINDNESS, THREE_SECONDS,
 								revengeLevel - 6, true, SHOW_PARTICLES));
-						serverPlayer.addPotionEffect(new EffectInstance(Effects.WITHER, THREE_SECONDS, revengeLevel - 6,
+						serverPlayer.addEffect(new EffectInstance(Effects.WITHER, THREE_SECONDS, revengeLevel - 6,
 								true, SHOW_PARTICLES));
 					}
 				}
@@ -149,14 +146,14 @@ public class SpawnerBreakEvent {
 		}
 
 		// client side
-		if (player.world.isRemote()) {
+		if (player.level.isClientSide()) {
 			if ((spamLimiter++) % 20 == 0) {
-				MyConfig.sendChat(player, "The spawner slowly breaks...", Color.fromTextFormatting(TextFormatting.DARK_AQUA));
+				MyConfig.sendChat(player, "The spawner slowly breaks...", Color.fromLegacyFormat(TextFormatting.DARK_AQUA));
 				if (MyConfig.debugLevel > 1) {
 					MyConfig.sendChat(player,
 							"Slowed breaking spawner modifier applied: " + MyConfig.spawnerBreakSpeedMultiplier
 									+ " speed reduced from " + baseDestroySpeed + " to " + newDestroySpeed + ".",
-									Color.fromTextFormatting(TextFormatting.AQUA));
+									Color.fromLegacyFormat(TextFormatting.AQUA));
 				}
 
 			}

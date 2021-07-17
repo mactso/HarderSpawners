@@ -50,7 +50,7 @@ public class SpawnerSpawnEvent {
 
     	BlockPos eventPos = new BlockPos(event.getX(),event.getY(),event.getZ());
 
-    	if (serverWorld.getLight(eventPos) > 6) {
+    	if (serverWorld.getMaxLocalRawBrightness(eventPos) > 6) {
         		boolean destroyedLight = 
         				SharedUtilityMethods.removeLightNearSpawner(eventPos, serverWorld);    			
     	}
@@ -58,7 +58,7 @@ public class SpawnerSpawnEvent {
 
     	AbstractSpawner AbSp = event.getSpawner();
 
-    	BlockPos AbSpPos = AbSp.getSpawnerPosition();
+    	BlockPos AbSpPos = AbSp.getPos();
 
         LivingEntity le = (LivingEntity) event.getEntityLiving();
         String leStr = le.getType().getRegistryName().toString();
@@ -92,8 +92,8 @@ public class SpawnerSpawnEvent {
         	}
         	if ((canExplode) && (explodeRoll < MyConfig.spawnersExplodePercentage)) {
         		int flags = 3;  // Update Block- Tell Clients.
-        		serverWorld.setBlockState(AbSpPos, Blocks.TNT.getDefaultState(),flags);
-        		serverWorld.setBlockState(AbSpPos.down(), Blocks.REDSTONE_BLOCK.getDefaultState(), flags);
+        		serverWorld.setBlock(AbSpPos, Blocks.TNT.defaultBlockState(),flags);
+        		serverWorld.setBlock(AbSpPos.below(), Blocks.REDSTONE_BLOCK.defaultBlockState(), flags);
         	} else {
             	serverWorld.destroyBlock(AbSpPos, false);
         	}

@@ -1,6 +1,8 @@
 package com.mactso.harderspawners.events;
 
 
+import com.mactso.harderspawners.config.MyConfig;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -25,13 +27,13 @@ public class MyEntityPlaceEvent {
     	BlockPos pos = null;
     	if (event.getTarget().getType() == Type.BLOCK) {
     		BlockRayTraceResult br = (BlockRayTraceResult) event.getTarget();
-    		pos = br.getPos().offset(br.getFace());
+    		pos = br.getBlockPos().relative(br.getDirection());
         	if (pos != null && stack.getItem() instanceof BucketItem) {
         		BucketItem b = (BucketItem) stack.getItem();
     	        	if (isSpawnerNearby(world, pos)) {
     	        		if (b.getFluid().getAttributes().getLuminosity() > 8) {
-    	        			if (!world.isRemote()) {
-    	    					world.playSound(null, pos, SoundEvents.BLOCK_LAVA_EXTINGUISH,
+    	        			if (!world.isClientSide()) {
+    	    					world.playSound(null, pos, SoundEvents.LAVA_EXTINGUISH,
     	    							SoundCategory.AMBIENT, 0.9f, 0.25f);    	        				
     	        			}
     	        			event.setCanceled(true);
@@ -49,15 +51,17 @@ public class MyEntityPlaceEvent {
     	BlockPos placedBlockPos = event.getPos();
     	Block placedBlock = placedBlockState.getBlock();
     	
-    	int blockLightValue = placedBlockState.getLightValue();
+    	int blockLightValue = placedBlockState.getLightEmission();
     	if (placedBlock == Blocks.REDSTONE_LAMP) {
     		blockLightValue = 15;
     	}  
     	
     	if (isSpawnerNearby(world, placedBlockPos) &&
-    			world.getLight(placedBlockPos) < 15 &&
+    			world.getMaxLocalRawBrightness(placedBlockPos) < 15 &&
     			blockLightValue > 8)  {
-    		world.destroyBlock(placedBlockPos, true);
+    		if (world.getRandom().nextInt(100) <= MyConfig.getDestroyLightPercentage()) {
+        		world.destroyBlock(placedBlockPos, true);
+    		}
     	}
     }
     
@@ -66,6 +70,8 @@ public class MyEntityPlaceEvent {
     	int x = blockPos.getX();
     	int y = blockPos.getY();
     	int z = blockPos.getZ();
+    	int destroyRange = MyConfig.getDestroyLightRange();
+    	int destroyYRange = destroyRange/2;
     	int dx, dy, dz;
     	// quick scan for spawner
     	
@@ -80,9 +86,9 @@ public class MyEntityPlaceEvent {
 			}
 		}
 		// slower scan for spawner
-    	for ( dy=-1;dy<3;dy++) {
-			for( dx=-6;dx<6;dx++) {
-				for( dz=-6;dz<6;dz++) {
+    	for ( dy=(0-destroyYRange);dy<(int)destroyYRange;dy++) {
+			for( dx=(0-destroyRange);dx<(0+destroyRange);dx++) {
+				for( dz=(0-destroyRange);dz<(0+destroyRange);dz++) {
 					Block tempBlock = world.getBlockState(new BlockPos (x+dx,y+dy,z+dz)).getBlock();
 					if (tempBlock == Blocks.SPAWNER) {
 						return true;
