@@ -147,7 +147,7 @@ public class SpawnerBreakEvent {
 
 		// client side
 		if (player.level.isClientSide()) {
-			if ((spamLimiter++) % 20 == 0) {
+			if ((spamLimiter++) % 20 == 0 && (MyConfig.spawnerTextOff == 0)) {
 				MyConfig.sendChat(player, "The spawner slowly breaks...", Color.fromLegacyFormat(TextFormatting.DARK_AQUA));
 				if (MyConfig.debugLevel > 1) {
 					MyConfig.sendChat(player,

@@ -32,6 +32,7 @@ public class MyConfig
 		}
 
 		public static int debugLevel;
+		public static int spawnerTextOff;
 		public static int destroyLightPercentage;
 		public static int destroyLightRange;
 		public static int spawnerBreakSpeedMultiplier;
@@ -82,6 +83,7 @@ public class MyConfig
 		public static void bakeConfig()
 		{
 			debugLevel = COMMON.debugLevel.get();
+			spawnerTextOff = COMMON.spawnerTextOff.get();
 			spawnerBreakSpeedMultiplier = COMMON.spawnerBreakSpeedMultiplier.get();
 			destroyLightPercentage = COMMON.destroyLightPercentage.get();
 			destroyLightRange = COMMON.destroyLightRange.get();
@@ -97,6 +99,7 @@ public class MyConfig
 		{
 
 			public final IntValue debugLevel;
+			public final IntValue spawnerTextOff;
 			public final IntValue destroyLightPercentage;
 			public final IntValue destroyLightRange;
 			public final IntValue spawnerBreakSpeedMultiplier;
@@ -122,6 +125,11 @@ public class MyConfig
 						.translation(Main.MODID + ".config." + "debugLevel")
 						.defineInRange("debugLevel", () -> 0, 0, 2);
 
+				spawnerTextOff = builder
+						.comment("0 = chat messages on, 1 = chat messages off.")
+						.translation(Main.MODID + ".config." + "spawnerTextOff")
+						.defineInRange("spawnerTextOff", () -> 1, 0, 1);
+				
 				destroyLightPercentage = builder
 						.comment("Chance to destroy light sources in range (0-100%)")
 						.translation(Main.MODID + ".config." + "destroyLightPercentage")
