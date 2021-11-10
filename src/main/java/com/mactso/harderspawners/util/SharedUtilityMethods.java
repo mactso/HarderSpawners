@@ -4,14 +4,14 @@ import java.util.Random;
 
 import com.mactso.harderspawners.config.MyConfig;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 
 public class SharedUtilityMethods {
 
-	public static boolean removeLightNearSpawner(BlockPos pos, ServerWorld serverWorld) {
+	public static boolean removeLightNearSpawner(BlockPos pos, ServerLevel serverWorld) {
 		boolean destroyedLight = false;
 		Random rand = serverWorld.getRandom();
 		if (serverWorld.getMaxLocalRawBrightness(pos) > 6) {

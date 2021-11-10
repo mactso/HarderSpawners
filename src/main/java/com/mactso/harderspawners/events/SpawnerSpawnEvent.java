@@ -6,13 +6,13 @@ import com.mactso.harderspawners.config.MobSpawnerBreakPercentageItemManager;
 import com.mactso.harderspawners.config.MobSpawnerBreakPercentageItemManager.MobSpawnerBreakPercentageItem;
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.monster.SilverfishEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.spawner.AbstractSpawner;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.monster.Silverfish;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.BaseSpawner;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -32,7 +32,7 @@ public class SpawnerSpawnEvent {
 //	    
     	
     	// context - this event only happens once every 15 to 45 seconds per active spawner.
-    	if (event.getSpawnReason() != SpawnReason.SPAWNER) {
+    	if (event.getSpawnReason() != MobSpawnType.SPAWNER) {
     		return;
     	}
 
@@ -41,11 +41,11 @@ public class SpawnerSpawnEvent {
         	debugThreadIdentifier = (debugThreadIdentifier + 1 ) % 10000;
         	System.out.println ("HarderSpawners: ("+debugThreadIdentifier+") Checking Spawner Spawn Event at "+(int)event.getX()+"+(int)event.getY()+"+(int)event.getZ()+".");
     	}
-    	if (!(event.getWorld() instanceof ServerWorld)) {
+    	if (!(event.getWorld() instanceof ServerLevel)) {
     		return;
     	}
     	
-    	ServerWorld serverWorld = (ServerWorld) event.getWorld();
+    	ServerLevel serverWorld = (ServerLevel) event.getWorld();
     	long gametime = serverWorld.getGameTime();
 
     	BlockPos eventPos = new BlockPos(event.getX(),event.getY(),event.getZ());
@@ -56,9 +56,8 @@ public class SpawnerSpawnEvent {
     	}
     	
 
-    	AbstractSpawner AbSp = event.getSpawner();
-
-    	BlockPos AbSpPos = AbSp.getPos();
+   	
+    	BlockPos AbSpPos = event.getSpawner().getSpawnerBlockEntity().getBlockPos();
 
         LivingEntity le = (LivingEntity) event.getEntityLiving();
         String leStr = le.getType().getRegistryName().toString();
@@ -87,7 +86,7 @@ public class SpawnerSpawnEvent {
 
         if (failRoll < mobSpawnerBreakPercentage) {
         	double explodeRoll = 100.0 * chance.nextDouble();
-        	if (le instanceof SilverfishEntity) {
+        	if (le instanceof Silverfish) {
         		canExplode = false;
         	}
         	if ((canExplode) && (explodeRoll < MyConfig.spawnersExplodePercentage)) {

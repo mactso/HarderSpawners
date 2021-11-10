@@ -3,17 +3,17 @@ package com.mactso.harderspawners.events;
 
 import com.mactso.harderspawners.config.MyConfig;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.BucketItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceResult.Type;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -22,11 +22,11 @@ public class MyEntityPlaceEvent {
 
     @SubscribeEvent()
     public void bucket(FillBucketEvent event)  {
-    	World world = (World) event.getWorld();
+    	Level world = (Level) event.getWorld();
     	ItemStack stack = event.getEmptyBucket();
     	BlockPos pos = null;
     	if (event.getTarget().getType() == Type.BLOCK) {
-    		BlockRayTraceResult br = (BlockRayTraceResult) event.getTarget();
+    		BlockHitResult br = (BlockHitResult) event.getTarget();
     		pos = br.getBlockPos().relative(br.getDirection());
         	if (pos != null && stack.getItem() instanceof BucketItem) {
         		BucketItem b = (BucketItem) stack.getItem();
@@ -34,7 +34,7 @@ public class MyEntityPlaceEvent {
     	        		if (b.getFluid().getAttributes().getLuminosity() > 8) {
     	        			if (!world.isClientSide()) {
     	    					world.playSound(null, pos, SoundEvents.LAVA_EXTINGUISH,
-    	    							SoundCategory.AMBIENT, 0.9f, 0.25f);    	        				
+    	    							SoundSource.AMBIENT, 0.9f, 0.25f);    	        				
     	        			}
     	        			event.setCanceled(true);
     	        	}
@@ -46,7 +46,7 @@ public class MyEntityPlaceEvent {
 	
     @SubscribeEvent()
     public void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
-    	World world = (World) event.getWorld();
+    	Level world = (Level) event.getWorld();
     	BlockState placedBlockState = event.getPlacedBlock();
     	BlockPos placedBlockPos = event.getPos();
     	Block placedBlock = placedBlockState.getBlock();
@@ -65,7 +65,7 @@ public class MyEntityPlaceEvent {
     	}
     }
     
-    private boolean isSpawnerNearby (World world, BlockPos blockPos) {
+    private boolean isSpawnerNearby (Level world, BlockPos blockPos) {
 
     	int x = blockPos.getX();
     	int y = blockPos.getY();
