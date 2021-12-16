@@ -10,3 +10,5 @@
 /runData.launch
 /runServer.launch
 /.metadata/
+/build.gradle.bak
+/gradle.properties.bak

@@ -19,7 +19,7 @@ public class SpawnerLightOnTopEvent {
     	};
     	
 		BlockState bS = event.getState();
-    	if ((bS.getLightEmission() < 8)&&(bS.getBlock() != Blocks.REDSTONE_LAMP)) {
+    	if ((bS.getLightEmission(event.getWorld(), event.getPos().below()) < 8)&&(bS.getBlock() != Blocks.REDSTONE_LAMP)) {
     		return;
     	}  
 
@@ -30,15 +30,13 @@ public class SpawnerLightOnTopEvent {
     		return;
     	}
     	
-    	boolean whileGlowingFluid = true;
+
     	int y = event.getPos().getY();
     	for (int i=0; i<16; i++ ) {
     		if (i+y > 127) {
-    			whileGlowingFluid= false;
-    			break;
+     			break;
     		}
-    		if (event.getWorld().getBlockState(event.getPos().above(i)).getLightEmission()<8) {
-    			whileGlowingFluid= false;
+    		if (event.getWorld().getBlockState(event.getPos().above(i)).getLightEmission(event.getWorld(),event.getPos().above(i))<8) {
     			break;
     		}
 

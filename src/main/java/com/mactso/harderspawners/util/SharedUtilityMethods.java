@@ -28,7 +28,7 @@ public class SharedUtilityMethods {
 					for (int dz = pos.getZ() - scanSize; dz <= pos.getZ() + scanSize; dz++) {
 						BlockPos bP = new BlockPos(dx, dy, dz);
 						Block b = serverWorld.getBlockState(bP).getBlock();
-						int blockLightLevel = serverWorld.getBlockState(bP).getLightEmission();
+						int blockLightLevel = serverWorld.getBlockState(bP).getLightEmission(serverWorld,bP);
 						if ((blockLightLevel > 7) && (rand.nextInt(100) <= MyConfig.getDestroyLightPercentage())) {
 							if (b != Blocks.END_PORTAL) {
 								serverWorld.destroyBlock(bP, true);

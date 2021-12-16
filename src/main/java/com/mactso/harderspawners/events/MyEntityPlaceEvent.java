@@ -50,8 +50,7 @@ public class MyEntityPlaceEvent {
     	BlockState placedBlockState = event.getPlacedBlock();
     	BlockPos placedBlockPos = event.getPos();
     	Block placedBlock = placedBlockState.getBlock();
-    	
-    	int blockLightValue = placedBlockState.getLightEmission();
+    	int blockLightValue = placedBlockState.getLightEmission(world, placedBlockPos);
     	if (placedBlock == Blocks.REDSTONE_LAMP) {
     		blockLightValue = 15;
     	}  

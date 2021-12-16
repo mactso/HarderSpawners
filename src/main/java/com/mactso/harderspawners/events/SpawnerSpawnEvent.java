@@ -6,13 +6,13 @@ import com.mactso.harderspawners.config.MobSpawnerBreakPercentageItemManager;
 import com.mactso.harderspawners.config.MobSpawnerBreakPercentageItemManager.MobSpawnerBreakPercentageItem;
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
-import net.minecraft.world.level.block.Blocks;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.monster.Silverfish;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.BaseSpawner;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -46,7 +46,6 @@ public class SpawnerSpawnEvent {
     	}
     	
     	ServerLevel serverWorld = (ServerLevel) event.getWorld();
-    	long gametime = serverWorld.getGameTime();
 
     	BlockPos eventPos = new BlockPos(event.getX(),event.getY(),event.getZ());
 
