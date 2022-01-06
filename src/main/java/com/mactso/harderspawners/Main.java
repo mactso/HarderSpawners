@@ -1,9 +1,10 @@
-// 16.1 harder spawners
+
 package com.mactso.harderspawners;
 
 
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.events.MyEntityPlaceEvent;
+import com.mactso.harderspawners.events.PlayerMoveHandler;
 import com.mactso.harderspawners.events.SpawnerBreakEvent;
 import com.mactso.harderspawners.events.SpawnerLightOnTopEvent;
 import com.mactso.harderspawners.events.SpawnerSpawnEvent;
@@ -36,6 +37,7 @@ public class Main {
 				MinecraftForge.EVENT_BUS.register(new SpawnerSpawnEvent());
 				MinecraftForge.EVENT_BUS.register(new SpawnerLightOnTopEvent());
 				MinecraftForge.EVENT_BUS.register(new MyEntityPlaceEvent());
+				MinecraftForge.EVENT_BUS.register(new PlayerMoveHandler());
 		}   
 		
 		

@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.common.ForgeConfigSpec.DoubleValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
@@ -35,9 +36,35 @@ public class MyConfig
 		public static int debugLevel;
 		public static int spawnerTextOff;
 		public static int destroyLightPercentage;
+		public static int getMaxNearbyEntities() {
+			return maxNearbyEntities;
+		}
+
+		public static int getRequiredPlayerRange() {
+			return requiredPlayerRange;
+		}
+
+		public static int getSpawnRange() {
+			return spawnRange;
+		}
+
+		public static int getHostileSpawnerLightLevel() {
+			return hostileSpawnerLightLevel;
+		}
+		
+		public static int getHostileSpawnerResistDaylightDuration() {
+			return hostileSpawnerResistDaylightDuration;
+		}
 		public static int destroyLightRange;
 		public static int spawnerBreakSpeedMultiplier;
 		public static int spawnerRevengeLevel;
+		public static int maxNearbyEntities;
+		public static int requiredPlayerRange;
+		public static int spawnRange;
+		public static int hostileSpawnerLightLevel;
+
+
+		public static int hostileSpawnerResistDaylightDuration;
 		public static double spawnersExplodePercentage;
 		public static String[]  defaultMobBreakPercentageValues;
 		public static String    defaultMobBreakPercentageValues6464;
@@ -56,7 +83,7 @@ public class MyConfig
 			if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC)
 			{
 				bakeConfig();
-				MobSpawnerBreakPercentageItemManager.mobBreakPercentageInit();
+				MobSpawnerManager.mobBreakPercentageInit();
 			}
 		}
 
@@ -90,6 +117,11 @@ public class MyConfig
 			destroyLightRange = COMMON.destroyLightRange.get();
 			spawnersExplodePercentage = COMMON.spawnersExplodePercentage.get();
 			spawnerRevengeLevel = COMMON.spawnerRevengeLevel.get();
+			maxNearbyEntities = COMMON.maxNearbyEntities.get();
+			requiredPlayerRange = COMMON.requiredPlayerRange.get();
+			spawnRange = COMMON.spawnRange.get();
+			hostileSpawnerLightLevel = COMMON.hostileSpawnerLightLevel.get();
+			hostileSpawnerResistDaylightDuration = COMMON.hostileSpawnerResistDaylightDuration.get();
 			defaultMobBreakPercentageValues6464 = COMMON.defaultNoBreakMobsActual.get() ;
 			if (debugLevel > 0) {
 				System.out.println("Harder Spawners Debug: " + debugLevel );
@@ -105,6 +137,11 @@ public class MyConfig
 			public final IntValue destroyLightRange;
 			public final IntValue spawnerBreakSpeedMultiplier;
 			public final IntValue spawnerRevengeLevel;
+			public final IntValue requiredPlayerRange;
+			public final IntValue maxNearbyEntities;
+			public final IntValue spawnRange;
+			public final IntValue hostileSpawnerLightLevel; 
+			public final IntValue hostileSpawnerResistDaylightDuration; 
 			public final DoubleValue spawnersExplodePercentage;
 			
 			public final ConfigValue<String> defaultNoBreakMobsActual;
@@ -119,7 +156,7 @@ public class MyConfig
 			
 			public Common(ForgeConfigSpec.Builder builder)
 			{
-				builder.push("Spawners Spawn in Light Control Values");
+				builder.push("Harder Spawners Control Values");
 
 				debugLevel = builder
 						.comment("Debug Level: 0 = Off, 1 = Log, 2 = Chat+Log")
@@ -155,6 +192,31 @@ public class MyConfig
 						.comment("Explode percentage when Spawners Break")
 						.translation(Main.MODID + ".config." + "spawnersExplodePercentage")
 						.defineInRange("spawnersExplodePercentage", () -> 33.0, 0.0, 100.0);
+
+				requiredPlayerRange = builder
+						.comment("Hostile Spawners: Player Range when hostile mobs start spawning")
+						.translation(Main.MODID + ".config." + "requiredPlayerRange")
+						.defineInRange("requiredPlayerRange", () -> 11, 8, 32);
+
+				maxNearbyEntities = builder
+						.comment("Hostile Spawners: Maximum Spawned Hostile Entities")
+						.translation(Main.MODID + ".config." + "maxNearbyEntities")
+						.defineInRange("maxNearbyEntities", () -> 8, 4, 32);
+				
+				spawnRange = builder
+						.comment("Hostile Spawners: How far from spawner hostile mobs can spawn")
+						.translation(Main.MODID + ".config." + "spawnRange")
+						.defineInRange("spawnRange", () -> 9, 4, 16);
+				
+				hostileSpawnerLightLevel = builder
+						.comment("hostileSpawnerLightLevel: Maximum Light Level for Hostile Spawners")
+						.translation(Main.MODID + ".config." + "hostileSpawnerLightLevel")
+						.defineInRange("hostileSpawnerLightLevel", () -> 11, 0, 15);
+
+				hostileSpawnerResistDaylightDuration = builder
+						.comment("hostileSpawnerResistDaylightDuration: give undead fire resistance (true) ")
+						.translation(Main.MODID + ".config." + "hostileSpawnerResistDaylightDuration")
+						.defineInRange("hostileSpawnerResistDaylightDuration", () -> 120, 0, 9999);
 				
 				builder.pop();
 				
@@ -164,8 +226,12 @@ public class MyConfig
 						.comment("Trail Block String 6464")
 						.translation(Main.MODID + ".config" + "defaultNoBreakMobsActual")
 						.define("defaultNoBreakMobsActual", defaultNoBreakMobs6464);
+				
+				
 				builder.pop();	
 			}
+
+
 		}	
 		
 		// support for any color chattext

@@ -8,14 +8,13 @@ import java.util.StringTokenizer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
-public class MobSpawnerBreakPercentageItemManager {
+public class MobSpawnerManager {
 	public static Hashtable<String, MobSpawnerBreakPercentageItem> mobBreakPercentageHashtable = new Hashtable<>();
 	private static String defaultMobBreakPercentageString = "harderspawners:default:0.02";
 	private static String defaultMobBreakPercentageKey = defaultMobBreakPercentageString;
 
 	public static MobSpawnerBreakPercentageItem getMobSpawnerBreakPercentage(String key) {
 		String iKey = key;
-
 		if (mobBreakPercentageHashtable.isEmpty()) {
 			mobBreakPercentageInit();
 		}
@@ -29,6 +28,7 @@ public class MobSpawnerBreakPercentageItemManager {
 	public static String getMobSpawnerBreakPercentageAsString() {
 		String returnString="";
 		double breakPercentage;
+		 
 		for (String key:mobBreakPercentageHashtable.keySet()) {
 			breakPercentage = mobBreakPercentageHashtable.get(key).breakPercentage;
 			String tempString = key+","+breakPercentage+";";
@@ -88,15 +88,16 @@ public class MobSpawnerBreakPercentageItemManager {
 	// keeps track of the spawner break percentage by mod:mob key.
 	public static class MobSpawnerBreakPercentageItem {
 		double breakPercentage;
-
+		
 		public MobSpawnerBreakPercentageItem(double breakPercentage) {
 			this.breakPercentage = breakPercentage;
+ 
 		}
 
 		public double getSpawnerBreakPercentage() {
 			return breakPercentage;
 		}
-
+		
 	}
 
 }
