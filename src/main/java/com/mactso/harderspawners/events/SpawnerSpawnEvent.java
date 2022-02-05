@@ -61,6 +61,7 @@ public class SpawnerSpawnEvent {
 		if (event.getSpawnReason() != MobSpawnType.SPAWNER) {
 			return;
 		}
+		
 
 		
 		if (MyConfig.debugLevel > 0) {
@@ -71,9 +72,11 @@ public class SpawnerSpawnEvent {
 		if (!(event.getWorld() instanceof ServerLevel)) {
 			return;
 		}
+		
 
 
 		ServerLevel serverWorld = (ServerLevel) event.getWorld();
+		
 		LivingEntity le = (LivingEntity) event.getEntityLiving();
 
 		if (serverWorld.isUnobstructed(le)) {
@@ -100,6 +103,7 @@ public class SpawnerSpawnEvent {
 				boolean destroyedLight = SharedUtilityMethods.removeLightNearSpawner(eventPos, serverWorld);
 			}
 		}
+
 
 		BlockPos AbSpPos = event.getSpawner().getSpawnerBlockEntity().getBlockPos();
 		BaseSpawner mySpawner = event.getSpawner();
