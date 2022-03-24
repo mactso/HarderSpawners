@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.TickEvent.PlayerTickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -21,6 +22,10 @@ public class PlayerMoveHandler {
 	@SubscribeEvent
 
 	public void PlayerMove(PlayerTickEvent event) {
+		
+		if (event.phase == Phase.START)
+			return;
+		
 		if (event.player instanceof ServerPlayer sp) {
 			BlockPos pos = sp.blockPosition();
 			MutableBlockPos mp = new MutableBlockPos();
