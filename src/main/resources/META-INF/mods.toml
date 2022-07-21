@@ -1,6 +1,7 @@
 modLoader="javafml"
 loaderVersion="[32,)"
 license="MIT License"
+issueTrackerURL="https://github.com/mactso/HarderSpawners/issues"
 [[mods]]
 modId="harderspawners"
 version="${file.jarVersion}"
@@ -17,7 +18,7 @@ description='Harder Spawners Mod.'
     ordering="NONE"
     side="SERVER"
 
-[[dependencies.harderspawnwers]]
+[[dependencies.harderspawners]]
     modId="minecraft"
     mandatory=true
     versionRange="[1.16.1,1.17.0)"
