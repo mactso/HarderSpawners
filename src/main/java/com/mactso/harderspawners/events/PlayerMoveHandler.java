@@ -1,11 +1,7 @@
 package com.mactso.harderspawners.events;
 
-import com.mactso.harderspawners.config.MyConfig;
-
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;

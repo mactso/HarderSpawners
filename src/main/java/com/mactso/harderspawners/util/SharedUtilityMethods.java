@@ -11,6 +11,8 @@ import net.minecraft.server.level.ServerLevel;
 
 public class SharedUtilityMethods {
 
+	// note: This *only* runs when someone tries to break a spawner or when the spawner tries to spawn.
+	// Other routines catch when a block is placed.
 	public static boolean removeLightNearSpawner(BlockPos pos, ServerLevel serverWorld) {
 		boolean destroyedLight = false;
 		Random rand = serverWorld.getRandom();

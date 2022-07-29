@@ -2,19 +2,19 @@ package com.mactso.harderspawners.events;
 
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
+import com.mactso.harderspawners.util.Utility;
 
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.SpawnerBlock;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SpawnerBlock;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -26,7 +26,6 @@ public class SpawnerBreakEvent {
 	public void blockBreakSpeed(PlayerEvent.BreakSpeed event) {
 
 		final int THREE_SECONDS = 60;
-
 
 		if (event.getState().getBlock() == null) {
 			return;
@@ -148,12 +147,12 @@ public class SpawnerBreakEvent {
 		// client side
 		if (player.level.isClientSide()) {
 			if ((spamLimiter++) % 20 == 0 && (MyConfig.spawnerTextOff == 0)) {
-				MyConfig.sendChat(player, "The spawner slowly breaks...", TextColor.fromLegacyFormat(ChatFormatting.DARK_AQUA));
+				Utility.sendChat(player, "The spawner slowly breaks...", ChatFormatting.DARK_AQUA);
 				if (MyConfig.debugLevel > 1) {
-					MyConfig.sendChat(player,
+					Utility.sendChat(player,
 							"Slowed breaking spawner modifier applied: " + MyConfig.spawnerBreakSpeedMultiplier
 									+ " speed reduced from " + baseDestroySpeed + " to " + newDestroySpeed + ".",
-									TextColor.fromLegacyFormat(ChatFormatting.AQUA));
+									ChatFormatting.GREEN);
 				}
 
 			}

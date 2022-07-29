@@ -11,7 +11,6 @@ import com.mactso.harderspawners.config.MobSpawnerManager.MobSpawnerBreakPercent
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
 
-import net.minecraft.client.renderer.EffectInstance;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -19,12 +18,10 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.InclusiveRange;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.monster.Silverfish;
