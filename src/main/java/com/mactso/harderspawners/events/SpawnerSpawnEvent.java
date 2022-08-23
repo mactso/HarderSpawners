@@ -59,6 +59,12 @@ public class SpawnerSpawnEvent {
 			return;
 		}
 		
+		if (event.getSpawner() == null)
+			return;
+		
+		if (event.getSpawner().getSpawnerBlockEntity() == null)  // Bumblezone, issue #8.
+			return;
+		
 
 		
 		if (MyConfig.debugLevel > 0) {
