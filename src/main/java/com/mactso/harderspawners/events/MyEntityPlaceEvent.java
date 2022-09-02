@@ -15,14 +15,14 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
-import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class MyEntityPlaceEvent {
 
     @SubscribeEvent()
     public void bucket(FillBucketEvent event)  {
-    	Level world = (Level) event.getWorld();
+    	Level world = (Level) event.getLevel();
     	ItemStack stack = event.getEmptyBucket();
     	BlockPos pos = null;
     	if (event.getTarget().getType() == Type.BLOCK) {
@@ -31,7 +31,7 @@ public class MyEntityPlaceEvent {
         	if (pos != null && stack.getItem() instanceof BucketItem) {
         		BucketItem b = (BucketItem) stack.getItem();
     	        	if (isSpawnerNearby(world, pos)) {
-    	        		if (b.getFluid().getAttributes().getLuminosity() > 8) {
+    	        		if (b.getFluid().getFluidType().getLightLevel() > 8) {
     	        			if (!world.isClientSide()) {
     	    					world.playSound(null, pos, SoundEvents.LAVA_EXTINGUISH,
     	    							SoundSource.AMBIENT, 0.9f, 0.25f);    	        				
@@ -46,7 +46,7 @@ public class MyEntityPlaceEvent {
 	
     @SubscribeEvent()
     public void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
-    	Level world = (Level) event.getWorld();
+    	Level world = (Level) event.getLevel();
     	BlockState placedBlockState = event.getPlacedBlock();
     	BlockPos placedBlockPos = event.getPos();
     	Block placedBlock = placedBlockState.getBlock();

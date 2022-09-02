@@ -3,6 +3,8 @@ package com.mactso.harderspawners.events;
 import java.util.Optional;
 import java.util.Random;
 
+import net.minecraft.util.RandomSource;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -72,15 +74,15 @@ public class SpawnerSpawnEvent {
 			System.out.println("HarderSpawners: (" + debugThreadIdentifier + ") Checking Spawner Spawn Event at "
 					+ (int) event.getX() + "+(int)event.getY()+" + (int) event.getZ() + ".");
 		}
-		if (!(event.getWorld() instanceof ServerLevel)) {
+		if (!(event.getLevel() instanceof ServerLevel)) {
 			return;
 		}
 		
 
 
-		ServerLevel serverWorld = (ServerLevel) event.getWorld();
+		ServerLevel serverWorld = (ServerLevel) event.getLevel();
 		
-		LivingEntity le = (LivingEntity) event.getEntityLiving();
+		LivingEntity le = event.getEntity();
 
 		if (serverWorld.isUnobstructed(le)) {
 			event.setResult(Result.ALLOW);  // prevent entity spawn rules from blocking it
@@ -115,7 +117,7 @@ public class SpawnerSpawnEvent {
 		updateHostileSpawnerValues(mySpawner);
 		int debug = 4;
 
-		String leStr = le.getType().getRegistryName().toString();
+		String leStr = ForgeRegistries.ENTITY_TYPES.getKey(le.getType()).toString();
 		MobSpawnerBreakPercentageItem t = MobSpawnerManager.getMobSpawnerBreakPercentage(leStr);
 
 		if ((MyConfig.getHostileSpawnerResistDaylightDuration()>0) && (serverWorld.getMaxLocalRawBrightness(eventPos) > 8)) {
@@ -138,7 +140,7 @@ public class SpawnerSpawnEvent {
 
 		mobSpawnerBreakPercentage = mobSpawnerBreakPercentage / 4; // called 4 times in tick it spawns.
 
-		Random chance = event.getWorld().getRandom();
+		RandomSource chance = event.getLevel().getRandom();
 		double failRoll = 100.0 * chance.nextDouble();
 		boolean canExplode = true;
 		// keep in mind default odds are 1/500 (so 0.2 is 0.2% chance, not a 20%).
