@@ -72,7 +72,7 @@ public class MobSpawnerManager {
 
 				mobBreakPercentageHashtable.put(key, new MobSpawnerBreakPercentageItem(numericBreakPercentage));
 				if (!modAndMob.contentEquals("harderspawners:default") &&
-				    !ForgeRegistries.ENTITIES.containsKey(new ResourceLocation(modAndMob))
+				    !ForgeRegistries.ENTITY_TYPES.containsKey(new ResourceLocation(modAndMob))
 				   )  {
 					System.out.println("Harder Spawners Mob: " + modAndMob + " not in Forge Registry.  Mispelled?");
 				}

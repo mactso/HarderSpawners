@@ -1,5 +1,8 @@
 package com.mactso.harderspawners.util;
 
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -7,7 +10,6 @@ import com.mactso.harderspawners.config.MyConfig;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -41,20 +43,18 @@ public class Utility {
 
 	public static void sendBoldChat(Player p, String chatMessage, ChatFormatting textColor) {
 
-		TextComponent component = new TextComponent (chatMessage);
+		MutableComponent component = Component.literal (chatMessage);
 		component.setStyle(component.getStyle().withBold(true));
 		component.setStyle(component.getStyle().withColor(ChatFormatting.DARK_GREEN));
-		p.sendMessage(component, p.getUUID());
-
+		p.sendSystemMessage(component);
 	}	
 	
 
 	public static void sendChat(Player p, String chatMessage, ChatFormatting textColor) {
 
-		TextComponent component = new TextComponent (chatMessage);
+        MutableComponent component = Component.literal (chatMessage);
 		component.setStyle(component.getStyle().withColor(ChatFormatting.GREEN));
-		p.sendMessage(component, p.getUUID());
-
+        p.sendSystemMessage(component);
 	}
 	
 	public static void updateEffect(LivingEntity e, int amplifier,  MobEffect mobEffect, int duration) {

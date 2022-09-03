@@ -5,6 +5,7 @@ import com.mactso.harderspawners.util.SharedUtilityMethods;
 import com.mactso.harderspawners.util.Utility;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -27,19 +28,20 @@ public class SpawnerBreakEvent {
 
 		final int THREE_SECONDS = 60;
 
-		if (event.getState().getBlock() == null) {
+		if (event.getState().getBlock() == null || event.getPosition().isEmpty()) {
 			return;
 		}
 		if (!(event.getState().getBlock() instanceof SpawnerBlock)) {
 			return;
 		}
-		if (event.getPlayer() == null) {
+		if (event.getEntity() == null) {
 			return;
 		}
-		if (event.getPlayer().isCreative()) {
+		if (event.getEntity().isCreative()) {
 			return;
 		}
 
+        final BlockPos pos = event.getPosition().get();
 		Block spawnerBlock = event.getState().getBlock();
 
 		// this runs on both sides.
@@ -47,7 +49,7 @@ public class SpawnerBreakEvent {
 		// On the server to inflict revenge
 		// On the client to affect the apparent visual digging speed.
 		String debugSideType = "ServerSide";
-		Player player = event.getPlayer();
+		Player player = event.getEntity();
 
 		if (player.level.isClientSide()) {
 			debugSideType = "ClientSide";
@@ -90,10 +92,10 @@ public class SpawnerBreakEvent {
 
 			// Serverside
 			if (!(player.level.isClientSide())) {
-				ServerPlayer serverPlayer = (ServerPlayer) event.getPlayer();
+				ServerPlayer serverPlayer = (ServerPlayer) event.getEntity();
 				ServerLevel serverWorld = serverPlayer.getLevel();
 
-				boolean destroyedLight = SharedUtilityMethods.removeLightNearSpawner(event.getPos(), serverWorld);
+				boolean destroyedLight = SharedUtilityMethods.removeLightNearSpawner(pos, serverWorld);
 
 				// This is tricky--- if the player has a more powerful effect, it sometimes
 				// sticks "on" and won't expire so remove it once it has half a second left.
@@ -108,7 +110,7 @@ public class SpawnerBreakEvent {
 				}
 				// Apply revenge
 				if (revengeLevel >= 0) {
-					serverPlayer.getLevel().playSound(null, event.getPos(), SoundEvents.ENDERMAN_AMBIENT,
+					serverPlayer.getLevel().playSound(null, pos, SoundEvents.ENDERMAN_AMBIENT,
 							SoundSource.AMBIENT, 0.9f, 0.25f);
 					if (revengeLevel < 4) {
 						serverPlayer.addEffect(
