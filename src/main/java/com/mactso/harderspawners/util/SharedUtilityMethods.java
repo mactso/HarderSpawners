@@ -1,14 +1,12 @@
 package com.mactso.harderspawners.util;
 
-import java.util.Random;
-
 import com.mactso.harderspawners.config.MyConfig;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 
 public class SharedUtilityMethods {
 
