@@ -9,13 +9,17 @@ import com.mactso.harderspawners.config.MobSpawnerManager;
 import com.mactso.harderspawners.config.MobSpawnerManager.MobSpawnerBreakPercentageItem;
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
+import com.mactso.harderspawners.util.Utility;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.InclusiveRange;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -30,6 +34,7 @@ import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.SpawnData.CustomSpawnRules;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.eventbus.api.Event.Result;
@@ -99,7 +104,7 @@ public class SpawnerSpawnEvent {
 
 		// serverWorld.addBlockEntityTicker(null);
 		// LevelTicks<Block> v = serverWorld.getBlockTicks();
-		BlockPos eventPos = new BlockPos(event.getX(), event.getY(), event.getZ());
+		BlockPos eventPos = new BlockPos(Mth.floor(event.getX()), Mth.floor(event.getY()), Mth.floor(event.getZ()));
 
 		int skylight = serverWorld.getBrightness(LightLayer.SKY, eventPos);
 		if (skylight < 15) {
@@ -111,9 +116,16 @@ public class SpawnerSpawnEvent {
 
 		BlockPos AbSpPos = event.getSpawner().getSpawnerBlockEntity().getBlockPos();
 		BaseSpawner mySpawner = event.getSpawner();
+		
+		Utility.drawParticleBeam(AbSpPos.north(4), serverWorld, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.LAVA.defaultBlockState()));
+		Utility.drawParticleBeam(AbSpPos.south(4), serverWorld, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.LAVA.defaultBlockState()));
+		Utility.drawParticleBeam(AbSpPos.east(4), serverWorld, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.LAVA.defaultBlockState()));
+		Utility.drawParticleBeam(AbSpPos.west(4), serverWorld, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.LAVA.defaultBlockState()));
+
 		// mySpawner.spawnRange;
 		int debug5 = 7;
-		updateHostileSpawnerValues(mySpawner);
+		boolean justSpawned=true;
+		updateHostileSpawnerValues(mySpawner, justSpawned);
 		int debug = 4;
 
 		String leStr = ForgeRegistries.ENTITY_TYPES.getKey(le.getType()).toString();
@@ -166,19 +178,20 @@ public class SpawnerSpawnEvent {
 	// this adjusts hostile mob spawners.
 	// this will need to add CustomSpawnData to overcome the light level rules.
 	
-	public static void updateHostileSpawnerValues(BaseSpawner mySpawner) {
+	public static void updateHostileSpawnerValues(BaseSpawner mySpawner, boolean fromSpawnEvent) {
 		// 18.1 FD: net/minecraft/world/level/BaseSpawner/f_45451_ /maxNearbyEntities
-	      
 		CompoundTag tag = new CompoundTag ();
 		boolean changed = false;
 		tag = mySpawner.save(tag);
 		CompoundTag spawnDataTag = tag.getCompound("SpawnData");
+		
 		CompoundTag entityTag = spawnDataTag.getCompound("entity");
 		
 		Optional<EntityType<?>> optional = EntityType.by(entityTag);
         if (optional.isEmpty()) {
         	return;
         }
+
 		if (optional.get().getCategory() != MobCategory.MONSTER) {
 			return;
 		}
@@ -193,6 +206,16 @@ public class SpawnerSpawnEvent {
 		if (tag.getInt("SpawnRange") != MyConfig.spawnRange) {
 			tag.putInt("SpawnRange", MyConfig.spawnRange);
 			changed = true;
+		}
+
+		if (fromSpawnEvent) {
+			int time = tag.getInt("MinSpawnDelay");
+			if (tag.getInt("MinSpawnDelay") >= MyConfig.getSpawnerMinutesStunned()*1200) {
+				tag.putInt("MinSpawnDelay",200);
+				tag.putInt("MaxSpawnDelay",800);
+				tag.putInt("Delay",240);
+				changed = true;
+			}
 		}
 
 		int lightLevel = MyConfig.getHostileSpawnerLightLevel();
@@ -218,7 +241,9 @@ public class SpawnerSpawnEvent {
 
 		if (changed) {
 			mySpawner.load(mySpawner.getSpawnerBlockEntity().getLevel(),mySpawner.getSpawnerBlockEntity().getBlockPos(),  tag);
+			ServerTickHandler.addClientUpdate((ServerLevel)mySpawner.getSpawnerBlockEntity().getLevel(),mySpawner.getSpawnerBlockEntity().getBlockPos());
 		}
+
 
 
 //		// 18.1 FD: net/minecraft/world/level/BaseSpawner/f_45452_ /requiredPlayerRange

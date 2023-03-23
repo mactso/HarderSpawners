@@ -13,6 +13,10 @@ public class SharedUtilityMethods {
 	// note: This *only* runs when someone tries to break a spawner or when the spawner tries to spawn.
 	// Other routines catch when a block is placed.
 	public static boolean removeLightNearSpawner(BlockPos pos, ServerLevel serverWorld) {
+		
+		if (serverWorld.dimensionType().monsterSpawnBlockLightLimit() == 15) {
+			return false;
+		}
 		boolean destroyedLight = false;
 		RandomSource rand = serverWorld.getRandom();
 		if (serverWorld.getMaxLocalRawBrightness(pos) > 6) {
@@ -36,10 +40,12 @@ public class SharedUtilityMethods {
 								destroyedLight = true;
 							}
 						}
-						if ((b == Blocks.LAVA)&& (rand.nextInt(100) <= MyConfig.getDestroyLightPercentage())) {
-							serverWorld.setBlock(bP, Blocks.AIR.defaultBlockState(), 3);
-							destroyedLight = true;
-						}
+
+							if ((b == Blocks.LAVA)&& (rand.nextInt(100) <= MyConfig.getDestroyLightPercentage())) {
+								serverWorld.setBlock(bP, Blocks.AIR.defaultBlockState(), 3);
+								destroyedLight = true;
+							}
+
 					}
 				}
 			}

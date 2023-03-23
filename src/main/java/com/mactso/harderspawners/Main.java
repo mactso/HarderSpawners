@@ -4,8 +4,9 @@ package com.mactso.harderspawners;
 
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.events.MyEntityPlaceEvent;
-import com.mactso.harderspawners.events.PlayerMoveHandler;
-import com.mactso.harderspawners.events.SpawnerBreakEvent;
+import com.mactso.harderspawners.events.SbeEvent;
+import com.mactso.harderspawners.events.ServerTickHandler;
+import com.mactso.harderspawners.events.SpawnerBreakHandler;
 import com.mactso.harderspawners.events.SpawnerLightOnTopEvent;
 import com.mactso.harderspawners.events.SpawnerSpawnEvent;
 
@@ -33,11 +34,12 @@ public class Main {
 		@SubscribeEvent 
 		public void preInit (final FMLCommonSetupEvent event) {
 				System.out.println("harderspawners: Registering Handler");
-				MinecraftForge.EVENT_BUS.register(new SpawnerBreakEvent ());
+				MinecraftForge.EVENT_BUS.register(new SbeEvent());
+				MinecraftForge.EVENT_BUS.register(new SpawnerBreakHandler ());
 				MinecraftForge.EVENT_BUS.register(new SpawnerSpawnEvent());
 				MinecraftForge.EVENT_BUS.register(new SpawnerLightOnTopEvent());
 				MinecraftForge.EVENT_BUS.register(new MyEntityPlaceEvent());
-				MinecraftForge.EVENT_BUS.register(new PlayerMoveHandler());
+				MinecraftForge.EVENT_BUS.register(new ServerTickHandler());
 		}   
 		
 		
