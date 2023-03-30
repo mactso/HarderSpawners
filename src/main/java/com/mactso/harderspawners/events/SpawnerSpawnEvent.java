@@ -21,7 +21,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.InclusiveRange;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
@@ -30,13 +29,13 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.monster.Silverfish;
 import net.minecraft.world.level.BaseSpawner;
-import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.Level.ExplosionInteraction;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.SpawnData.CustomSpawnRules;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.entity.living.LivingSpawnEvent;
+import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.eventbus.api.Event.Result;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -48,20 +47,11 @@ public class SpawnerSpawnEvent {
 	private static final int SECONDS_120 = 2400;
 	private static final int EFFECT_LEVEL_0 = 0;
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
-	public void onCheckSpawnerSpawn(LivingSpawnEvent.CheckSpawn event) {
-//    	ASM code needed here:
-//
-//    	package net.minecraft.entity.monster;
-//    	public static boolean canMonsterSpawnInLight(EntityType<? extends MonsterEntity> type, IWorld worldIn, SpawnReason reason, BlockPos pos, Random randomIn) {
-//    	     return worldIn.getDifficulty() != Difficulty.PEACEFUL && isValidLightLevel(worldIn, pos, randomIn) && canSpawnOn(type, worldIn, reason, pos, randomIn);
-//    	}
-//
-//      Look at beekeeper
-//	    
-
+	public void onCheckSpawnerSpawn(MobSpawnEvent.FinalizeSpawn event) {
+ 
 		// context - this event only happens once every 15 to 45 seconds per active
 		// spawner.
-		if (event.getSpawnReason() != MobSpawnType.SPAWNER) {
+		if (event.getSpawnType() != MobSpawnType.SPAWNER) {
 			return;
 		}
 		
@@ -154,7 +144,12 @@ public class SpawnerSpawnEvent {
 		RandomSource chance = event.getLevel().getRandom();
 		double failRoll = 100.0 * chance.nextDouble();
 		boolean canExplode = true;
+		
 		// keep in mind default odds are 1/500 (so 0.2 is 0.2% chance, not a 20%).
+		// TODO: Test this every release.
+		
+		
+		
 		if (failRoll < mobSpawnerBreakPercentage) {
 
 			double explodeRoll = 100.0 * chance.nextDouble();
@@ -170,7 +165,7 @@ public class SpawnerSpawnEvent {
 			
 			if (explode) {
 			    Vec3 explodepos = new Vec3(AbSpPos.getX(),AbSpPos.getY(),AbSpPos.getZ());
-			    serverWorld.explode(null, new DamageSource("explosion").setExplosion(), null, explodepos.x, explodepos.y, explodepos.z, 6, true, Explosion.BlockInteraction.DESTROY);
+			    serverWorld.explode(null, null, null, explodepos.x, explodepos.y, explodepos.z, 4.0f, true, ExplosionInteraction.BLOCK, false);
 			}
 		}
 	}
