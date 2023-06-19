@@ -52,7 +52,7 @@ public class SpawnerBreakHandler {
 		}
 
 		// server side only event.
-		ServerLevel serverLevel = (ServerLevel) sp.level;
+		ServerLevel serverLevel = (ServerLevel) sp.level();
 		BlockPos pos = event.getPos();
 		BlockState bs = serverLevel.getBlockState(pos);
 		Block b = bs.getBlock();
@@ -62,7 +62,7 @@ public class SpawnerBreakHandler {
 		}
 
 		BlockEntity be = serverLevel.getBlockEntity(pos);
-		sp.level.playSound(null, pos, SoundEvents.ENDERMITE_DEATH, SoundSource.AMBIENT, 1.0f, 1.0f);
+		sp.level().playSound(null, pos, SoundEvents.ENDERMITE_DEATH, SoundSource.AMBIENT, 1.0f, 1.0f);
 
 		if (be instanceof SpawnerBlockEntity sbe) {
 
@@ -85,7 +85,7 @@ public class SpawnerBreakHandler {
 				event.setCanceled(true);
 				ServerTickHandler.addClientUpdate(serverLevel, pos);
 			} else {
-				sp.level.playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
+				sp.level().playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
 				ServerTickHandler.addClientUpdate(serverLevel, pos);
 				event.setCanceled(true);
 			}
@@ -121,9 +121,9 @@ public class SpawnerBreakHandler {
 		// On the client to affect the apparent visual digging speed.
 		String debugSideType = "ServerSide";
 		Player player = event.getEntity();
-		long gameTime = player.level.getGameTime();
+		long gameTime = player.level().getGameTime();
 
-		if (player.level.isClientSide()) {
+		if (player.level().isClientSide()) {
 			debugSideType = "ClientSide";
 		}
 
@@ -155,11 +155,11 @@ public class SpawnerBreakHandler {
 
 
 			// Serverside
-			if (!(player.level.isClientSide())) {
+			if (!(player.level().isClientSide())) {
 
 				SimpleParticleType particles = ParticleTypes.CAMPFIRE_COSY_SMOKE;
 				ServerPlayer serverPlayer = (ServerPlayer) event.getEntity();
-				ServerLevel serverWorld = serverPlayer.getLevel();
+				ServerLevel serverWorld = (ServerLevel) serverPlayer.level();
 				BlockEntity be = serverWorld.getBlockEntity(pos);
 				if (!(be instanceof SpawnerBlockEntity))
 					return;
@@ -173,7 +173,7 @@ public class SpawnerBreakHandler {
 				if (tag.getInt("MinSpawnDelay") == stunnedTicks) {
 					particles = ParticleTypes.ELECTRIC_SPARK;
 				}
-				RandomSource rand = player.level.getRandom();
+				RandomSource rand = player.level().getRandom();
 				double vx = 0.06 * rand.nextDouble() - 0.03d;
 				double vz = 0.06 * rand.nextDouble() - 0.03d;
 
@@ -182,7 +182,7 @@ public class SpawnerBreakHandler {
 				if (cGameTime < gameTime) {
 					
 					cGameTime = gameTime + 2 + rand.nextInt(3);
-					player.level.playSound(null, pos, SoundEvents.ENDERMAN_HURT, SoundSource.AMBIENT, 0.11f, 0.3f);
+					player.level().playSound(null, pos, SoundEvents.ENDERMAN_HURT, SoundSource.AMBIENT, 0.11f, 0.3f);
 					BlockPos p = pos;
 					for (int j = 0; j < 11; ++j) {
 						double x = (double) pos.getX() + rand.nextDouble();
@@ -196,7 +196,7 @@ public class SpawnerBreakHandler {
 				boolean destroyedLight = SharedUtilityMethods.removeLightNearSpawner(pos, serverWorld);
 
 				if (revengeLevel >= 0) {
-					serverPlayer.getLevel().playSound(null, pos, SoundEvents.ENDERMAN_AMBIENT, SoundSource.AMBIENT,
+					serverPlayer.level().playSound(null, pos, SoundEvents.ENDERMAN_AMBIENT, SoundSource.AMBIENT,
 							0.9f, 0.25f);
 					MobEffect effect = MobEffects.POISON;
 					if (revengeLevel >= 4) {
@@ -240,7 +240,7 @@ public class SpawnerBreakHandler {
 		}
 
 		// client side
-		if (player.level.isClientSide()) {
+		if (player.level().isClientSide()) {
 
 
 			if ((spamLimiter++) % 20 == 0 && (MyConfig.spawnerTextOff == 0)) {
