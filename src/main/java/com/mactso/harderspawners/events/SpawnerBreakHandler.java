@@ -1,5 +1,7 @@
 package com.mactso.harderspawners.events;
 
+import com.mactso.harderspawners.capabilities.CapabilitySpawner;
+import com.mactso.harderspawners.capabilities.ISpawnerStatsStorage;
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
 import com.mactso.harderspawners.util.Utility;
@@ -69,19 +71,26 @@ public class SpawnerBreakHandler {
 			BaseSpawner mySpawner = sbe.getSpawner();
 			CompoundTag tag = new CompoundTag();
 			tag = mySpawner.save(tag);
-			int minSpawnDelay = tag.getInt("MinSpawnDelay");
 
 			int stunnedTicks = MyConfig.getSpawnerMinutesStunned() * 1200;
 
-			// on first break, "stun" spawner..
-			// on second break, let it break naturally.
-			if (tag.getInt("MinSpawnDelay") != stunnedTicks) {
+			ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
+			if (!cap.isStunned()) {
+				Utility.debugMsg(1, pos, "Stunning Spawner");
+				cap.setMaxSpawnDelay(tag.getInt("MaxSpawnDelay"));
+				cap.setMinSpawnDelay(tag.getInt("MinSpawnDelay"));
+				cap.setStunned(true);
+				Utility.debugMsg(2, pos, "Stunned Spawner saved values: (max):"+cap.getMaxSpawnDelay()+"(min):"+ cap.getMinSpawnDelay());
+
 				tag.putInt("MinSpawnDelay", stunnedTicks);
 				tag.putInt("MaxSpawnDelay", stunnedTicks + 10);
 				tag.putInt("Delay", stunnedTicks + 5);
 				mySpawner.load(mySpawner.getSpawnerBlockEntity().getLevel(),
 						mySpawner.getSpawnerBlockEntity().getBlockPos(), tag);
 				sbe.setChanged();
+				Utility.debugMsg(2, pos, "Stunned Spawner stunned values: (max):" + tag.getInt("MaxSpawnDelay")
+						+ "(min):" + tag.getInt("MinSpawnDelay"));
+
 				event.setCanceled(true);
 				ServerTickHandler.addClientUpdate(serverLevel, pos);
 			} else {
@@ -131,9 +140,8 @@ public class SpawnerBreakHandler {
 			debugSideType = "ServerSide";
 
 		}
-		if (MyConfig.debugLevel > 0) {
-			System.out.println(debugSideType);
-		}
+		
+		Utility.debugMsg(1, debugSideType);
 
 		Item playerItem = player.getMainHandItem().getItem();
 //	    	if (!playerItem.canHarvestBlock(p.getHeldItemMainhand(), event.getState())) {
@@ -149,9 +157,9 @@ public class SpawnerBreakHandler {
 
 		// float baseDestroySpeed = playerItem.getDestroySpeed(p.getHeldItemMainhand(),
 		// s);
-		int revengeLevel = MyConfig.spawnerRevengeLevel - 1;
+		int revengeLevel = MyConfig.getSpawnerRevengeLevel() - 1;
 
-		if (MyConfig.spawnerRevengeLevel > 0) {
+		if (MyConfig.getSpawnerRevengeLevel() > 0) {
 
 
 			// Serverside
@@ -227,15 +235,12 @@ public class SpawnerBreakHandler {
 		// both sides
 		float baseDestroySpeed = event.getOriginalSpeed();
 		float newDestroySpeed = baseDestroySpeed;
-		if (MyConfig.spawnerBreakSpeedMultiplier > 0) {
-			newDestroySpeed = newDestroySpeed / (1 + MyConfig.spawnerBreakSpeedMultiplier);
+		if (MyConfig.getSpawnerBreakSpeedMultiplier() > 0) {
+			newDestroySpeed = newDestroySpeed / (1 + MyConfig.getSpawnerBreakSpeedMultiplier());
 			if (newDestroySpeed > 0) {
 				event.setNewSpeed(newDestroySpeed);
-				if (MyConfig.debugLevel > 0) {
-					System.out
-							.println("Slowed breaking spawner modifier applied:" + MyConfig.spawnerBreakSpeedMultiplier
+				Utility.debugMsg(1, "Slowed breaking spawner modifier applied:" + MyConfig.getSpawnerBreakSpeedMultiplier()
 									+ " slowing from " + baseDestroySpeed + " to " + newDestroySpeed + ".");
-				}
 			}
 		}
 
@@ -243,11 +248,11 @@ public class SpawnerBreakHandler {
 		if (player.level().isClientSide()) {
 
 
-			if ((spamLimiter++) % 20 == 0 && (MyConfig.spawnerTextOff == 0)) {
+			if ((spamLimiter++) % 20 == 0 && (MyConfig.getSpawnerTextOff() == 0)) {
 				Utility.sendChat(player, "The spawner slowly breaks...", ChatFormatting.DARK_AQUA);
-				if (MyConfig.debugLevel > 1) {
+				if (MyConfig.getDebugLevel() > 1) {
 					Utility.sendChat(player,
-							"Slowed breaking spawner modifier applied: " + MyConfig.spawnerBreakSpeedMultiplier
+							"Slowed breaking spawner modifier applied: " + MyConfig.getSpawnerBreakSpeedMultiplier()
 									+ " speed reduced from " + baseDestroySpeed + " to " + newDestroySpeed + ".",
 							ChatFormatting.GREEN);
 				}

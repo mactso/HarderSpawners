@@ -56,9 +56,9 @@ public class MyConfig {
 					.translation(Main.MODID + ".config." + "destroyLightRange")
 					.defineInRange("destroyLightRange", () -> 7, 1, 7);
 
-			spawnerMinutesStunned = builder.comment("0- spawner breaks as normal.  1 or higher stuns spawner for X minutes.  Can't Break It.")
+			spawnerMinutesStunned = builder.comment("0- spawner breaks as normal.  Values over 0 minutes stun the spawner but don't break it.")
 					.translation(Main.MODID + ".config." + "spawnerMinutesStunned")
-					.defineInRange("spawnerMinutesStunned", () -> 0, 0, Integer.MAX_VALUE);
+					.defineInRange("spawnerMinutesStunned", () -> 0, 0, 27);
 			
 			spawnerBreakSpeedMultiplier = builder
 					.comment("Spawner Break Speed Modifier: 0 = Off, 1 = 50% slower, From 2 to 2.1 billion times slower")
@@ -118,39 +118,39 @@ public class MyConfig {
 		COMMON = specPair.getLeft();
 	}
 
-	public static int debugLevel;
-	public static int spawnerTextOff;
-	public static int spawnerMinutesStunned;
-	public static int destroyLightPercentage;
-	public static int destroyLightRange;
-	public static int spawnerBreakSpeedMultiplier;
-	public static int spawnerRevengeLevel;
-	public static int maxNearbyEntities;
-	public static int requiredPlayerRange;
-	public static int spawnRange;
-	public static int hostileSpawnerLightLevel;
-	public static int hostileSpawnerResistDaylightDuration;
-	public static double spawnersExplodePercentage;
-	public static String[] defaultMobBreakPercentageValues;
-	public static String defaultMobBreakPercentageValues6464;
+	private static int debugLevel;
+	private static int spawnerTextOff;
+	private static int spawnerMinutesStunned;
+	private static int destroyLightPercentage;
+	private static int destroyLightRange;
+	private static int spawnerBreakSpeedMultiplier;
+	private static int spawnerRevengeLevel;
+	private static int maxNearbyEntities;
+	private static int requiredPlayerRange;
+	private static int spawnRange;
+	private static int hostileSpawnerLightLevel;
+	private static int hostileSpawnerResistDaylightDuration;
+	private static double spawnersExplodePercentage;
+	private static String[] defaultMobBreakPercentageValues;
+	private static String defaultMobBreakPercentageValues6464;
 	
 	
 	public static void bakeConfig() {
 		debugLevel = COMMON.debugLevel.get();
-		spawnerTextOff = COMMON.spawnerTextOff.get();
+		setSpawnerTextOff(COMMON.spawnerTextOff.get());
 		spawnerMinutesStunned = COMMON.spawnerMinutesStunned.get();
-		spawnerBreakSpeedMultiplier = COMMON.spawnerBreakSpeedMultiplier.get();
+		setSpawnerBreakSpeedMultiplier(COMMON.spawnerBreakSpeedMultiplier.get());
 		destroyLightPercentage = COMMON.destroyLightPercentage.get();
 		destroyLightRange = COMMON.destroyLightRange.get();
 		
-		spawnersExplodePercentage = COMMON.spawnersExplodePercentage.get();
-		spawnerRevengeLevel = COMMON.spawnerRevengeLevel.get();
+		setSpawnersExplodePercentage(COMMON.spawnersExplodePercentage.get());
+		setSpawnerRevengeLevel(COMMON.spawnerRevengeLevel.get());
 		maxNearbyEntities = COMMON.maxNearbyEntities.get();
 		requiredPlayerRange = COMMON.requiredPlayerRange.get();
 		spawnRange = COMMON.spawnRange.get();
 		hostileSpawnerLightLevel = COMMON.hostileSpawnerLightLevel.get();
 		hostileSpawnerResistDaylightDuration = COMMON.hostileSpawnerResistDaylightDuration.get();
-		defaultMobBreakPercentageValues6464 = COMMON.defaultNoBreakMobsActual.get();
+		setDefaultMobBreakPercentageValues6464(COMMON.defaultNoBreakMobsActual.get());
 		if (debugLevel > 0) {
 			System.out.println("Harder Spawners Debug: " + debugLevel);
 		}
@@ -205,20 +205,57 @@ public class MyConfig {
 
 	public static void pushSpawnerRevenge() {
 		if (debugLevel > 0) {
-			System.out.println("harderspawners: revengeLevel" + MyConfig.spawnerRevengeLevel);
+			System.out.println("harderspawners: revengeLevel" + MyConfig.getSpawnerRevengeLevel());
 		}
-		COMMON.spawnerRevengeLevel.set(MyConfig.spawnerRevengeLevel);
+		COMMON.spawnerRevengeLevel.set(MyConfig.getSpawnerRevengeLevel());
 	}
 
 	public static void pushSpawnersExplodePercentage() {
 		if (debugLevel > 0) {
-			System.out.println("harderspawners: explode% :" + MyConfig.spawnersExplodePercentage);
+			System.out.println("harderspawners: explode% :" + MyConfig.getSpawnersExplodePercentage());
 		}
-		COMMON.spawnersExplodePercentage.set(MyConfig.spawnersExplodePercentage);
+		COMMON.spawnersExplodePercentage.set(MyConfig.getSpawnersExplodePercentage());
 	}
 
 	public static void setDebugLevel(int debugLevel) {
 		MyConfig.debugLevel = debugLevel;
+	}
+	
+	public static int getSpawnerBreakSpeedMultiplier() {
+		return spawnerBreakSpeedMultiplier;
+	}
+	public static void setSpawnerBreakSpeedMultiplier(int spawnerBreakSpeedMultiplier) {
+		MyConfig.spawnerBreakSpeedMultiplier = spawnerBreakSpeedMultiplier;
+	}
+	public static int getSpawnerRevengeLevel() {
+		return spawnerRevengeLevel;
+	}
+	public static void setSpawnerRevengeLevel(int spawnerRevengeLevel) {
+		MyConfig.spawnerRevengeLevel = spawnerRevengeLevel;
+	}
+	public static int getSpawnerTextOff() {
+		return spawnerTextOff;
+	}
+	public static void setSpawnerTextOff(int spawnerTextOff) {
+		MyConfig.spawnerTextOff = spawnerTextOff;
+	}
+	public static String getDefaultMobBreakPercentageValues6464() {
+		return defaultMobBreakPercentageValues6464;
+	}
+	public static void setDefaultMobBreakPercentageValues6464(String defaultMobBreakPercentageValues6464) {
+		MyConfig.defaultMobBreakPercentageValues6464 = defaultMobBreakPercentageValues6464;
+	}
+	public static String[] getDefaultMobBreakPercentageValues() {
+		return defaultMobBreakPercentageValues;
+	}
+	public static void setDefaultMobBreakPercentageValues(String[] defaultMobBreakPercentageValues) {
+		MyConfig.defaultMobBreakPercentageValues = defaultMobBreakPercentageValues;
+	}
+	public static double getSpawnersExplodePercentage() {
+		return spawnersExplodePercentage;
+	}
+	public static void setSpawnersExplodePercentage(double spawnersExplodePercentage) {
+		MyConfig.spawnersExplodePercentage = spawnersExplodePercentage;
 	}
 
 }
