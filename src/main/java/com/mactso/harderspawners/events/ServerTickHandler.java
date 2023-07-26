@@ -91,7 +91,7 @@ public class ServerTickHandler {
 			return true;
 		else if (sbe.hasLevel()) {
 
-			SpawnerSpawnEvent.updateHostileSpawnerValues(sbe.getSpawner(), false);
+			SpawnerSpawnEvent.updateHostileSpawnerValues(sbe, sbe.getSpawner(), false);
 			return true;
 		}
 		return false;

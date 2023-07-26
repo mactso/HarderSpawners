@@ -47,7 +47,7 @@ public class MobSpawnerManager {
 		int i = 0;
 		String mobBreakPercentageLine6464 = "";
 		// Forge Issue 6464 patch.
-		StringTokenizer st6464 = new StringTokenizer(MyConfig.defaultMobBreakPercentageValues6464, ";");
+		StringTokenizer st6464 = new StringTokenizer(MyConfig.getDefaultMobBreakPercentageValues6464(), ";");
 		while (st6464.hasMoreElements()) {
 			mobBreakPercentageLine6464 = st6464.nextToken().trim();
 			if (mobBreakPercentageLine6464.isEmpty()) continue;
@@ -55,13 +55,13 @@ public class MobSpawnerManager {
 			i++;
 		}
 
-		MyConfig.defaultMobBreakPercentageValues = dTL6464.toArray(new String[i]);
+		MyConfig.setDefaultMobBreakPercentageValues(dTL6464.toArray(new String[i]));
 		
 		i = 0;
 		mobBreakPercentageHashtable.clear();
-		while (i < MyConfig.defaultMobBreakPercentageValues.length) {
+		while (i < MyConfig.getDefaultMobBreakPercentageValues().length) {
 			try {
-				StringTokenizer st = new StringTokenizer(MyConfig.defaultMobBreakPercentageValues[i], ",");
+				StringTokenizer st = new StringTokenizer(MyConfig.getDefaultMobBreakPercentageValues()[i], ",");
 				String modAndMob = st.nextToken();
 				String key = modAndMob;
 				String breakPercentage = st.nextToken();
@@ -77,7 +77,7 @@ public class MobSpawnerManager {
 					System.out.println("Harder Spawners Mob: " + modAndMob + " not in Forge Registry.  Mispelled?");
 				}
 			} catch (Exception e) {
-				System.out.println("Harder Spawners :  Mob Config : " + MyConfig.defaultMobBreakPercentageValues[i]);
+				System.out.println("Harder Spawners :  Mob Config : " + MyConfig.getDefaultMobBreakPercentageValues()[i]);
 			}
 			i++;
 		}
