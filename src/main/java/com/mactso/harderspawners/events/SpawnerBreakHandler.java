@@ -40,7 +40,8 @@ public class SpawnerBreakHandler {
 
 	@SubscribeEvent
 	public void onBreakBlock(BreakEvent event) {
-
+		
+		Utility.debugMsg(2, "onBreakBlock Event");
 		if (MyConfig.getSpawnerMinutesStunned() == 0) {
 			return;
 		}
@@ -54,6 +55,8 @@ public class SpawnerBreakHandler {
 		}
 
 		// server side only event.
+		Utility.debugMsg(2, "onBreakBlock getting server level and pos");
+
 		ServerLevel serverLevel = (ServerLevel) sp.level;
 		BlockPos pos = event.getPos();
 		BlockState bs = serverLevel.getBlockState(pos);
@@ -62,6 +65,8 @@ public class SpawnerBreakHandler {
 		if (b != Blocks.SPAWNER) {
 			return;
 		}
+
+		Utility.debugMsg(2, "onBreakBlock block was a spawner");
 
 		BlockEntity be = serverLevel.getBlockEntity(pos);
 		sp.level.playSound(null, pos, SoundEvents.ENDERMITE_DEATH, SoundSource.AMBIENT, 1.0f, 1.0f);
@@ -94,6 +99,7 @@ public class SpawnerBreakHandler {
 				event.setCanceled(true);
 				ServerTickHandler.addClientUpdate(serverLevel, pos);
 			} else {
+				Utility.debugMsg(2, "onBreakBlock spawner was already stunned");
 				sp.level.playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
 				ServerTickHandler.addClientUpdate(serverLevel, pos);
 				event.setCanceled(true);
@@ -238,7 +244,7 @@ public class SpawnerBreakHandler {
 		float newDestroySpeed = baseDestroySpeed;
 		if (MyConfig.getSpawnerBreakSpeedMultiplier() > 0) {
 			newDestroySpeed = newDestroySpeed / (1 + MyConfig.getSpawnerBreakSpeedMultiplier());
-			if (newDestroySpeed > 0) {
+			if ((spamLimiter++%10 == 0) && (newDestroySpeed > 0 )) {
 				event.setNewSpeed(baseDestroySpeed);
 				// event.setNewSpeed(newDestroySpeed);
 				if (MyConfig.getDebugLevel() > 0) {
