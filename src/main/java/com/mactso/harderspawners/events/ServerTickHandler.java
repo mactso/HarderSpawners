@@ -64,7 +64,7 @@ public class ServerTickHandler {
 					Packet<?> pkt = blockEntity.getUpdatePacket();
 					if (pkt != null) {
 						LevelChunk chunk = work.level.getChunkAt(work.pos);
-						PacketDistributor.TRACKING_CHUNK.with(() -> chunk).send(pkt);
+						PacketDistributor.TRACKING_CHUNK.with(chunk).send(pkt);
 					}
 				}
 

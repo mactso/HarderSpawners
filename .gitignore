@@ -6,9 +6,7 @@
 /run/
 /build/
 /.project
-/runClient.launch
-/runData.launch
-/runServer.launch
+*.launch
 /.metadata/
 /build.gradle.bak
 /gradle.properties.bak
