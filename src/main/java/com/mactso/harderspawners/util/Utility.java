@@ -7,6 +7,7 @@ import com.mactso.harderspawners.config.MyConfig;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -71,7 +72,7 @@ public class Utility {
         p.sendSystemMessage(component);
 	}
 	
-	public static void updateEffect(LivingEntity e, int amplifier,  MobEffect mobEffect, int duration) {
+	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect, int duration) {
 		MobEffectInstance ei = e.getEffect(mobEffect);
 		if (amplifier == 10) {
 			amplifier = 20;  // player "plaid" speed.

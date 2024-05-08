@@ -26,6 +26,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentTable;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.MobSpawnType;
@@ -167,8 +168,12 @@ public class SpawnerSpawnEvent {
 
 			if (explode) {
 				Vec3 explodepos = new Vec3(AbSpPos.getX(), AbSpPos.getY(), AbSpPos.getZ());
-				serverWorld.explode(null, null, null, explodepos.x, explodepos.y, explodepos.z, 4.0f, true,
-						ExplosionInteraction.BLOCK, false);
+
+				serverWorld.explode(null, null, null,
+						explodepos.x, explodepos.y, explodepos.z,
+						4.0f,
+						true,
+						ExplosionInteraction.BLOCK);
 			}
 		}
 	}
@@ -181,9 +186,10 @@ public class SpawnerSpawnEvent {
 		CompoundTag tag = new CompoundTag();
 		boolean changed = false;
 		tag = mySpawner.save(tag);
-		CompoundTag spawnDataTag = tag.getCompound("SpawnData");
 
+		CompoundTag spawnDataTag = tag.getCompound("SpawnData");
 		CompoundTag entityTag = spawnDataTag.getCompound("entity");
+
 
 		Optional<EntityType<?>> optional = EntityType.by(entityTag);
 		if (optional.isEmpty()) {
@@ -231,11 +237,27 @@ public class SpawnerSpawnEvent {
 			changed = true;
 		}
 
-		int lightLevel = MyConfig.getHostileSpawnerLightLevel();
-		CustomSpawnRules c = new SpawnData.CustomSpawnRules(new InclusiveRange<Integer>(0, lightLevel),
-				new InclusiveRange<Integer>(0, lightLevel));
-		SpawnData s = new SpawnData(entityTag, Optional.of(c));
+//        .resultOrPartial(p_186391_ -> LOGGER.warn("Invalid SpawnData: {}", p_186391_))
 
+        SpawnData spawndata = SpawnData.CODEC
+                .parse(NbtOps.INSTANCE, spawnDataTag)
+                .resultOrPartial(p_186391_ -> LOGGER.warn("Invalid SpawnData: {}", p_186391_))
+                .orElseGet(SpawnData::new);
+		Optional<EquipmentTable> equipment = spawndata.equipment();
+
+		if (equipment.isPresent()) {
+			int x = 6;
+		}
+		
+		int lightLevel = MyConfig.getHostileSpawnerLightLevel();
+		lightLevel = 15;  // TODO remove this.
+		int blocklight = lightLevel;
+		int skylight = lightLevel;
+		CustomSpawnRules c = new SpawnData.CustomSpawnRules(new InclusiveRange<Integer>(0, blocklight),
+				new InclusiveRange<Integer>(0, skylight));
+		
+		SpawnData s = new SpawnData(entityTag, Optional.of(c), equipment);
+		
 		Optional<Tag> wSD = SpawnData.CODEC.encodeStart(NbtOps.INSTANCE, s).result();
 		if (wSD.isPresent()) {
 			if (!spawnDataTag.equals(wSD.get())) {

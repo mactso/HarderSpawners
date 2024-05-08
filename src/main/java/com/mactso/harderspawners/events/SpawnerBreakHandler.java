@@ -8,6 +8,7 @@ import com.mactso.harderspawners.util.Utility;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.nbt.CompoundTag;
@@ -206,7 +207,7 @@ public class SpawnerBreakHandler {
 				if (revengeLevel >= 0) {
 					serverPlayer.level().playSound(null, pos, SoundEvents.ENDERMAN_AMBIENT, SoundSource.AMBIENT,
 							0.9f, 0.25f);
-					MobEffect effect = MobEffects.POISON;
+					Holder<MobEffect> effect = MobEffects.POISON;
 					if (revengeLevel >= 4) {
 						effect = MobEffects.WITHER;
 					}
