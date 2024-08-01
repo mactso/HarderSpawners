@@ -198,7 +198,6 @@ public class SpawnerSpawnEvent {
 		if (cap == null) {
 			return;
 		}
-		
 		if (fromSpawnEvent) {
 			if (cap.isStunned()) {
 				if (MyConfig.getDebugLevel() > 1) {
