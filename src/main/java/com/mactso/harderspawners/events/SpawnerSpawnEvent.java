@@ -195,6 +195,9 @@ public class SpawnerSpawnEvent {
 		}
 
 		ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
+		if (cap == null) {
+			return;
+		}
 		if (fromSpawnEvent) {
 			if (cap.isStunned()) {
 				if (MyConfig.getDebugLevel() > 1) {

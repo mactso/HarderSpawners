@@ -35,9 +35,14 @@ public class MyConfig {
 		public final DoubleValue spawnersExplodePercentage;
 
 		public final ConfigValue<String> defaultNoBreakMobsActual;
+		public final ConfigValue<String> defaultLightBlocksActual;
+
 		public final String defaultNoBreakMobs6464 = "harderspawners:default,0.2;" + "minecraft:pig,0.0;"
 				+ "minecraft:cow,0.0;" + "minecraft:sheep,0.0;" + "minecraft:parrot,0.0;" + "minecraft:blaze,0.0;";
-
+		public final String defaultLightBlocks6464 = 
+				"minecraft:redstone_lamp;" 
+				+ "create:rose_quartz_lamp;";
+		
 		public Common(ForgeConfigSpec.Builder builder) {
 			builder.push("Harder Spawners Control Values");
 
@@ -96,10 +101,18 @@ public class MyConfig {
 					.defineInRange("hostileSpawnerResistDaylightDuration", () -> 120, 0, 9999);
 
 			builder.pop();
+			
+			builder.push("List of modded lamp and light blocks");
+			defaultLightBlocksActual = builder.comment("List of modded lamp and light blocks")
+					.translation(Main.MODID + ".config" + "defaultLightBlocksActual")
+					.define("defaultLightBlocksActual", defaultLightBlocks6464);
+			
+			
+			builder.pop();
 
 			builder.push("No Break Mobs Values 6464");
 
-			defaultNoBreakMobsActual = builder.comment("Trail Block String 6464")
+			defaultNoBreakMobsActual = builder.comment("No Break Mob Values")
 					.translation(Main.MODID + ".config" + "defaultNoBreakMobsActual")
 					.define("defaultNoBreakMobsActual", defaultNoBreakMobs6464);
 
@@ -133,7 +146,8 @@ public class MyConfig {
 	private static double spawnersExplodePercentage;
 	private static String[] defaultMobBreakPercentageValues;
 	private static String defaultMobBreakPercentageValues6464;
-	
+	private static String[] defaultLightBlocksValues;
+	private static String defaultLightBlocksValues6464;	
 	
 	public static void bakeConfig() {
 		debugLevel = COMMON.debugLevel.get();
@@ -151,6 +165,7 @@ public class MyConfig {
 		hostileSpawnerLightLevel = COMMON.hostileSpawnerLightLevel.get();
 		hostileSpawnerResistDaylightDuration = COMMON.hostileSpawnerResistDaylightDuration.get();
 		setDefaultMobBreakPercentageValues6464(COMMON.defaultNoBreakMobsActual.get());
+		setDefaultLightBlocksValues6464(COMMON.defaultLightBlocksActual.get());
 		if (debugLevel > 0) {
 			System.out.println("Harder Spawners Debug: " + debugLevel);
 		}
@@ -193,6 +208,7 @@ public class MyConfig {
 		if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC) {
 			bakeConfig();
 			MobSpawnerManager.mobBreakPercentageInit();
+			//LightBlocksManager.lightBlocksInit();
 		}
 	}
 
@@ -224,36 +240,64 @@ public class MyConfig {
 	public static int getSpawnerBreakSpeedMultiplier() {
 		return spawnerBreakSpeedMultiplier;
 	}
+	
 	public static void setSpawnerBreakSpeedMultiplier(int spawnerBreakSpeedMultiplier) {
 		MyConfig.spawnerBreakSpeedMultiplier = spawnerBreakSpeedMultiplier;
 	}
+	
 	public static int getSpawnerRevengeLevel() {
 		return spawnerRevengeLevel;
 	}
+	
 	public static void setSpawnerRevengeLevel(int spawnerRevengeLevel) {
 		MyConfig.spawnerRevengeLevel = spawnerRevengeLevel;
 	}
+	
 	public static int getSpawnerTextOff() {
 		return spawnerTextOff;
 	}
+	
 	public static void setSpawnerTextOff(int spawnerTextOff) {
 		MyConfig.spawnerTextOff = spawnerTextOff;
 	}
+	
 	public static String getDefaultMobBreakPercentageValues6464() {
 		return defaultMobBreakPercentageValues6464;
 	}
+	
 	public static void setDefaultMobBreakPercentageValues6464(String defaultMobBreakPercentageValues6464) {
 		MyConfig.defaultMobBreakPercentageValues6464 = defaultMobBreakPercentageValues6464;
 	}
+
+	public static void setDefaultLightBlocksValues6464(String defaultLightBlocksValues6464) {
+		MyConfig.defaultLightBlocksValues6464 = defaultLightBlocksValues6464;
+	}
+	
 	public static String[] getDefaultMobBreakPercentageValues() {
 		return defaultMobBreakPercentageValues;
 	}
-	public static void setDefaultMobBreakPercentageValues(String[] defaultMobBreakPercentageValues) {
-		MyConfig.defaultMobBreakPercentageValues = defaultMobBreakPercentageValues;
+
+	public static void setDefaultMobBreakPercentageValues(String[] s) {
+		MyConfig.defaultMobBreakPercentageValues = s;
 	}
+
+	
+	public static String getDefaultLightBlocksValues6464() {
+		return defaultLightBlocksValues6464 ;
+	}
+	
+	public static String[] getDefaultLightBlocksValues() {
+		return defaultLightBlocksValues;
+	}
+
+	public static void setDefaultLightBlocksValues(String[] s) {
+		MyConfig.defaultLightBlocksValues = s;
+	}
+
 	public static double getSpawnersExplodePercentage() {
 		return spawnersExplodePercentage;
 	}
+	
 	public static void setSpawnersExplodePercentage(double spawnersExplodePercentage) {
 		MyConfig.spawnersExplodePercentage = spawnersExplodePercentage;
 	}
