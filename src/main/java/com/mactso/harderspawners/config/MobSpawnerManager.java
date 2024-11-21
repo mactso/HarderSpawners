@@ -1,105 +1,124 @@
 package com.mactso.harderspawners.config;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 import java.util.StringTokenizer;
 
-import net.minecraft.resources.ResourceLocation;
+import com.mactso.harderspawners.util.Utility;
+
+import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class MobSpawnerManager {
-	public static Hashtable<String, MobSpawnerBreakPercentageItem> mobBreakPercentageHashtable = new Hashtable<>();
-	private static String defaultMobBreakPercentageString = "harderspawners:default:0.02";
-	private static String defaultMobBreakPercentageKey = defaultMobBreakPercentageString;
+	public static Hashtable<String, SpawnerDurabilityItem> SpawnerDurabilityRangeByMobType = new Hashtable<>();
+	private static String defaultKey = "harderspawners:default";
 
-	public static MobSpawnerBreakPercentageItem getMobSpawnerBreakPercentage(String key) {
-		String iKey = key;
-		if (mobBreakPercentageHashtable.isEmpty()) {
-			mobBreakPercentageInit();
+	public static SpawnerDurabilityItem getMobSpawnerSpawnsCountByMobType(EntityType<?> entityType) {
+		if (SpawnerDurabilityRangeByMobType.isEmpty()) {
+			init();
 		}
-
-		MobSpawnerBreakPercentageItem t = mobBreakPercentageHashtable.get(iKey);
-
+		
+		SpawnerDurabilityItem t = SpawnerDurabilityRangeByMobType.get(ForgeRegistries.ENTITY_TYPES.getKey(entityType).toString());
+		if (t == null) {
+			t = SpawnerDurabilityRangeByMobType.get(defaultKey);
+		}
 		return t;
 	}
 
-	//returns a string of all mobs break percentages as one long string.
-	public static String getMobSpawnerBreakPercentageAsString() {
-		String returnString="";
-		double breakPercentage;
-		 
-		for (String key:mobBreakPercentageHashtable.keySet()) {
-			breakPercentage = mobBreakPercentageHashtable.get(key).breakPercentage;
-			String tempString = key+","+breakPercentage+";";
-			returnString += tempString;
-		}
-		return returnString;
 	
-	}
+	
+	public static void init() {
 
-	public static void mobBreakPercentageInit() {
-		
-		List <String> dTL6464 = new ArrayList<>();
-		
-    	System.out.println ("HarderSpawners: Initialization Commencing.");
+		SpawnerDurabilityRangeByMobType.clear();
 
-		int i = 0;
-		String mobBreakPercentageLine6464 = "";
+		Utility.debugMsg(0,"Harder Spawners: Initializing Spawner Durability Settings.");
+
+		String oneLine = "";
 		// Forge Issue 6464 patch.
-		StringTokenizer st6464 = new StringTokenizer(MyConfig.getDefaultMobBreakPercentageValues6464(), ";");
-		while (st6464.hasMoreElements()) {
-			mobBreakPercentageLine6464 = st6464.nextToken().trim();
-			if (mobBreakPercentageLine6464.isEmpty()) continue;
-			dTL6464.add(mobBreakPercentageLine6464);  
-			i++;
-		}
+		StringTokenizer lines = new StringTokenizer(MyConfig.getMobSpawnerDurabilityRangesString(), ";");
+		while (lines.hasMoreElements()) {
+			oneLine = lines.nextToken().trim();
+			if (!oneLine.isEmpty()) {
+				try {
+					
+					StringTokenizer st = new StringTokenizer(oneLine, ",");
 
-		MyConfig.setDefaultMobBreakPercentageValues(dTL6464.toArray(new String[i]));
-		
-		i = 0;
-		mobBreakPercentageHashtable.clear();
-		while (i < MyConfig.getDefaultMobBreakPercentageValues().length) {
-			try {
-				StringTokenizer st = new StringTokenizer(MyConfig.getDefaultMobBreakPercentageValues()[i], ",");
-				String modAndMob = st.nextToken();
-				String key = modAndMob;
-				String breakPercentage = st.nextToken();
-				double numericBreakPercentage = Double.parseDouble (breakPercentage.trim());
-				if ((numericBreakPercentage < 0.0) || (numericBreakPercentage > 100.0)) {
-					numericBreakPercentage = 0.02;
+					String key = st.nextToken(); // mod and mob
+					if (!key.equals(defaultKey)) {
+						Optional<EntityType<?>> etOpt = EntityType.byString(key);
+						if (etOpt.isEmpty()) {
+							Utility.debugMsg(0, "WARN : Harder Spawners :  Undefined Mob : " + oneLine);
+						}
+					}
+
+					int minSpawns = Integer.parseInt(st.nextToken().trim());
+					if (minSpawns < 0) {
+						minSpawns = 0;
+					}
+
+					int maxSpawns = Integer.parseInt(st.nextToken().trim());
+					if (maxSpawns < minSpawns) {
+						maxSpawns = minSpawns;
+					}
+
+					SpawnerDurabilityRangeByMobType.put(key, new SpawnerDurabilityItem(minSpawns, maxSpawns));
+
+				} catch (Exception e) {
+					Utility.debugMsg(0, "ERROR: Harder Spawners :  Bad Mob Config Line : " + oneLine);
 				}
 
-				mobBreakPercentageHashtable.put(key, new MobSpawnerBreakPercentageItem(numericBreakPercentage));
-				if (!modAndMob.contentEquals("harderspawners:default") &&
-				    !ForgeRegistries.ENTITY_TYPES.containsKey(new ResourceLocation(modAndMob))
-				   )  {
-					System.out.println("Harder Spawners Mob: " + modAndMob + " not in Forge Registry.  Mispelled?");
-				}
-			} catch (Exception e) {
-				System.out.println("Harder Spawners :  Mob Config : " + MyConfig.getDefaultMobBreakPercentageValues()[i]);
 			}
-			i++;
+
 		}
-    	System.out.println ("HarderSpawners: Initialization complete.");
+
+		Utility.debugMsg(0,"Harder Spawners: Spawner Durability Settings Initialization complete.");
 
 	}
 
-	// keeps track of the spawner break percentage by mod:mob key.
-	public static class MobSpawnerBreakPercentageItem {
-		double breakPercentage;
-		
-		public MobSpawnerBreakPercentageItem(double breakPercentage) {
-			this.breakPercentage = breakPercentage;
- 
+	// keeps track of the spawner durability by Mob Type.
+	public static class SpawnerDurabilityItem {
+		int minimumDurability;
+		int maximumDurability;
+
+		public SpawnerDurabilityItem(int minimumSpawnsIn, int maximumSpawnsIn) {
+			this.minimumDurability = minimumSpawnsIn;
+			this.maximumDurability = maximumSpawnsIn;
 		}
 
-		public double getSpawnerBreakPercentage() {
-			return breakPercentage;
+		
+		public boolean isInfiniteDurability () {
+			if (minimumDurability == 0)
+				return true;
+			if (maximumDurability == 0)
+				return true;
+			return false;
 		}
 		
+		public int initDurabilityValue() {
+
+			if (minimumDurability == 0)
+				return 0;
+			if (maximumDurability == 0)
+				return 0;
+			if (maximumDurability <= minimumDurability)
+				return 0;
+
+			Random r = new Random();
+			int range = maximumDurability - minimumDurability;
+
+			return r.nextInt(range) + minimumDurability;
+
+		}
+
+		public int getMinimumDurability() {
+			return minimumDurability;
+		}
+
+		public double getMaximumdurability() {
+			return maximumDurability;
+		}
+
 	}
 
 }
-
-

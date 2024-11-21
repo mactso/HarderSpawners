@@ -11,7 +11,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class SbeAttachEvent
 {
-	private static final ResourceLocation KEY = new ResourceLocation(Main.MODID, "spawnerstatssapability");
+	private static final ResourceLocation KEY = ResourceLocation.fromNamespaceAndPath(Main.MODID, "spawnerstatssapability");
 	
     @SubscribeEvent
     public void onAttach(AttachCapabilitiesEvent<BlockEntity> event)
@@ -19,7 +19,7 @@ public class SbeAttachEvent
         BlockEntity be = event.getObject();
         if (be instanceof SpawnerBlockEntity sbe)
         {
-            ServerTickHandler.addSbeWorklistEntry(sbe);
+        	ServerTickHandler.addSbeWorklistEntry(sbe);
         	event.addCapability(KEY, new SpawnerStatsStorageProvider());
         }
     }

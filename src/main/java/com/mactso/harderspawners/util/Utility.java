@@ -25,7 +25,7 @@ public class Utility {
 	private static final Logger LOGGER = LogManager.getLogger();
 	
 
-	public static void drawParticleBeam(BlockPos pos, ServerLevel serverWorld, 
+	public static void drawParticleBeam(BlockPos pos, ServerLevel sLevel, 
 			ParticleOptions particleType) {
 		Vec3 bV3d = new Vec3(pos.getX()+0.5d, pos.getY()+0.5d, pos.getZ()+0.5d);
 		boolean doSpellParticleType = true;
@@ -33,9 +33,9 @@ public class Utility {
 		double zOffset = 0.0f;
 
 		for (double d0 = 0.0; d0 <= 3.0d; d0 = d0 + 0.5D) {
-			xOffset = serverWorld.getRandom().nextDouble()-0.5d;
-			zOffset = serverWorld.getRandom().nextDouble()-0.5d;
-			serverWorld.sendParticles(particleType, bV3d.x(), bV3d.y(), bV3d.z(), 1, xOffset, d0, zOffset, 0.04D);
+			xOffset = sLevel.getRandom().nextDouble()-0.5d;
+			zOffset = sLevel.getRandom().nextDouble()-0.5d;
+			sLevel.sendParticles(particleType, bV3d.x(), bV3d.y(), bV3d.z(), 1, xOffset, d0, zOffset, 0.04D);
 		}
 	}
 	

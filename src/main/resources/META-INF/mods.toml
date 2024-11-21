@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[50,)"
+loaderVersion="[52,)"
 license="MIT License"
 [[mods]]
 modId="harderspawners"
@@ -13,13 +13,15 @@ description='Harder Spawners Mod.'
 [[dependencies.harderspawners]]
     modId="forge"
     mandatory=true
-    versionRange="[50,)"
+    versionRange="[52,)"
     ordering="NONE"
     side="SERVER"
 
 [[dependencies.harderspawners]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.20.6,1.21)"
+    versionRange="[1.21.1,1.22)"
     ordering="NONE"
     side="SERVER"
+# side="BOTH", "CLIENT?", "SERVER"
+

@@ -1,6 +1,7 @@
 package com.mactso.harderspawners.capabilities;
 
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -23,24 +24,29 @@ public class SpawnerStatsStorageProvider implements ICapabilityProvider, ICapabi
 			return (LazyOptional<T>) LazyOptional.of(() -> storage);
 		return LazyOptional.empty();
 	}
-
+	
+	
 	@Override
-	public CompoundTag serializeNBT() {
+	public CompoundTag serializeNBT(Provider registryAccess) {
 		CompoundTag ret = new CompoundTag();
 		ret.putInt("maxSpawnDelay", storage.getMaxSpawnDelay());
 		ret.putInt("minSpawnDelay", storage.getMinSpawnDelay());
 		ret.putBoolean("stunned", storage.isStunned());
+		ret.putInt("spawnscount", storage.getDurability());
 		return ret;
 	}
-
+	
+	
 	@Override
-	public void deserializeNBT(CompoundTag nbt) {
+	public void deserializeNBT(Provider registryAccess, CompoundTag nbt) {
 		int maxSpawnDelay = nbt.getInt("maxSpawnDelay");
 		int minSpawnDelay = nbt.getInt("minSpawnDelay");
 		boolean stunned = nbt.getBoolean("stunned");
+		int spawnscount = nbt.getInt("spawnscount");
 		storage.setMaxSpawnDelay(maxSpawnDelay);
 		storage.setMinSpawnDelay(minSpawnDelay);
 		storage.setStunned(stunned);
-
+		storage.setDurability(spawnscount);
 	}
+	
 }
