@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.mactso.harderspawners.util.Utility;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ServerLevel;
@@ -24,7 +26,7 @@ public class ServerTickHandler {
 
 	public static List<workRecord> workList = new ArrayList<>();
 	private static List<WeakReference<SpawnerBlockEntity>> sbelist = new ArrayList<>();
-
+	private static List<WeakReference<SpawnerBlockEntity>> addlist = new ArrayList<>();
 	private static int ticks = 0;
 
 	private static long hasEntriesTime = 0;
@@ -35,6 +37,10 @@ public class ServerTickHandler {
 		if (event.phase == Phase.END && (--ticks) <= 0) {
 			ticks = 20;
 			synchronized (sbelist) {
+				sbelist.addAll(addlist);
+				addlist.clear();
+			}
+			Utility.debugMsg(1, "Processing synchronized list of spawners to init if needed");
 				Iterator<WeakReference<SpawnerBlockEntity>> it = sbelist.iterator();
 				while (it.hasNext()) {
 					SpawnerBlockEntity sbe = it.next().get();
@@ -43,9 +49,9 @@ public class ServerTickHandler {
 				}
 			}
 
-		}
+		if (workList.isEmpty())
 
-		if (workList.isEmpty()) {
+		{
 			return;
 		}
 
@@ -81,8 +87,9 @@ public class ServerTickHandler {
 	public static void addSbeWorklistEntry(SpawnerBlockEntity sbe) {
 		if (Thread.currentThread().getName().equals("Render thread"))
 			return;
-		synchronized (sbelist) {
-			sbelist.add(new WeakReference<>(sbe));
+		Utility.debugMsg(1, "Adding Weak Reference to Spawner at " + sbe.getBlockPos() + " to sbeList");
+		synchronized (addlist) {
+			addlist.add(new WeakReference<>(sbe));
 		}
 	}
 
@@ -90,9 +97,12 @@ public class ServerTickHandler {
 		if (sbe.isRemoved())
 			return true;
 		else if (sbe.hasLevel()) {
-
-			SpawnerSpawnEvent.updateHostileSpawnerValues(sbe, sbe.getSpawner(), false);
+			if (sbe.getLevel().isClientSide()) {
+				return false;
+			} else {
+				SpawnerSpawnEvent.updateHostileSpawnerValues(sbe,sbe.getSpawner(), false);
 			return true;
+			}
 		}
 		return false;
 	}
