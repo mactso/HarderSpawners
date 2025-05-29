@@ -3,7 +3,7 @@ loaderVersion="[52,)"
 license="MIT License"
 [[mods]]
 modId="harderspawners"
-version="${file.jarVersion}"
+version="52.28.0"
 displayName="Harder Spawners Mod"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/harder-spawners"
 updateJSONURL="https://github.com/mactso/HarderSpawners/raw/main/update.json"
