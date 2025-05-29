@@ -93,41 +93,6 @@ public class Utility {
 		return;
 	}
 	
-//	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
-//			int modifier) {
-//		boolean isBaby = false;
-//		return populateEntityType(et, level, savePos, range, modifier, isBaby);
-//	}
-
-//	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
-//			int modifier, boolean isBaby) {
-//		boolean persistant = false;
-//		return populateEntityType(et, level, savePos, range, modifier, persistant, isBaby);
-//	}
-//	
-//	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
-//			int modifier, boolean persistant, boolean isBaby) {
-//		int numZP;
-//		Mob e;
-//		numZP = level.random.nextInt(range) - modifier;
-//		if (numZP < 0)
-//			return false;
-//		for (int i = 0; i <= numZP; i++) {
-//			if (et == EntityType.PHANTOM) {
-//				e = (Mob) et.spawn(level, null, null, null, MobSpawnType.SPAWNER, true, true);
-//			} else {
-//				e = (Mob) et.spawn(level, null, null, null, MobSpawnType.NATURAL, true, true);
-//			}
-//			if (persistant) {
-//				e.setPersistenceRequired();
-//			}
-//			if (et == EntityType.ZOMBIFIED_PIGLIN) {
-//				e.setAggressive(true);
-//			}
-//			e.setBaby(isBaby);
-//		}
-//		return true;
-//	}
 	
 	public static boolean isOutside(BlockPos pos, ServerLevel serverLevel) {
 		return serverLevel.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, pos) == pos;

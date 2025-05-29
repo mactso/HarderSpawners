@@ -69,7 +69,7 @@ public class ServerTickHandler {
 						// until the player is within the default spawner range.
 						Utility.debugMsg(1, "Initializing Spawner at " + sbe.getBlockPos());
 						SpawnerSpawnEvent.doInitNewSpawner(sbe);
-
+						it.remove();
 						Utility.debugMsg(1, "Removing spawner after initialization at " + sbe.getBlockPos());
 
 					}

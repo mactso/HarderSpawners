@@ -32,12 +32,14 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display.ItemDisplay;
+import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentTable;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.monster.Silverfish;
 import net.minecraft.world.level.BaseSpawner;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.Level.ExplosionInteraction;
 import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.SpawnData.CustomSpawnRules;
@@ -81,8 +83,6 @@ public class SpawnerSpawnEvent {
 
 	}
 
-	
-	
 	// Note this is called once per mob spawned.
 	public static void doProcessSpawner(MobSpawnEvent.FinalizeSpawn event) {
 
@@ -104,6 +104,7 @@ public class SpawnerSpawnEvent {
 				ServerTickHandler.addClientUpdate(sLevel,spawnerPos);
 			}
 
+			Utility.debugMsg(1, spawnerPos, "Spawn Time: " + sLevel.getGameTime() + " Lastspawntime: " + lastSpawnTime + ", lastSpawnPos" + lastSpawnerPos);
 			if (isFirstSpawnInGroup(sLevel, spawnerPos)) {
 				doUseASpawn(sLevel, sbe, mySpawner);
 				if (isMonsterSpawner(sbe, tag)) {
@@ -116,22 +117,18 @@ public class SpawnerSpawnEvent {
 
 	}
 
-	
-	
 	private static boolean isFirstSpawnInGroup(ServerLevel sLevel, BlockPos spawnerPos) {
 
 		if ((spawnerPos.equals(lastSpawnerPos)) && (lastSpawnTime == sLevel.getGameTime()))
-			return true;
+			return false;
 
 		lastSpawnerPos = spawnerPos;
 		lastSpawnTime = sLevel.getGameTime();
 
-		return false;
+		return true;
 
 	}
 
-	
-	
 	private static void doProtectiveMobBuffs(MobSpawnEvent.FinalizeSpawn event, ServerLevel sLevel) {
 
 		if ((MyConfig.getHostileSpawnerResistDaylightDuration() > 0)
@@ -156,13 +153,19 @@ public class SpawnerSpawnEvent {
 			return;
 		}
 
+		Level level = sbe.getLevel();
+		if (level.isClientSide()) 
+			return;
+
+		
 		ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
 		if ((cap.isInfiniteDurability()))
 			return;
 		if (cap.getDurability() > 0)
 			return;
 
-		ServerLevel sLevel = (ServerLevel) event.getLevel();
+		ServerLevel sLevel = (ServerLevel) level;
+		doRemoveDisplayOnFailure(sLevel, sbe);
 		BlockPos pos = sbe.getBlockPos();
 
 		sLevel.destroyBlock(pos, false);
@@ -177,8 +180,6 @@ public class SpawnerSpawnEvent {
 
 	}
 
-	
-	
 	public static boolean doInitNewSpawner(SpawnerBlockEntity sbe) {
 
 		ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
@@ -225,8 +226,6 @@ public class SpawnerSpawnEvent {
 		}
 	}
 
-	
-	
 	private static void doInitNewSpawnerCapability(ISpawnerStatsStorage cap, Optional<EntityType<?>> entityType) {
 		SpawnerDurabilityItem durabilityItem = MobSpawnerManager.getMobSpawnerSpawnsCountByMobType(entityType.get());
 		cap.setDurability(durabilityItem.initDurabilityValue());
@@ -234,8 +233,6 @@ public class SpawnerSpawnEvent {
 		cap.setInitialized();
 	}
 
-	
-	
 	private static Optional<Tag> buildCustomLightLevelSpawnData(CompoundTag spawnDataTag, CompoundTag entityTag) {
 
 		SpawnData spawndata = SpawnData.CODEC.parse(NbtOps.INSTANCE, spawnDataTag)
@@ -295,8 +292,6 @@ public class SpawnerSpawnEvent {
 		return true;
 	}
 
-	
-	
 	private static boolean doHandleStunnedSpawner(SpawnerBlockEntity sbe, CompoundTag tag) {
 
 		ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
@@ -314,8 +309,6 @@ public class SpawnerSpawnEvent {
 
 	}
 
-	
-	
 	private static void doStunDebugMsg(BlockEntity sbe, CompoundTag tag, ISpawnerStatsStorage cap) {
 		if (MyConfig.getDebugLevel() > 0)
 			return;
@@ -327,8 +320,6 @@ public class SpawnerSpawnEvent {
 				"Restoring Spawner saved values: (max):" + cap.getMaxSpawnDelay() + "(min):" + cap.getMinSpawnDelay());
 	}
 
-	
-	
 	public static void doUseASpawn(ServerLevel sLevel, SpawnerBlockEntity sbe, BaseSpawner mySpawner) {
 
 		ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
@@ -347,7 +338,7 @@ public class SpawnerSpawnEvent {
 
 		cap.setDurability(spawnsLeft);
 		sbe.setChanged();
-
+		Utility.debugMsg(1, sbe.getBlockPos(), "Was First Spawn at(" + sLevel.getGameTime() + ") spawnsleft: "+ spawnsLeft);
 		if (spawnsLeft < 25) {
 			doSpawnerFailingEffects(sLevel, sbe, spawnsLeft);
 		}
@@ -390,7 +381,18 @@ public class SpawnerSpawnEvent {
 
 	}
 
+	public static void doRemoveDisplayOnFailure (ServerLevel sLevel, BlockEntity sbe) {
+		List<ItemDisplay> displaysList = sLevel.getEntitiesOfClass(ItemDisplay.class,
+				sbe.getRenderBoundingBox().inflate(4));
 	
+		for (ItemDisplay item : displaysList) {
+			if ((item.hasCustomName()) && (tip.getString().equals(item.getCustomName().getString()))) {
+				item.remove(RemovalReason.DISCARDED);
+				return;
+			}
+		}
+		
+	}
 	
 	private static void buildAndAddRepairItemDisplay(ServerLevel sLevel, BlockEntity sbe) {
 		
@@ -402,12 +404,12 @@ public class SpawnerSpawnEvent {
 		itemDisplay.load(temptag);
 		Vec3 vWork = sbe.getBlockPos().getBottomCenter();
 		itemDisplay.moveTo(vWork.x, vWork.y + 1.5, vWork.z, 0.0f, 0.0f);
+		itemDisplay.setPos(vWork.x, vWork.y + 1.5, vWork.z);
+		itemDisplay.setDeltaMovement(0.0f, 0.0f, 0.0f);
 		sLevel.addFreshEntity(itemDisplay);
 		
 	}
 
-	
-	
 	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
 		CompoundTag tag = new CompoundTag();
 		i.save(tag);
@@ -417,8 +419,6 @@ public class SpawnerSpawnEvent {
 		return tag;
 	}
 
-	
-	
 	private static CompoundTag buildItemTag() {
 		CompoundTag itemTag = new CompoundTag();
 		itemTag.putString("id", MyConfig.getDurabilityItem());
@@ -426,8 +426,6 @@ public class SpawnerSpawnEvent {
 		return itemTag;
 	}
 
-	
-	
 	private static CompoundTag buildTransformationTag() {
 		CompoundTag transformationTag = new CompoundTag();
 		ListTag translist = new ListTag();
@@ -461,8 +459,6 @@ public class SpawnerSpawnEvent {
 		return transformationTag;
 	}
 
-	
-	
 	private static void doSpawnerFailingNoise(ServerLevel sLevel, BlockPos pos, int spawnsLeft) {
 
 		float volume = 1.0f - (spawnsLeft / 30.0f);
@@ -478,8 +474,6 @@ public class SpawnerSpawnEvent {
 		}
 	}
 
-	
-	
 	private static void doSpawnerFailingParticles(ServerLevel sLevel, BlockPos pos, int spawnsLeft) {
 
 		RandomSource rand = sLevel.getRandom();
@@ -497,8 +491,6 @@ public class SpawnerSpawnEvent {
 		}
 	}
 
-	
-	
 	private static void doDebugThreadMsg(MobSpawnEvent.FinalizeSpawn event) {
 		debugThreadIdentifier = (debugThreadIdentifier + 1) % 10000;
 		Utility.debugMsg(1, "HarderSpawners: (" + debugThreadIdentifier + ") Checking Spawner Spawn Event at "

@@ -2,6 +2,8 @@
 package com.mactso.harderspawners;
 
 
+import java.util.Iterator;
+
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.events.MyEntityPlaceEvent;
 import com.mactso.harderspawners.events.SbeAttachEvent;
@@ -11,7 +13,10 @@ import com.mactso.harderspawners.events.SpawnerLightOnTopEvent;
 import com.mactso.harderspawners.events.SpawnerSpawnEvent;
 import com.mactso.harderspawners.util.Utility;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -59,6 +64,8 @@ public class Main {
 
 	
 		}
+		
+
 		
 
 }

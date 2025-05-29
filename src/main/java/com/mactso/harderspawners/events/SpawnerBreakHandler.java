@@ -1,5 +1,8 @@
 package com.mactso.harderspawners.events;
 
+import java.util.List;
+import java.util.ListIterator;
+
 import com.mactso.harderspawners.capabilities.CapabilitySpawner;
 import com.mactso.harderspawners.capabilities.ISpawnerStatsStorage;
 import com.mactso.harderspawners.config.MyConfig;
@@ -29,13 +32,32 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.level.BlockEvent.BreakEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
+import net.minecraftforge.event.level.ExplosionEvent.Detonate;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraft.world.level.Level;
 
 public class SpawnerBreakHandler {
 	static int spamLimiter = 0;
 	static boolean SHOW_PARTICLES = true;
 	static long nextActionTime = 0;
 	static final int THREE_SECONDS = 60;
+
+	@SubscribeEvent
+	public void onExplosionDetonate(ExplosionEvent.Detonate event) {
+		Level level = event.getLevel();
+		if (level.isClientSide())
+			return;
+		ServerLevel sLevel = (ServerLevel) level;
+		List<BlockPos> list = event.getAffectedBlocks();
+		Vec3 vPos = event.getExplosion().center();
+		for (ListIterator<BlockPos> iter = list.listIterator(list.size()); iter.hasPrevious();) {
+			BlockPos pos = iter.previous();
+			if (sLevel.getBlockEntity(pos) instanceof SpawnerBlockEntity sbe) {
+				iter.remove();
+			}
+		}
+	}
 
 	@SubscribeEvent
 	public void onBreakBlock(BreakEvent event) {
@@ -167,24 +189,26 @@ public class SpawnerBreakHandler {
 		if (MyConfig.getSpawnerRevengeLevel() == 0)
 			return;
 
-		if (!(player.level().isClientSide())) {
-			long gameTime = player.level().getGameTime();
-			ServerPlayer serverPlayer = (ServerPlayer) event.getEntity();
-			ServerLevel slevel = (ServerLevel) serverPlayer.level();
-			BlockEntity be = slevel.getBlockEntity(pos);
-			if (!(be instanceof SpawnerBlockEntity))
-				return;
+		if (player.level().isClientSide())
+			return;
 
-			SpawnerBlockEntity sbe = (SpawnerBlockEntity) be;
+		long gameTime = player.level().getGameTime();
+		ServerPlayer serverPlayer = (ServerPlayer) event.getEntity();
+		ServerLevel slevel = (ServerLevel) serverPlayer.level();
+		BlockEntity be = slevel.getBlockEntity(pos);
+		if (!(be instanceof SpawnerBlockEntity))
+			return;
 
-			if (nextActionTime < gameTime) {
-				RandomSource rand = player.level().getRandom();
-				nextActionTime = gameTime + 2 + rand.nextInt(3);
-				doSpawnerBreakingEffects(pos, player, slevel, sbe, rand);
-				SharedUtilityMethods.doDestroyLightsNearBlockPos(pos, slevel);
-			}
+		SpawnerBlockEntity sbe = (SpawnerBlockEntity) be;
+
+		if (nextActionTime < gameTime) {
+			RandomSource rand = player.level().getRandom();
+			nextActionTime = gameTime + 13 + rand.nextInt(5);
+			doSpawnerBreakingEffects(pos, player, slevel, sbe, rand);
+			SharedUtilityMethods.doDestroyLightsNearBlockPos(pos, slevel);
 			doSpawnerRevenge(pos, serverPlayer, sbe);
 		}
+
 	}
 
 	// This only runs if installed on both sides or on the integrated server.
@@ -199,8 +223,10 @@ public class SpawnerBreakHandler {
 	private void doSpawnerRevenge(final BlockPos pos, ServerPlayer serverPlayer, SpawnerBlockEntity sbe) {
 
 		float volume = 0.8f;
-		if (SharedUtilityMethods.isSpawnerStunned(sbe))
-			volume = 0.25f;
+		if (SharedUtilityMethods.isSpawnerStunned(sbe)) {
+			serverPlayer.serverLevel().playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 0.25f, 0.25f);
+			return;
+		}
 
 		serverPlayer.level().playSound(null, pos, SoundEvents.ENDERMAN_AMBIENT, SoundSource.AMBIENT, volume, 0.25f);
 		Holder<MobEffect> effect = MobEffects.POISON;
