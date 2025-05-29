@@ -72,12 +72,12 @@ public class SharedUtilityMethods {
 		RandomSource rand = slevel.getRandom();
 		int fYmin = (int) pos.getY() - 4;
 
-		if (fYmin < slevel.getMinBuildHeight())
-			fYmin = slevel.getMinBuildHeight();
+		if (fYmin < slevel.getMaxY())
+			fYmin = slevel.getMinY();
 		int fYmax = (int) pos.getY() + 4;
-		if (fYmax > slevel.getMaxBuildHeight())
+		if (fYmax > slevel.getMaxY())
 			;
-		fYmax = slevel.getMaxBuildHeight();
+		fYmax = slevel.getMaxY();
 		int scanSize = MyConfig.getDestroyLightRange();
 		int lavaScanSize = scanSize+4;
 		boolean destroyedLava = false;

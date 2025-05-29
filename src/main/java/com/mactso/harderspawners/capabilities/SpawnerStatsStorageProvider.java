@@ -39,10 +39,10 @@ public class SpawnerStatsStorageProvider implements ICapabilityProvider, ICapabi
 	
 	@Override
 	public void deserializeNBT(Provider registryAccess, CompoundTag nbt) {
-		int maxSpawnDelay = nbt.getInt("maxSpawnDelay");
-		int minSpawnDelay = nbt.getInt("minSpawnDelay");
-		boolean stunned = nbt.getBoolean("stunned");
-		int spawnscount = nbt.getInt("spawnscount");
+		int maxSpawnDelay = nbt.getIntOr("maxSpawnDelay",200);
+		int minSpawnDelay = nbt.getIntOr("minSpawnDelay",800);
+		boolean stunned = nbt.getBooleanOr("stunned",false);
+		int spawnscount = nbt.getIntOr("spawnscount",100);
 		storage.setMaxSpawnDelay(maxSpawnDelay);
 		storage.setMinSpawnDelay(minSpawnDelay);
 		storage.setStunned(stunned);

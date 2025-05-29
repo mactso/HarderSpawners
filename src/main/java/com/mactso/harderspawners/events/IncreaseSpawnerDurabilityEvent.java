@@ -36,7 +36,10 @@ public class IncreaseSpawnerDurabilityEvent {
 		if (level.isClientSide)
 			return;
 
-		ServerLevel sLevel = (ServerLevel) event.getLevel();
+		ServerLevel sLevel = (ServerLevel) level;
+		if (!(sLevel.getBlockState(event.getPos()).is(Blocks.SPAWNER)))
+			return;
+		
 		ItemStack heldItem = event.getEntity().getItemInHand(InteractionHand.MAIN_HAND);
 
 		if (MyConfig.isDurabilityRepairEnabled()) {
@@ -46,13 +49,16 @@ public class IncreaseSpawnerDurabilityEvent {
 
 	private static void doRepairSpawnerDurability(PlayerInteractEvent.RightClickBlock event, Level level,
 			ServerLevel sLevel, ItemStack heldItem) {
-		if (!(heldItem.getItem() == MyConfig.getDurabilityItemAsItem()))
-			return;
-
-		if (!(sLevel.getBlockState(event.getPos()).is(Blocks.SPAWNER)))
-			return;
 
 		BlockPos pos = event.getPos();
+
+		if (!(heldItem.getItem() == MyConfig.getDurabilityItemAsItem())) {
+			level.playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
+			return;
+		}
+
+		if (!(sLevel.getBlockState(pos).is(Blocks.SPAWNER)))
+			return;
 		if (sLevel.getBlockEntity(pos) instanceof SpawnerBlockEntity sbe) {
 
 			// Stop further FORGE processing of this event

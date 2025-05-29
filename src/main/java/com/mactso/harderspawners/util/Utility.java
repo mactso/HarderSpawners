@@ -12,10 +12,10 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
@@ -56,20 +56,20 @@ public class Utility {
 		
 	}
 
-	public static void sendBoldChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendBoldChat(ServerPlayer sp, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal (chatMessage);
 		component.setStyle(component.getStyle().withBold(true));
 		component.setStyle(component.getStyle().withColor(ChatFormatting.DARK_GREEN));
-		p.sendSystemMessage(component);
+		sp.sendSystemMessage(component);
 	}	
 	
 
-	public static void sendChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendChat(ServerPlayer sp, String chatMessage, ChatFormatting textColor) {
 
         MutableComponent component = Component.literal (chatMessage);
 		component.setStyle(component.getStyle().withColor(ChatFormatting.GREEN));
-        p.sendSystemMessage(component);
+        sp.sendSystemMessage(component);
 	}
 	
 	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect, int duration) {
@@ -93,41 +93,6 @@ public class Utility {
 		return;
 	}
 	
-//	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
-//			int modifier) {
-//		boolean isBaby = false;
-//		return populateEntityType(et, level, savePos, range, modifier, isBaby);
-//	}
-
-//	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
-//			int modifier, boolean isBaby) {
-//		boolean persistant = false;
-//		return populateEntityType(et, level, savePos, range, modifier, persistant, isBaby);
-//	}
-//	
-//	public static boolean populateEntityType(EntityType<?> et, ServerLevel level, BlockPos savePos, int range,
-//			int modifier, boolean persistant, boolean isBaby) {
-//		int numZP;
-//		Mob e;
-//		numZP = level.random.nextInt(range) - modifier;
-//		if (numZP < 0)
-//			return false;
-//		for (int i = 0; i <= numZP; i++) {
-//			if (et == EntityType.PHANTOM) {
-//				e = (Mob) et.spawn(level, null, null, null, MobSpawnType.SPAWNER, true, true);
-//			} else {
-//				e = (Mob) et.spawn(level, null, null, null, MobSpawnType.NATURAL, true, true);
-//			}
-//			if (persistant) {
-//				e.setPersistenceRequired();
-//			}
-//			if (et == EntityType.ZOMBIFIED_PIGLIN) {
-//				e.setAggressive(true);
-//			}
-//			e.setBaby(isBaby);
-//		}
-//		return true;
-//	}
 	
 	public static boolean isOutside(BlockPos pos, ServerLevel serverLevel) {
 		return serverLevel.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, pos) == pos;

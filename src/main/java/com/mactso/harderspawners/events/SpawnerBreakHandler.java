@@ -3,6 +3,7 @@ package com.mactso.harderspawners.events;
 import com.mactso.harderspawners.capabilities.CapabilitySpawner;
 import com.mactso.harderspawners.capabilities.ISpawnerStatsStorage;
 import com.mactso.harderspawners.config.MyConfig;
+import com.mactso.harderspawners.sounds.ModSounds;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
 import com.mactso.harderspawners.util.Utility;
 
@@ -65,14 +66,14 @@ public class SpawnerBreakHandler {
 			ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
 			if (!cap.isStunned()) {
 
-				serverLevel.playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 1.0f, 1.0f);
+				serverLevel.playSound(null, pos, ModSounds.SPAWNER_WAILS, SoundSource.AMBIENT, 1.0f, 1.0f);
 
 				CompoundTag tag = new CompoundTag();
 				tag = mySpawner.save(tag);
 
 				Utility.debugMsg(1, pos, "Stunning Spawner");
-				cap.setMaxSpawnDelay(tag.getInt("MaxSpawnDelay"));
-				cap.setMinSpawnDelay(tag.getInt("MinSpawnDelay"));
+				cap.setMinSpawnDelay(tag.getIntOr("MinSpawnDelay", 200));
+				cap.setMaxSpawnDelay(tag.getIntOr("MaxSpawnDelay", 800));
 				cap.setStunned(true);
 				Utility.debugMsg(2, pos, "Stunned Spawner saved values: (max):" + cap.getMaxSpawnDelay() + "(min):"
 						+ cap.getMinSpawnDelay());
@@ -159,7 +160,9 @@ public class SpawnerBreakHandler {
 								+ " slowing from " + baseDestroySpeed + " to " + newDestroySpeed + ".");
 			}
 		}
-		doOptionalClientMessage(player);
+		if (player instanceof ServerPlayer sp) {
+			doOptionalClientMessage(sp);
+		}
 	}
 
 	private void doServerSideRevenge(PlayerEvent.BreakSpeed event, final BlockPos pos, Player player) {
@@ -167,28 +170,30 @@ public class SpawnerBreakHandler {
 		if (MyConfig.getSpawnerRevengeLevel() == 0)
 			return;
 
-		if (!(player.level().isClientSide())) {
-			long gameTime = player.level().getGameTime();
-			ServerPlayer serverPlayer = (ServerPlayer) event.getEntity();
-			ServerLevel slevel = (ServerLevel) serverPlayer.level();
-			BlockEntity be = slevel.getBlockEntity(pos);
-			if (!(be instanceof SpawnerBlockEntity))
-				return;
+		if (player.level().isClientSide())
+			return;
 
-			SpawnerBlockEntity sbe = (SpawnerBlockEntity) be;
+		long gameTime = player.level().getGameTime();
+		ServerPlayer serverPlayer = (ServerPlayer) event.getEntity();
+		ServerLevel slevel = (ServerLevel) serverPlayer.level();
+		BlockEntity be = slevel.getBlockEntity(pos);
+		if (!(be instanceof SpawnerBlockEntity))
+			return;
 
-			if (nextActionTime < gameTime) {
-				RandomSource rand = player.level().getRandom();
-				nextActionTime = gameTime + 2 + rand.nextInt(3);
-				doSpawnerBreakingEffects(pos, player, slevel, sbe, rand);
-				SharedUtilityMethods.doDestroyLightsNearBlockPos(pos, slevel);
-			}
+		SpawnerBlockEntity sbe = (SpawnerBlockEntity) be;
+
+		if (nextActionTime < gameTime) {
+			RandomSource rand = player.level().getRandom();
+			nextActionTime = gameTime + 13 + rand.nextInt(5);
+			doSpawnerBreakingEffects(pos, player, slevel, sbe, rand);
+			SharedUtilityMethods.doDestroyLightsNearBlockPos(pos, slevel);
 			doSpawnerRevenge(pos, serverPlayer, sbe);
 		}
+
 	}
 
 	// This only runs if installed on both sides or on the integrated server.
-	private void doOptionalClientMessage(Player player) {
+	private void doOptionalClientMessage(ServerPlayer player) {
 		if (!player.level().isClientSide())
 			return;
 		if ((spamLimiter++) % 20 == 0 && (MyConfig.getSpawnerTextOff() == 0)) {
@@ -199,8 +204,12 @@ public class SpawnerBreakHandler {
 	private void doSpawnerRevenge(final BlockPos pos, ServerPlayer serverPlayer, SpawnerBlockEntity sbe) {
 
 		float volume = 0.8f;
-		if (SharedUtilityMethods.isSpawnerStunned(sbe))
-			volume = 0.25f;
+		if (SharedUtilityMethods.isSpawnerStunned(sbe)) {
+//			serverPlayer.serverLevel().playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 0.25f, 0.25f);			
+			serverPlayer.serverLevel().playSound(null, pos, ModSounds.SPAWNER_WAILS, SoundSource.AMBIENT, 0.25f, 0.25f);
+			int i = 3;
+			return;
+		}
 
 		serverPlayer.level().playSound(null, pos, SoundEvents.ENDERMAN_AMBIENT, SoundSource.AMBIENT, volume, 0.25f);
 		Holder<MobEffect> effect = MobEffects.POISON;

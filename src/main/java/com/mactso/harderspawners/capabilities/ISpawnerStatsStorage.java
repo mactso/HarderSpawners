@@ -1,5 +1,8 @@
 package com.mactso.harderspawners.capabilities;
 
+import net.minecraftforge.common.capabilities.AutoRegisterCapability;
+
+@AutoRegisterCapability
 public interface ISpawnerStatsStorage
 {
 	public int getMinSpawnDelay();
