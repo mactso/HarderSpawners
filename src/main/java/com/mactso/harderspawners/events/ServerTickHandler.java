@@ -56,25 +56,28 @@ public class ServerTickHandler {
 					sbelist.addAll(addlist);
 					addlist.clear();
 				}
-				Utility.debugMsg(1, "Processing synchronized list of spawners to init if needed");
-				Iterator<WeakReference<SpawnerBlockEntity>> it = sbelist.iterator();
-				while (it.hasNext()) {
-					WeakReference<SpawnerBlockEntity> wSbe = it.next();
-					SpawnerBlockEntity sbe = wSbe.get();
-					if (!isSpawnerValid(sbe)) {
-						Utility.debugMsg(1, "Removing invalid spawner from sbelist.");
-						it.remove();
-					} else if (sbe.hasLevel()) {
-						// Without this, setting spawner player ranges higher won't work
-						// until the player is within the default spawner range.
-						Utility.debugMsg(1, "Initializing Spawner at " + sbe.getBlockPos());
-						SpawnerSpawnEvent.doInitNewSpawner(sbe);
-						it.remove();
-						Utility.debugMsg(1, "Removing spawner after initialization at " + sbe.getBlockPos());
 
+				if (!sbelist.isEmpty()) {
+					Iterator<WeakReference<SpawnerBlockEntity>> it = sbelist.iterator();
+					
+					while (it.hasNext()) {
+						WeakReference<SpawnerBlockEntity> wSbe = it.next();
+						SpawnerBlockEntity sbe = wSbe.get();
+						if (!isSpawnerValid(sbe)) {
+							Utility.debugMsg(1, "Removing invalid spawner from sbelist.");
+							it.remove();
+						} else if (sbe.hasLevel()) {
+							// Without this, setting spawner player ranges higher won't work
+							// until the player is within the default spawner range.
+							Utility.debugMsg(1, "Initializing Spawner at " + sbe.getBlockPos());
+							SpawnerSpawnEvent.doInitNewSpawner(sbe);
+							it.remove();
+							Utility.debugMsg(1, "Removing spawner after initialization at " + sbe.getBlockPos());
+
+						}
 					}
+					
 				}
-//			}
 
 		}
 

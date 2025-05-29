@@ -1,5 +1,8 @@
 package com.mactso.harderspawners.events;
 
+import java.util.List;
+import java.util.ListIterator;
+
 import com.mactso.harderspawners.capabilities.CapabilitySpawner;
 import com.mactso.harderspawners.capabilities.ISpawnerStatsStorage;
 import com.mactso.harderspawners.config.MyConfig;
@@ -22,6 +25,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BaseSpawner;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SpawnerBlock;
@@ -30,6 +34,7 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.level.BlockEvent.BreakEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class SpawnerBreakHandler {
@@ -37,6 +42,22 @@ public class SpawnerBreakHandler {
 	static boolean SHOW_PARTICLES = true;
 	static long nextActionTime = 0;
 	static final int THREE_SECONDS = 60;
+
+	@SubscribeEvent
+	public void onExplosionDetonate(ExplosionEvent.Detonate event) {
+		Level level = event.getLevel();
+		if (level.isClientSide())
+			return;
+		ServerLevel sLevel = (ServerLevel) level;
+		List<BlockPos> list = event.getAffectedBlocks();
+		Vec3 vPos = event.getExplosion().center();
+		for (ListIterator<BlockPos> iter = list.listIterator(list.size()); iter.hasPrevious();) {
+			BlockPos pos = iter.previous();
+			if (sLevel.getBlockEntity(pos) instanceof SpawnerBlockEntity sbe) {
+				iter.remove();
+			}
+		}
+	}
 
 	@SubscribeEvent
 	public void onBreakBlock(BreakEvent event) {

@@ -5,7 +5,7 @@ loaderVersion="[55,)" #mandatory This is typically bumped every Minecraft versio
 license="MIT"
 [[mods]]
 modId="harderspawners"
-version="${file.jarVersion}"
+version="55.28.0"
 displayName="Harder Spawners Mod"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/harder-spawners"
 updateJSONURL="https://github.com/mactso/HarderSpawners/raw/main/update.json"
