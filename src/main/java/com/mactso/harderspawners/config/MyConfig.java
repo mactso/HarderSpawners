@@ -16,7 +16,7 @@ import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.common.ForgeConfigSpec.DoubleValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -24,6 +24,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 @Mod.EventBusSubscriber(modid = Main.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 
 public class MyConfig {
+	
+
 
 	public static class Common {
 
@@ -127,6 +129,8 @@ public class MyConfig {
 
 	}
 
+	public static final boolean CANCEL_EVENT = true;
+	public static final boolean CONTINUE_EVENT = false;
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static final Common COMMON;
 	public static final ForgeConfigSpec COMMON_SPEC;

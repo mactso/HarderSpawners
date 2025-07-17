@@ -3,12 +3,15 @@ package com.mactso.harderspawners.events;
 import java.util.List;
 import java.util.ListIterator;
 
+import org.slf4j.Logger;
+
 import com.mactso.harderspawners.capabilities.CapabilitySpawner;
 import com.mactso.harderspawners.capabilities.ISpawnerStatsStorage;
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.sounds.ModSounds;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
 import com.mactso.harderspawners.util.Utility;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -21,6 +24,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.util.ProblemReporter.ScopedCollector;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
@@ -31,26 +35,33 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SpawnerBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.util.Result;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.level.BlockEvent.BreakEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
+
+@Mod.EventBusSubscriber() 
 public class SpawnerBreakHandler {
 	static int spamLimiter = 0;
 	static boolean SHOW_PARTICLES = true;
 	static long nextActionTime = 0;
 	static final int THREE_SECONDS = 60;
+	private static final Logger LOGGERUTIL =  LogUtils.getLogger();
 
 	@SubscribeEvent
-	public void onExplosionDetonate(ExplosionEvent.Detonate event) {
+	public static void handleExplosionDetonate(ExplosionEvent.Detonate event) {
 		Level level = event.getLevel();
 		if (level.isClientSide())
 			return;
 		ServerLevel sLevel = (ServerLevel) level;
 		List<BlockPos> list = event.getAffectedBlocks();
-		Vec3 vPos = event.getExplosion().center();
+// debug		Vec3 vPos = event.getExplosion().center();
 		for (ListIterator<BlockPos> iter = list.listIterator(list.size()); iter.hasPrevious();) {
 			BlockPos pos = iter.previous();
 			if (sLevel.getBlockEntity(pos) instanceof SpawnerBlockEntity sbe) {
@@ -60,28 +71,28 @@ public class SpawnerBreakHandler {
 	}
 
 	@SubscribeEvent
-	public void onBreakBlock(BreakEvent event) {
+	public static boolean handleBreakBlock(BreakEvent event) {
+		
+		boolean result = MyConfig.CONTINUE_EVENT;
 
 		if (MyConfig.getSpawnerMinutesStunned() == 0) {
-			return;
+			return result;
 		}
 
 		ServerPlayer sp = (ServerPlayer) event.getPlayer();
 		if (sp.isCreative())
-			return;
+			return result;
 
-		if (!event.isCancelable())
-			return;
 
 		// server side only event.
 		ServerLevel serverLevel = (ServerLevel) sp.level();
 		BlockPos pos = event.getPos();
 		Block b = serverLevel.getBlockState(pos).getBlock();
 		if (b != Blocks.SPAWNER)
-			return;
+			return result;
 		BlockEntity be = serverLevel.getBlockEntity(pos);
 		if (be == null)
-			return;
+			return result;
 		if (be instanceof SpawnerBlockEntity sbe) {
 			BaseSpawner mySpawner = sbe.getSpawner();
 			ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
@@ -89,10 +100,12 @@ public class SpawnerBreakHandler {
 
 				serverLevel.playSound(null, pos, ModSounds.SPAWNER_WAILS, SoundSource.AMBIENT, 1.0f, 1.0f);
 
-				CompoundTag tag = new CompoundTag();
-				tag = mySpawner.save(tag);
+		        ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+		        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+		        mySpawner.save(vout);
+		        CompoundTag tag = vout.buildResult(); 
 
-				Utility.debugMsg(1, pos, "Stunning Spawner");
+				Utility.debugMsg(1, pos, "Stunning Spawner for " + (MyConfig.getSpawnerTicksStunned()/20) + " seconds.");
 				cap.setMinSpawnDelay(tag.getIntOr("MinSpawnDelay", 200));
 				cap.setMaxSpawnDelay(tag.getIntOr("MaxSpawnDelay", 800));
 				cap.setStunned(true);
@@ -103,25 +116,32 @@ public class SpawnerBreakHandler {
 				tag.putInt("MaxSpawnDelay", MyConfig.getSpawnerTicksStunned() + 10);
 				tag.putInt("Delay", MyConfig.getSpawnerTicksStunned() + 5);
 
-				mySpawner.load(serverLevel, sbe.getBlockPos(), tag);
+				ScopedCollector preport2 = new ScopedCollector(LOGGERUTIL);
+				sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), TagValueInput.create(preport2, sbe.getLevel().registryAccess(), tag));
+				
+
 				sbe.setChanged();
 				Utility.debugMsg(1, pos, "Stunned Spawner stunned values: (max):" + tag.getInt("MaxSpawnDelay")
 						+ "(min):" + tag.getInt("MinSpawnDelay"));
 
-				event.setCanceled(true);
+				event.setResult(Result.DENY);    // cancel the event from happening.
+				result = MyConfig.CANCEL_EVENT;
 				ServerTickHandler.addClientUpdate(serverLevel, pos);
 			} else {
 				sp.level().playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
 				ServerTickHandler.addClientUpdate(serverLevel, pos);
-				event.setCanceled(true);
+				event.setResult(Result.DENY);    // cancel the event from happening.
+				result = MyConfig.CANCEL_EVENT;  // consume the event.
 			}
 
 		}
+		
+		return result;
 
 	}
 
 	@SubscribeEvent
-	public void blockBreakSpeed(PlayerEvent.BreakSpeed event) {
+	public static void handleBreakSpeed(PlayerEvent.BreakSpeed event) {
 
 		if (isEligible(event)) {
 			// this optionally runs on both sides.
@@ -136,7 +156,7 @@ public class SpawnerBreakHandler {
 		}
 	}
 
-	private boolean isEligible(PlayerEvent.BreakSpeed event) {
+	private static boolean isEligible(PlayerEvent.BreakSpeed event) {
 
 		if (event.getState().getBlock() == null || event.getPosition().isEmpty()) {
 			return false;
@@ -153,7 +173,7 @@ public class SpawnerBreakHandler {
 		return true;
 	}
 
-	private void doSidedDebugMessage(PlayerEvent.BreakSpeed event, Player player) {
+	private static void doSidedDebugMessage(PlayerEvent.BreakSpeed event, Player player) {
 		if (MyConfig.getDebugLevel() == 0)
 			return;
 
@@ -168,7 +188,7 @@ public class SpawnerBreakHandler {
 		Utility.debugMsg(1, debugSideType);
 	}
 
-	private void doBreakSpeedAdjustment(PlayerEvent.BreakSpeed event, Player player) {
+	private static void doBreakSpeedAdjustment(PlayerEvent.BreakSpeed event, Player player) {
 		// potentially both sides
 		float baseDestroySpeed = event.getOriginalSpeed();
 		float newDestroySpeed = baseDestroySpeed;
@@ -186,7 +206,7 @@ public class SpawnerBreakHandler {
 		}
 	}
 
-	private void doServerSideRevenge(PlayerEvent.BreakSpeed event, final BlockPos pos, Player player) {
+	private static void doServerSideRevenge(PlayerEvent.BreakSpeed event, final BlockPos pos, Player player) {
 
 		if (MyConfig.getSpawnerRevengeLevel() == 0)
 			return;
@@ -214,7 +234,7 @@ public class SpawnerBreakHandler {
 	}
 
 	// This only runs if installed on both sides or on the integrated server.
-	private void doOptionalClientMessage(ServerPlayer player) {
+	private static void doOptionalClientMessage(ServerPlayer player) {
 		if (!player.level().isClientSide())
 			return;
 		if ((spamLimiter++) % 20 == 0 && (MyConfig.getSpawnerTextOff() == 0)) {
@@ -222,13 +242,12 @@ public class SpawnerBreakHandler {
 		}
 	}
 
-	private void doSpawnerRevenge(final BlockPos pos, ServerPlayer serverPlayer, SpawnerBlockEntity sbe) {
+	private static void doSpawnerRevenge(final BlockPos pos, ServerPlayer serverPlayer, SpawnerBlockEntity sbe) {
 
 		float volume = 0.8f;
 		if (SharedUtilityMethods.isSpawnerStunned(sbe)) {
-//			serverPlayer.serverLevel().playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 0.25f, 0.25f);			
-			serverPlayer.serverLevel().playSound(null, pos, ModSounds.SPAWNER_WAILS, SoundSource.AMBIENT, 0.25f, 0.25f);
-			int i = 3;
+//			serverPlayer.serverLevel().playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 0.25f, 0.25f);	
+			serverPlayer.level().playSound(null, pos, ModSounds.SPAWNER_WAILS, SoundSource.AMBIENT, 0.25f, 0.25f);
 			return;
 		}
 
@@ -242,7 +261,7 @@ public class SpawnerBreakHandler {
 		Utility.updateEffect(serverPlayer, amplifier, effect, THREE_SECONDS);
 	}
 
-	private void doSpawnerBreakingEffects(final BlockPos pos, Player player, ServerLevel sLevel, SpawnerBlockEntity sbe,
+	private static void doSpawnerBreakingEffects(final BlockPos pos, Player player, ServerLevel sLevel, SpawnerBlockEntity sbe,
 			RandomSource rand) {
 
 		int smokeIntensity = 12;

@@ -7,14 +7,16 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
+@Mod.EventBusSubscriber() 
 public class SbeAttachEvent
 {
 	private static final ResourceLocation KEY = ResourceLocation.fromNamespaceAndPath(Main.MODID, "spawnerstatssapability");
 	
     @SubscribeEvent
-    public void onAttach(AttachCapabilitiesEvent<BlockEntity> event)
+    public static void onAttach(AttachCapabilitiesEvent.BlockEntities event)
     {
         BlockEntity be = event.getObject();
         if (be instanceof SpawnerBlockEntity sbe)

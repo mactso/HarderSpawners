@@ -21,14 +21,17 @@ import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
+@Mod.EventBusSubscriber() 
 public class MyEntityPlaceEvent {
-	@SubscribeEvent()
-	public void bucket(FillBucketEvent event) {
+	@SubscribeEvent
+	public static boolean bucket(FillBucketEvent event) {
+		boolean result = MyConfig.CONTINUE_EVENT;
 		Level level = (Level) event.getLevel();
 		if (level.isClientSide()) {
-			return;
+			return result;
 		}
 		ServerLevel slevel = (ServerLevel) level;
 
@@ -36,30 +39,31 @@ public class MyEntityPlaceEvent {
 		BlockPos placedPos = null;
 
 		if (!(stack.getItem() instanceof BucketItem))
-			return;
+			return result;
+		
 		BucketItem b = (BucketItem) stack.getItem();
 		if (b.getFluid().getFluidType().getLightLevel() == 0)
-			return;
+			return result;
 
 		if (!(event.getTarget().getType() == Type.BLOCK))
-			return;
+			return result;
 
 		BlockHitResult br = (BlockHitResult) event.getTarget();
 		placedPos = br.getBlockPos().relative(br.getDirection());
 		if (placedPos == null)
-			return;
+			return result;
 
 		if (!(ServerTickHandler.isSpawnerNearby(slevel, placedPos)))
-			return;
+			return result;
 
 		slevel.playSound(null, placedPos, SoundEvents.LAVA_EXTINGUISH, SoundSource.AMBIENT, 0.9f, 0.25f);
 		doLavaPlacementFailParticles(slevel, placedPos, br);
 
-		event.setCanceled(true);
+		return MyConfig.CANCEL_EVENT;
 	}
 
-	@SubscribeEvent()
-	public void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
+	@SubscribeEvent
+	public static void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
 		
 		if (event.getLevel().isClientSide())
 			return;

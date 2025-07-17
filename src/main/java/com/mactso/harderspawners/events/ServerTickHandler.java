@@ -19,11 +19,12 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.TickEvent.ServerTickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 
+@Mod.EventBusSubscriber() 
 public class ServerTickHandler {
 
 	public static record workRecord(ServerLevel level, BlockPos pos) {
@@ -47,9 +48,9 @@ public class ServerTickHandler {
 //	}
 	
 	@SubscribeEvent
-	public void onServerTickEvent(ServerTickEvent event) {
+	public static void onServerTickEvent(ServerTickEvent.Post event) {
 
-		if (event.phase == Phase.END && (--ticks) <= 0) {
+		if (--ticks <= 0) {
 			ticks = 20;
 //			if (MyConfig.isConfigLoaded()) {
 				synchronized (addlist) {

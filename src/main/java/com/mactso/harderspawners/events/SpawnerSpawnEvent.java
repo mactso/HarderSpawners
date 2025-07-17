@@ -13,6 +13,7 @@ import com.mactso.harderspawners.config.MobSpawnerManager.SpawnerDurabilityItem;
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
 import com.mactso.harderspawners.util.Utility;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -28,6 +29,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.InclusiveRange;
+import net.minecraft.util.ProblemReporter.ScopedCollector;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -45,19 +47,26 @@ import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.SpawnData.CustomSpawnRules;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent.FinalizeSpawn;
-import net.minecraftforge.eventbus.api.Event.Result;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.Priority;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
+@Mod.EventBusSubscriber() 
 public class SpawnerSpawnEvent {
 	private static int debugThreadIdentifier = 0;
 	private static final Logger LOGGER = LogManager.getLogger();
+	private static final org.slf4j.Logger LOGGERUTIL =  LogUtils.getLogger();
 	private static BlockPos lastSpawnerPos = null;
 	public static long lastSpawnTime;
-
+	
+	static boolean CANCEL_EVENT = true;
+	static boolean CONTINUE_EVENT = false;
+	
 	static int MAX_AGE = 1200;
 	private static final int EFFECT_LEVEL_0 = 0;
 	public static Component tip = Component.translatable("text.harderspawners.add_durability").withStyle(ChatFormatting.LIGHT_PURPLE);
@@ -68,19 +77,19 @@ public class SpawnerSpawnEvent {
 	// spawner
 	//
 
-	@SubscribeEvent(priority = EventPriority.HIGHEST)
-	public void onCheckSpawnerSpawn(MobSpawnEvent.FinalizeSpawn event) {
+	@SubscribeEvent(priority = Priority.HIGHEST)
+	public static boolean handleFinalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
 
 		if (isErrorFree(event)) {
 			ServerLevel sLevel = (ServerLevel) event.getLevel();
 			if (!sLevel.isUnobstructed(event.getEntity())) {
-				event.setResult(Result.DENY);
-				return;
+				return CANCEL_EVENT;
 			}
-			event.setResult(Result.ALLOW); // prevent entity spawn rules from blocking it
 			doDebugThreadMsg(event);
 			doProcessSpawner(event);
 		}
+		int debug=3;
+		return CONTINUE_EVENT;
 
 	}
 
@@ -94,14 +103,17 @@ public class SpawnerSpawnEvent {
 			BaseSpawner mySpawner = sbe.getSpawner();
 			BlockPos spawnerPos = sbe.getBlockPos();
 
-			CompoundTag tag = new CompoundTag();
-			mySpawner.save(tag); // Save spawner values into the tag
+	        ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+	        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+	        mySpawner.save(vout);
+	        CompoundTag tag = vout.buildResult();  // Save spawner values into the tag
 
 			boolean initialized = doInitNewSpawner(sbe);
 			boolean changed = doHandleStunnedSpawner(sbe, tag);
 
 			if (initialized || changed) {
-				mySpawner.load(sLevel, spawnerPos, tag);
+		        mySpawner.load(sbe.getLevel(), sbe.getBlockPos(), TagValueInput.create(preport, sbe.getLevel().registryAccess(), tag));
+//				mySpawner.load(sLevel, spawnerPos, tag); // original
 				ServerTickHandler.addClientUpdate(sLevel, spawnerPos);
 			}
 
@@ -138,7 +150,11 @@ public class SpawnerSpawnEvent {
 			event.getEntity().addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE,
 					MyConfig.getHostileSpawnerResistDaylightDuration() * 20, EFFECT_LEVEL_0, false, false));
 		}
-
+		
+		// forge method is why the canBreathUnderWater is deprecated.
+		// boolean canDrownInFluid = event.getEntity().canDrownInFluidType(???); // Hard Fail if Null FluidType.
+		// choosing not to use it for now.
+		
 		if (sLevel.containsAnyLiquid(event.getEntity().getBoundingBox())) {
 			if (!event.getEntity().canBreatheUnderwater()) {
 				event.getEntity().addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING,
@@ -163,6 +179,8 @@ public class SpawnerSpawnEvent {
 		ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
 		if ((cap.isInfiniteDurability()))
 			return;
+		
+		int durability = cap.getDurability();
 		if (cap.getDurability() > 0)
 			return;
 		
@@ -192,15 +210,19 @@ public class SpawnerSpawnEvent {
 
 		Utility.debugMsg(1, "Trying to initialize spawner at " + sbe.getBlockPos());
 
-		CompoundTag spawnerTag = new CompoundTag();
-		sbe.getSpawner().save(spawnerTag);
-		
+		// new code.
+		ScopedCollector preport = new ScopedCollector( LOGGERUTIL);
+        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+        sbe.getSpawner().save(vout);
+        CompoundTag spawnerTag = vout.buildResult();  // Save spawner values into the tag
+        
 		CompoundTag spawnDataTag = getCompoundTag(spawnerTag, "SpawnData" );
 		if (spawnDataTag == null) return false;
 
 		CompoundTag entityDataTag = getCompoundTag(spawnDataTag, "entity" );
 		if (entityDataTag == null) return false;
-		Optional<EntityType<?>> entityType = EntityType.by(entityDataTag);
+	
+		Optional<EntityType<?>> entityType = EntityType.by(TagValueInput.create(preport, sbe.getLevel().registryAccess(), entityDataTag));
 	
 		
 		if (entityType.isPresent()) { // Getting Spawner Durability requires an Entity Type.
@@ -230,7 +252,9 @@ public class SpawnerSpawnEvent {
 					spawnerTag.put("SpawnData", workSpawnData.get());
 				}
 			}
-			sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), spawnerTag);
+			
+			ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+			sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), TagValueInput.create(preport, sbe.getLevel().registryAccess(), spawnerTag));
 		}
 	}
 
@@ -267,7 +291,9 @@ public class SpawnerSpawnEvent {
 
 		CompoundTag entityDataTag = getCompoundTag(spawnDataTag, "entity" );
 		if (entityDataTag == null) return false;
-		Optional<EntityType<?>> entityType = EntityType.by(entityDataTag);
+		
+		ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+		Optional<EntityType<?>> entityType = EntityType.by(TagValueInput.create(preport, sbe.getLevel().registryAccess(), entityDataTag));
 		
 
 		if (entityType.isEmpty())
@@ -286,7 +312,7 @@ public class SpawnerSpawnEvent {
 		return optTag.get();
 	}
 
-	private boolean isErrorFree(FinalizeSpawn event) {
+	private static boolean isErrorFree(FinalizeSpawn event) {
 
 		if ((event.getLevel().isClientSide()))
 			return false;
@@ -348,10 +374,10 @@ public class SpawnerSpawnEvent {
 
 		int spawnsLeft = cap.getDurability() - 1;
 
-//		// tODO debug code
+//		// TODO debug code
 //		Utility.debugMsg(0, "Disable Debug Code");
 //		spawnsLeft = 24;
-//		// tODO debug code
+//		// TODO debug code
 
 		cap.setDurability(spawnsLeft);
 		sbe.setChanged();
@@ -360,12 +386,12 @@ public class SpawnerSpawnEvent {
 			doSpawnerFailingEffects(sLevel, sbe, spawnsLeft);
 		}
 
-//		// tODO debug code
+//		// TODO debug code
 //		Utility.debugMsg(0, "Disable Debug Code");
 //		if (spawnsLeft < 5) {
 //			int debug8 = 8; // TODO this is for debugging so I can reset the spawnsleft count.
 //		}
-//		// tODO debug code
+//		// TODO debug code
 
 	}
 
@@ -414,7 +440,8 @@ public class SpawnerSpawnEvent {
 		itemDisplay.setCustomName(tip);
 		itemDisplay.setCustomNameVisible(true);
 		CompoundTag temptag = buildItemDisplayNBT(itemDisplay);
-		itemDisplay.load(temptag);
+		ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+		itemDisplay.load(TagValueInput.create(preport, sbe.getLevel().registryAccess(), temptag));
 		Vec3 vWork = sbe.getBlockPos().getBottomCenter();
 
 		// itemDisplay.moveTo(vWork.x, vWork.y + 1.5, vWork.z, 0.0f, 0.0f);
@@ -425,8 +452,11 @@ public class SpawnerSpawnEvent {
 	}
 
 	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
-		CompoundTag tag = new CompoundTag();
-		i.save(tag);
+		
+        ScopedCollector preport = new ScopedCollector(LOGGERUTIL);
+        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+        i.save(vout);
+        CompoundTag tag = vout.buildResult(); 
 		tag.put("transformation", buildTransformationTag());
 		tag.put("item", buildItemTag());
 		tag.putString("billboard", "center");

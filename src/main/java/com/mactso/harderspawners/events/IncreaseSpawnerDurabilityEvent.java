@@ -23,53 +23,61 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber // Ensure the event subscriber is registered
+@Mod.EventBusSubscriber() // Ensure the event subscriber is registered
 public class IncreaseSpawnerDurabilityEvent {
 
 	@SubscribeEvent
-	public static void onRightClick(PlayerInteractEvent.RightClickBlock event) {
+	public static boolean onRightClick(PlayerInteractEvent.RightClickBlock event) {
 
 		Level level = event.getLevel();
 		if (level.isClientSide)
-			return;
+			return MyConfig.CONTINUE_EVENT;
 
 		ServerLevel sLevel = (ServerLevel) level;
 		if (!(sLevel.getBlockState(event.getPos()).is(Blocks.SPAWNER)))
-			return;
+			return MyConfig.CONTINUE_EVENT;
 		
 		ItemStack heldItem = event.getEntity().getItemInHand(InteractionHand.MAIN_HAND);
 
 		if (MyConfig.isDurabilityRepairEnabled()) {
-			doRepairSpawnerDurability(event, level, sLevel, heldItem);
+			if (doRepairSpawnerDurability(event, level, sLevel, heldItem)) {
+				return MyConfig.CANCEL_EVENT; // consume the RightClickBlock event.
+			}
 		}
+
+		return MyConfig.CONTINUE_EVENT;
+		
+		
 	}
 
-	private static void doRepairSpawnerDurability(PlayerInteractEvent.RightClickBlock event, Level level,
+	private static boolean doRepairSpawnerDurability(PlayerInteractEvent.RightClickBlock event, Level level,
 			ServerLevel sLevel, ItemStack heldItem) {
+		
 
 		BlockPos pos = event.getPos();
 
 		if (!(heldItem.getItem() == MyConfig.getDurabilityItemAsItem())) {
 			level.playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
-			return;
+			return MyConfig.CONTINUE_EVENT;
+
 		}
 
 		if (!(sLevel.getBlockState(pos).is(Blocks.SPAWNER)))
-			return;
+			return MyConfig.CONTINUE_EVENT;
+		
 		if (sLevel.getBlockEntity(pos) instanceof SpawnerBlockEntity sbe) {
 
 			// Stop further FORGE processing of this event
-			event.setCanceled(true);
 			event.setCancellationResult(InteractionResult.SUCCESS);
 
 			ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
 			if (cap.getDurability() > 250) {
 				level.playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
 				doRemoveItemDisplay(sLevel, sbe);
-				return;
+				return MyConfig.CANCEL_EVENT;
 			}
 			cap.setDurability(cap.getDurability() + MyConfig.getDurabilityRepairAmount());
 			doRemoveItemDisplay(sLevel, sbe);
@@ -80,7 +88,9 @@ public class IncreaseSpawnerDurabilityEvent {
 			// let Minecraft and Forge know to save these changes and update the Client.
 			sbe.setChanged();
 			event.getEntity().getInventory().setChanged();
+			return MyConfig.CANCEL_EVENT;
 		}
+		return MyConfig.CONTINUE_EVENT;
 	}
 
 	private static void doRemoveItemDisplay(ServerLevel sLevel, SpawnerBlockEntity sbe) {
