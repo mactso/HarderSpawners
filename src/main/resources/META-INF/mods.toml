@@ -1,10 +1,10 @@
 modLoader="javafml"
-loaderVersion="[59,)"
+loaderVersion="[61,)"
 license="MIT"
 
 [[mods]]
 modId="harderspawners"
-version="59.28.0"
+version="61.7.0"
 displayName="Harder Spawners Mod"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/harder-spawners"
 
@@ -14,14 +14,14 @@ description='Harder Spawners Mod.'
 [[dependencies.harderspawners]]
 modId="forge"
 mandatory=true
-versionRange="[59,)"
+versionRange="[61,)"
 ordering="NONE"
 side="BOTH"
 
 [[dependencies.harderspawners]]
 modId="minecraft"
 mandatory=true
-versionRange="[1.21.9,1.22)"
+versionRange="[1.21.11,1.22)"
 ordering="NONE"
 side="BOTH"
 # side="BOTH", "CLIENT?", "SERVER"

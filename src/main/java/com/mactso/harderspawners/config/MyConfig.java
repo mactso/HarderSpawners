@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import com.mactso.harderspawners.Main;
 import com.mactso.harderspawners.util.MyUtilities;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -225,7 +225,7 @@ public class MyConfig {
 	}
 
 	public static String getDurabilityItem() {
-		ResourceLocation itemLocation = ResourceLocation.parse(durabilityRepairItem);
+		Identifier itemLocation = Identifier.parse(durabilityRepairItem);
 		@Nullable
 		Item configuredItem = ForgeRegistries.ITEMS.getValue(itemLocation);
 
@@ -238,7 +238,7 @@ public class MyConfig {
 	}
 
 	public static Item getDurabilityItemAsItem() {
-		ResourceLocation itemLocation = ResourceLocation.parse(durabilityRepairItem);
+		Identifier itemLocation = Identifier.parse(durabilityRepairItem);
 		@Nullable
 		Item configuredItem = ForgeRegistries.ITEMS.getValue(itemLocation);
 

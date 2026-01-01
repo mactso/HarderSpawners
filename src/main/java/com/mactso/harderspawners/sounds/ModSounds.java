@@ -2,7 +2,7 @@ package com.mactso.harderspawners.sounds;
 
 import com.mactso.harderspawners.Main;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraftforge.registries.IForgeRegistry;
 
@@ -11,7 +11,7 @@ public static final SoundEvent SPAWNER_WAILS = create("spawner.wails");
 
 private static SoundEvent create(String key)
 {
-	ResourceLocation res = ResourceLocation.fromNamespaceAndPath(Main.MODID, key);
+	Identifier res = Identifier.fromNamespaceAndPath(Main.MODID, key);
 	SoundEvent ret = SoundEvent.createVariableRangeEvent(res);
 	return ret;
 }

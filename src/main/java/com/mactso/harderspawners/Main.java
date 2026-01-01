@@ -32,7 +32,7 @@ public class Main {
 
 
     // Static class for mod-related events on the Forge event bus
-    @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+    @Mod.EventBusSubscriber(modid = Main.MODID)
     public static class ForgeEvents {
 
         @SubscribeEvent
