@@ -56,22 +56,23 @@ import net.minecraftforge.eventbus.api.listener.Priority;
 import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber() 
+@Mod.EventBusSubscriber()
 public class SpawnerSpawnEvent {
 	private static int debugThreadIdentifier = 0;
-	private static int junk = 0;  // this is a cheap hack to get around forges new requirement that event can't be parm1.
+	private static int junk = 0; // this is a cheap hack to get around forges new requirement that event can't be
+									// parm1.
 	private static final Logger LOGGER = LogManager.getLogger();
-	private static final org.slf4j.Logger LOGGERUTIL =  LogUtils.getLogger();
+	private static final org.slf4j.Logger LOGGERUTIL = LogUtils.getLogger();
 	private static BlockPos lastSpawnerPos = null;
 	public static long lastSpawnTime;
-	
+
 	static boolean CANCEL_EVENT = true;
 	static boolean CONTINUE_EVENT = false;
-	
+
 	static int MAX_AGE = 1200;
 	private static final int EFFECT_LEVEL_0 = 0;
-	public static Component tip = Component.translatable("text.harderspawners.add_durability").withStyle(ChatFormatting.LIGHT_PURPLE);
-	
+	public static Component tip = Component.translatable("text.harderspawners.add_durability")
+			.withStyle(ChatFormatting.LIGHT_PURPLE);
 
 	//
 	// context - this event only happens once every 15 to 45 seconds per active
@@ -81,13 +82,13 @@ public class SpawnerSpawnEvent {
 	@SubscribeEvent(priority = Priority.HIGHEST)
 	public static boolean handleFinalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
 
-		if (isErrorFree(junk,event)) {
+		if (isErrorFree(junk, event)) {
 			ServerLevel sLevel = (ServerLevel) event.getLevel();
 			if (!sLevel.isUnobstructed(event.getEntity())) {
 				return CANCEL_EVENT;
 			}
-			doDebugThreadMsg(junk,event);
-			doProcessSpawner(junk,event);
+			doDebugThreadMsg(junk, event);
+			doProcessSpawner(junk, event);
 		}
 
 		return CONTINUE_EVENT;
@@ -97,36 +98,40 @@ public class SpawnerSpawnEvent {
 	// Note this is called once per mob spawned.
 	public static void doProcessSpawner(int junk, MobSpawnEvent.FinalizeSpawn event) {
 
-		if (event.getSpawner().getSpawnerBlockEntity() instanceof SpawnerBlockEntity sbe) {
+		BlockEntity be = event.getSpawner().getSpawnerBlockEntity();
+		if (!(be instanceof SpawnerBlockEntity sbe))
+			return;
+		if (!(isSpawnerValid(sbe))) // ensures sbe.hasLevel() which 1.21.11 now requires
+			return;
+		
+		ServerLevel sLevel = (ServerLevel) event.getLevel();
+		BaseSpawner mySpawner = sbe.getSpawner();
+		BlockPos spawnerPos = sbe.getBlockPos();
 
-			ServerLevel sLevel = (ServerLevel) event.getLevel();
+		ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+		TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+		mySpawner.save(vout);
+		CompoundTag tag = vout.buildResult(); // Save spawner values into the tag
 
-			BaseSpawner mySpawner = sbe.getSpawner();
-			BlockPos spawnerPos = sbe.getBlockPos();
+		boolean initialized = doInitNewSpawner(sbe);
+		boolean changed = doHandleStunnedSpawner(sbe, tag);
 
-	        ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
-	        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
-	        mySpawner.save(vout);
-	        CompoundTag tag = vout.buildResult();  // Save spawner values into the tag
-
-			boolean initialized = doInitNewSpawner(sbe);
-			boolean changed = doHandleStunnedSpawner(sbe, tag);
-
-			if (initialized || changed) {
-		        mySpawner.load(sbe.getLevel(), sbe.getBlockPos(), TagValueInput.create(preport, sbe.getLevel().registryAccess(), tag));
+		if (initialized || changed) {
+			mySpawner.load(sbe.getLevel(), sbe.getBlockPos(),
+					TagValueInput.create(preport, sbe.getLevel().registryAccess(), tag));
 //				mySpawner.load(sLevel, spawnerPos, tag); // original
-				ServerTickHandler.addClientUpdate(sLevel, spawnerPos);
-			}
+			ServerTickHandler.addClientUpdate(sLevel, spawnerPos);
+		}
 
-			MyUtilities.debugMsg(1, spawnerPos, "Spawn Time: " + sLevel.getGameTime() + " Lastspawntime: " + lastSpawnTime + ", lastSpawnPos" + lastSpawnerPos);
-			if (isFirstSpawnInGroup(sLevel, spawnerPos)) {
+		MyUtilities.debugMsg(1, spawnerPos, "Spawn Time: " + sLevel.getGameTime() + " Lastspawntime: " + lastSpawnTime
+				+ ", lastSpawnPos" + lastSpawnerPos);
+		if (isFirstSpawnInGroup(sLevel, spawnerPos)) {
 
-				doUseASpawn(sLevel, sbe, mySpawner);
-				if (isMonsterSpawner(sbe, tag)) {
-					doProtectiveMobBuffs(junk, event, sLevel);
-					SharedUtilityMethods.doDestroyLightsNearBlockPos(sbe.getBlockPos(), sLevel);
-					doSpawnerFails(junk, event, sbe);
-				}
+			doUseASpawn(sLevel, sbe, mySpawner);
+			if (isMonsterSpawner(sbe, tag)) {
+				doProtectiveMobBuffs(junk, event, sLevel);
+				SharedUtilityMethods.doDestroyLightsNearBlockPos(sbe.getBlockPos(), sLevel);
+				doSpawnerFails(junk, event, sbe);
 			}
 		}
 
@@ -144,21 +149,24 @@ public class SpawnerSpawnEvent {
 
 	}
 
-	private static void doProtectiveMobBuffs(int junk,MobSpawnEvent.FinalizeSpawn event, ServerLevel sLevel) {
+	private static void doProtectiveMobBuffs(int junk, MobSpawnEvent.FinalizeSpawn event, ServerLevel sLevel) {
 
 		if ((MyConfig.getHostileSpawnerResistDaylightDuration() > 0)
 				&& (sLevel.getMaxLocalRawBrightness(event.getEntity().blockPosition()) > 8)) {
 			event.getEntity().addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE,
 					MyConfig.getHostileSpawnerResistDaylightDuration() * 20, EFFECT_LEVEL_0, false, false));
 		}
-		
+
 		// forge method is why the canBreathUnderWater is deprecated.
-		// boolean canDrownInFluid = event.getEntity().canDrownInFluidType(???); // Hard Fail if Null FluidType.
+		// boolean canDrownInFluid = event.getEntity().canDrownInFluidType(???); // Hard
+		// Fail if Null FluidType.
 		// choosing not to use it for now.
-		
+
 		if (sLevel.containsAnyLiquid(event.getEntity().getBoundingBox())) {
-			
-			// if (!event.getEntity().canBreatheInFluidType(event.getEntity().level().getFluidState(event.getEntity().blockPosition()).getType())) { ... }
+
+			// if
+			// (!event.getEntity().canBreatheInFluidType(event.getEntity().level().getFluidState(event.getEntity().blockPosition()).getType()))
+			// { ... }
 			if (!event.getEntity().canBreatheUnderwater()) {
 				event.getEntity().addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING,
 						MyConfig.getHostileSpawnerResistDaylightDuration() * 20, EFFECT_LEVEL_0, false, false));
@@ -170,23 +178,25 @@ public class SpawnerSpawnEvent {
 	// cap is confirmed valid before this method is called.
 	private static void doSpawnerFails(int junk, MobSpawnEvent.FinalizeSpawn event, SpawnerBlockEntity sbe) {
 
+		if (!(sbe.hasLevel()))
+			return;
+
 		if (event.getEntity() instanceof Silverfish) {
 			return;
 		}
-		
+
 		Level level = sbe.getLevel();
-		if (level.isClientSide()) 
+		if (level.isClientSide())
 			return;
 
-		
 		ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
 		if ((cap.isInfiniteDurability()))
 			return;
-		
+
 		int durability = cap.getDurability();
 		if (durability > 0)
 			return;
-		
+
 		ServerLevel sLevel = (ServerLevel) level;
 		doRemoveDisplayOnFailure(sLevel, sbe);
 		BlockPos pos = sbe.getBlockPos();
@@ -206,6 +216,10 @@ public class SpawnerSpawnEvent {
 
 	public static boolean doInitNewSpawner(SpawnerBlockEntity sbe) {
 
+		if (!sbe.hasLevel()) // starting in 1.21.1, Forge now strictly enforces level != null during save
+			return false; // so we must not touch spawners until they have level or the chunk save will
+							// fail.
+
 		ISpawnerStatsStorage cap = sbe.getCapability(CapabilitySpawner.SPAWNER_STORAGE).orElse(null);
 
 		if ((cap == null) || (cap.isInitialized()))
@@ -214,20 +228,22 @@ public class SpawnerSpawnEvent {
 		MyUtilities.debugMsg(1, "Trying to initialize spawner at " + sbe.getBlockPos());
 
 		// new code.
-		ScopedCollector preport = new ScopedCollector( LOGGERUTIL);
-        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
-        sbe.getSpawner().save(vout);
-        CompoundTag spawnerTag = vout.buildResult();  // Save spawner values into the tag
-        
-		CompoundTag spawnDataTag = getCompoundTag(spawnerTag, "SpawnData" );
-		if (spawnDataTag == null) return false;
+		ScopedCollector preport = new ScopedCollector(LOGGERUTIL);
+		TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+		sbe.getSpawner().save(vout);
+		CompoundTag spawnerTag = vout.buildResult(); // Save spawner values into the tag
 
-		CompoundTag entityDataTag = getCompoundTag(spawnDataTag, "entity" );
-		if (entityDataTag == null) return false;
-	
-		Optional<EntityType<?>> entityType = EntityType.by(TagValueInput.create(preport, sbe.getLevel().registryAccess(), entityDataTag));
-	
-		
+		CompoundTag spawnDataTag = getCompoundTag(spawnerTag, "SpawnData");
+		if (spawnDataTag == null)
+			return false;
+
+		CompoundTag entityDataTag = getCompoundTag(spawnDataTag, "entity");
+		if (entityDataTag == null)
+			return false;
+
+		Optional<EntityType<?>> entityType = EntityType
+				.by(TagValueInput.create(preport, sbe.getLevel().registryAccess(), entityDataTag));
+
 		if (entityType.isPresent()) { // Getting Spawner Durability requires an Entity Type.
 			MyUtilities.debugMsg(1, "Initializing spawner at " + sbe.getBlockPos());
 			doInitMonsterSpawnerNBT(sbe, spawnerTag, spawnDataTag, entityDataTag);
@@ -238,16 +254,18 @@ public class SpawnerSpawnEvent {
 		return true;
 	}
 
-	private static void doInitMonsterSpawnerNBT(SpawnerBlockEntity sbe, CompoundTag spawnerTag, CompoundTag spawnDataTag,
-			CompoundTag entityTag) {
+	private static void doInitMonsterSpawnerNBT(SpawnerBlockEntity sbe, CompoundTag spawnerTag,
+			CompoundTag spawnDataTag, CompoundTag entityTag) {
 
-		
+		if (!(sbe.hasLevel()))
+			return;
+
 		if (isMonsterSpawner(sbe, spawnerTag)) {
-			if (spawnerTag.getIntOr("MaxNearbyEntities",6) != MyConfig.getMaxNearbyEntities())
+			if (spawnerTag.getIntOr("MaxNearbyEntities", 6) != MyConfig.getMaxNearbyEntities())
 				spawnerTag.putInt("MaxNearbyEntities", MyConfig.getMaxNearbyEntities());
-			if (spawnerTag.getIntOr("RequiredPlayerRange",16) != MyConfig.getRequiredPlayerRange())
+			if (spawnerTag.getIntOr("RequiredPlayerRange", 16) != MyConfig.getRequiredPlayerRange())
 				spawnerTag.putInt("RequiredPlayerRange", MyConfig.getRequiredPlayerRange());
-			if (spawnerTag.getIntOr("SpawnRange",8) != MyConfig.getSpawnRange())
+			if (spawnerTag.getIntOr("SpawnRange", 8) != MyConfig.getSpawnRange())
 				spawnerTag.putInt("SpawnRange", MyConfig.getSpawnRange());
 			Optional<Tag> workSpawnData = buildCustomLightLevelSpawnData(spawnDataTag, entityTag);
 			if (workSpawnData.isPresent()) {
@@ -255,9 +273,10 @@ public class SpawnerSpawnEvent {
 					spawnerTag.put("SpawnData", workSpawnData.get());
 				}
 			}
-			
+
 			ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
-			sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), TagValueInput.create(preport, sbe.getLevel().registryAccess(), spawnerTag));
+			sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(),
+					TagValueInput.create(preport, sbe.getLevel().registryAccess(), spawnerTag));
 		}
 	}
 
@@ -289,15 +308,17 @@ public class SpawnerSpawnEvent {
 
 	private static boolean isMonsterSpawner(SpawnerBlockEntity sbe, CompoundTag tag) {
 
-		CompoundTag spawnDataTag = getCompoundTag(tag, "SpawnData" );
-		if (spawnDataTag == null) return false;
+		CompoundTag spawnDataTag = getCompoundTag(tag, "SpawnData");
+		if (spawnDataTag == null)
+			return false;
 
-		CompoundTag entityDataTag = getCompoundTag(spawnDataTag, "entity" );
-		if (entityDataTag == null) return false;
-		
+		CompoundTag entityDataTag = getCompoundTag(spawnDataTag, "entity");
+		if (entityDataTag == null)
+			return false;
+
 		ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
-		Optional<EntityType<?>> entityType = EntityType.by(TagValueInput.create(preport, sbe.getLevel().registryAccess(), entityDataTag));
-		
+		Optional<EntityType<?>> entityType = EntityType
+				.by(TagValueInput.create(preport, sbe.getLevel().registryAccess(), entityDataTag));
 
 		if (entityType.isEmpty())
 			return false;
@@ -384,7 +405,8 @@ public class SpawnerSpawnEvent {
 
 		cap.setDurability(spawnsLeft);
 		sbe.setChanged();
-		MyUtilities.debugMsg(1, sbe.getBlockPos(), "Was First Spawn at(" + sLevel.getGameTime() + ") spawnsleft: "+ spawnsLeft);
+		MyUtilities.debugMsg(1, sbe.getBlockPos(),
+				"Was First Spawn at(" + sLevel.getGameTime() + ") spawnsleft: " + spawnsLeft);
 		if (spawnsLeft < 25) {
 			doSpawnerFailingEffects(sLevel, sbe, spawnsLeft);
 		}
@@ -401,7 +423,7 @@ public class SpawnerSpawnEvent {
 	private static void doSpawnerFailingEffects(ServerLevel sLevel, BlockEntity sbe, int durabilityLeft) {
 
 		if (MyConfig.isDurabilityRepairEnabled()) {
-			doShowRepairItemDisplay(sLevel, sbe , durabilityLeft);
+			doShowRepairItemDisplay(sLevel, sbe, durabilityLeft);
 		}
 		doSpawnerFailingNoise(sLevel, sbe.getBlockPos(), durabilityLeft);
 		doSpawnerFailingParticles(sLevel, sbe.getBlockPos(), durabilityLeft);
@@ -422,8 +444,8 @@ public class SpawnerSpawnEvent {
 		buildAndAddRepairItemDisplay(sLevel, sbe);
 
 	}
-	
-	public static void doRemoveDisplayOnFailure (ServerLevel sLevel, BlockEntity sbe) {
+
+	public static void doRemoveDisplayOnFailure(ServerLevel sLevel, BlockEntity sbe) {
 		List<ItemDisplay> displaysList = sLevel.getEntitiesOfClass(ItemDisplay.class,
 				sbe.getRenderBoundingBox().inflate(4));
 
@@ -433,13 +455,13 @@ public class SpawnerSpawnEvent {
 				return;
 			}
 		}
-		
+
 	}
 
 	private static void buildAndAddRepairItemDisplay(ServerLevel sLevel, BlockEntity sbe) {
 
 		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
-		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel,EntitySpawnReason.COMMAND);
+		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel, EntitySpawnReason.COMMAND);
 		itemDisplay.setCustomName(tip);
 		itemDisplay.setCustomNameVisible(true);
 		CompoundTag temptag = buildItemDisplayNBT(itemDisplay);
@@ -455,11 +477,11 @@ public class SpawnerSpawnEvent {
 	}
 
 	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
-		
-        ScopedCollector preport = new ScopedCollector(LOGGERUTIL);
-        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
-        i.save(vout);
-        CompoundTag tag = vout.buildResult(); 
+
+		ScopedCollector preport = new ScopedCollector(LOGGERUTIL);
+		TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+		i.save(vout);
+		CompoundTag tag = vout.buildResult();
 		tag.put("transformation", buildTransformationTag());
 		tag.put("item", buildItemTag());
 		tag.putString("billboard", "center");
@@ -536,6 +558,22 @@ public class SpawnerSpawnEvent {
 			SimpleParticleType particles = ParticleTypes.CAMPFIRE_COSY_SMOKE;
 			sLevel.sendParticles(particles, x, y, z, 3, rfv.x, rfv.y, rfv.z, -0.04D);
 		}
+	}
+
+	private static boolean isSpawnerValid(SpawnerBlockEntity sbe) {
+
+		if (sbe == null)
+			return false;
+		if (sbe.isRemoved())
+			return false;
+		if (!sbe.hasLevel())
+			return false;
+		BlockPos sbePos = sbe.getBlockPos();
+
+		if (sbePos == null)
+			return false;
+
+		return true;
 	}
 
 	private static void doDebugThreadMsg(int junk, MobSpawnEvent.FinalizeSpawn event) {

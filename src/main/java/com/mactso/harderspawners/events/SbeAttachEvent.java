@@ -11,22 +11,27 @@ import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(
-	    modid = Main.MODID,
-	    bus = Mod.EventBusSubscriber.Bus.FORGE
-	)
+        modid = Main.MODID,
+        bus = Mod.EventBusSubscriber.Bus.FORGE
+)
+public class SbeAttachEvent {
 
-public class SbeAttachEvent
-{
-	private static final Identifier KEY = Identifier.fromNamespaceAndPath(Main.MODID, "spawnerstatssapability");
-	
+    private static final Identifier KEY = Identifier.fromNamespaceAndPath(Main.MODID, "spawnerstatssapability");
+
     @SubscribeEvent
-    public static void onAttach(AttachCapabilitiesEvent.BlockEntities event)
-    {
+    public static void onAttach(AttachCapabilitiesEvent.BlockEntities event) {
         BlockEntity be = event.getObject();
-        if (be instanceof SpawnerBlockEntity sbe)
-        {
-        	ServerTickHandler.addSbeWorklistEntry(sbe);
-        	event.addCapability(KEY, new SpawnerStatsStorageProvider());
+        if (be instanceof SpawnerBlockEntity sbe) {
+
+            // Add to deferred initialization
+            ServerTickHandler.addSbeWorklistEntry(sbe);
+
+            // Attach the capability
+            SpawnerStatsStorageProvider provider = new SpawnerStatsStorageProvider();
+            event.addCapability(KEY, provider);
+
+            // Ensure automatic invalidation when block entity is removed
+            event.addListener(provider.getOptional()::invalidate);
         }
     }
 }

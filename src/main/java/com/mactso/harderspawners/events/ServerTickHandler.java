@@ -31,45 +31,34 @@ import net.minecraftforge.network.PacketDistributor;
 	)
 public class ServerTickHandler {
 
-	public static record workRecord(ServerLevel level, BlockPos pos) {
+    public static record WorkRecord(ServerLevel level, BlockPos pos) {}
 
-	}
-
-	public static List<workRecord> workList = new ArrayList<>();
-	private static List<WeakReference<SpawnerBlockEntity>> sbelist = new ArrayList<>();
-	private static List<WeakReference<SpawnerBlockEntity>> addlist = new ArrayList<>();
+	public static List<WorkRecord> workList = new ArrayList<>();
+	private static List<WeakReference<SpawnerBlockEntity>> sbeList = new ArrayList<>();
+	private static List<WeakReference<SpawnerBlockEntity>> addList = new ArrayList<>();
 	private static Set<BlockPos> spawnerLocations = new HashSet<>();
 	private static int ticks = 0;
-
 	private static long hasEntriesTime = 0;
 
-//	@SubscribeEvent
-//	public void onLevelTickEvent(LevelTickEvent event) {
-//		if (event.phase == Phase.END && (--ticks) <= 0) {
-//			ticks = 20;
-//		}
-//		
-//	}
-	
 	@SubscribeEvent
 	public static void onServerTickEvent(ServerTickEvent.Post event) {
-
+        // Run once per second
 		if (--ticks <= 0) {
 			ticks = 20;
-//			if (MyConfig.isConfigLoaded()) {
-				synchronized (addlist) {
-					sbelist.addAll(addlist);
-					addlist.clear();
+
+            // Add new entries
+				synchronized (addList) {
+					sbeList.addAll(addList);
+					addList.clear();
 				}
 
-				if (!sbelist.isEmpty()) {
-					Iterator<WeakReference<SpawnerBlockEntity>> it = sbelist.iterator();
-					
+				if (!sbeList.isEmpty()) {
+					Iterator<WeakReference<SpawnerBlockEntity>> it = sbeList.iterator();
 					while (it.hasNext()) {
 						WeakReference<SpawnerBlockEntity> wSbe = it.next();
 						SpawnerBlockEntity sbe = wSbe.get();
 						if (!isSpawnerValid(sbe)) {
-							MyUtilities.debugMsg(1, "Removing invalid spawner from sbelist.");
+                        MyUtilities.debugMsg(1, "Removing invalid spawner from sbeList.");
 							it.remove();
 						} else if (sbe.hasLevel()) {
 							// Without this, setting spawner player ranges higher won't work
@@ -78,14 +67,12 @@ public class ServerTickHandler {
 							SpawnerSpawnEvent.doInitNewSpawner(sbe);
 							it.remove();
 							MyUtilities.debugMsg(1, "Removing spawner after initialization at " + sbe.getBlockPos());
-
 						}
 					}
-					
 				}
 
 		}
-
+        // Handle client updates
 		if (workList.isEmpty()) {
 			return;
 		}
@@ -97,9 +84,9 @@ public class ServerTickHandler {
 		long currentTime = event.server().overworld().getGameTime();
 
 		if (currentTime > hasEntriesTime) {
-			Iterator<workRecord> wi = workList.iterator();
+			Iterator<WorkRecord> wi = workList.iterator();
 			while (wi.hasNext()) {
-				workRecord work = wi.next();
+				WorkRecord work = wi.next();
 				BlockEntity blockEntity = work.level.getBlockEntity(work.pos);
 				if (blockEntity != null) {
 					Packet<?> pkt = blockEntity.getUpdatePacket();
@@ -122,7 +109,7 @@ public class ServerTickHandler {
 	}
 
 	public static void addClientUpdate(ServerLevel level, BlockPos pos) {
-		workList.add(new workRecord(level, pos));
+		workList.add(new WorkRecord(level, pos));
 	}
 
 	public static void addSbeWorklistEntry(SpawnerBlockEntity sbe) {
@@ -133,8 +120,8 @@ public class ServerTickHandler {
 			spawnerLocations.add(sbe.getBlockPos());
 		}
 		MyUtilities.debugMsg(1,"Adding Weak Reference to Spawner at "+ sbe.getBlockPos()+" to sbeList");
-		synchronized (addlist) {
-			addlist.add(new WeakReference<>(sbe));
+		synchronized (addList) {
+			addList.add(new WeakReference<>(sbe));
 		}
 	}
 
@@ -177,12 +164,15 @@ public class ServerTickHandler {
 	}
 
 	private static boolean isSpawnerValid(SpawnerBlockEntity sbe) {
+		
 		if (sbe == null)
 			return false;
 		if (sbe.isRemoved())
 			return false;
+		if (!sbe.hasLevel())
+			return false;
 		BlockPos sbePos = sbe.getBlockPos();
-		;
+		
 		if (sbePos == null)
 			return false;
 
