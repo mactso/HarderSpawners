@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.StringTokenizer;
 
-import com.mactso.harderspawners.util.Utility;
+import com.mactso.harderspawners.util.MyUtilities;
 
 import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -32,7 +32,7 @@ public class MobSpawnerManager {
 
 		SpawnerDurabilityRangeByMobType.clear();
 
-		Utility.debugMsg(0,"Harder Spawners: Initializing Spawner Durability Settings.");
+		MyUtilities.debugMsg(0,"Harder Spawners: Initializing Spawner Durability Settings.");
 
 		String oneLine = "";
 		// Forge Issue 6464 patch.
@@ -48,7 +48,7 @@ public class MobSpawnerManager {
 					if (!key.equals(defaultKey)) {
 						Optional<EntityType<?>> etOpt = EntityType.byString(key);
 						if (etOpt.isEmpty()) {
-							Utility.debugMsg(0, "WARN : Harder Spawners :  Undefined Mob : " + oneLine);
+							MyUtilities.debugMsg(0, "WARN : Harder Spawners :  Undefined Mob : " + oneLine);
 						}
 					}
 
@@ -65,14 +65,14 @@ public class MobSpawnerManager {
 					SpawnerDurabilityRangeByMobType.put(key, new SpawnerDurabilityItem(minSpawns, maxSpawns));
 
 				} catch (Exception e) {
-					Utility.debugMsg(0, "ERROR: Harder Spawners :  Bad Mob Config Line : " + oneLine);
+					MyUtilities.debugMsg(0, "ERROR: Harder Spawners :  Bad Mob Config Line : " + oneLine);
 				}
 
 			}
 
 		}
 
-		Utility.debugMsg(0,"Harder Spawners: Spawner Durability Settings Initialization complete.");
+		MyUtilities.debugMsg(0,"Harder Spawners: Spawner Durability Settings Initialization complete.");
 
 	}
 

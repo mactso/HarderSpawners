@@ -1,7 +1,8 @@
 package com.mactso.harderspawners.commands;
 
+import com.mactso.harderspawners.Main;
 import com.mactso.harderspawners.config.MyConfig;
-import com.mactso.harderspawners.util.Utility;
+import com.mactso.harderspawners.util.MyUtilities;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
@@ -9,19 +10,15 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.Level;
 
 public class HarderSpawnersCommands {
 	String subcommand = "";
 	String value = "";
-	
+
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
 	{
-		dispatcher.register(Commands.literal("harderspawners").requires((source) -> 
-			{
-				return source.hasPermission(3);
-			}
-		)
+		dispatcher.register(Commands.literal(Main.MODID)
+				.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
 		.then(Commands.literal("setdebugLevel").then(
 				Commands.argument("setdebugLevel", IntegerArgumentType.integer(0,2)).executes(ctx -> {
 					return setDebugLevel(IntegerArgumentType.getInteger(ctx, "setdebugLevel"));
@@ -32,10 +29,9 @@ public class HarderSpawnersCommands {
 			)
 		.then(Commands.literal("info").executes(ctx -> {
 					ServerPlayer serverPlayerEntity = (ServerPlayer) ctx.getSource().getEntity();
-					Level level = serverPlayerEntity.level();
 
 					String chatMessage = "\n HarderSpawners Info";
-					Utility.sendChat(serverPlayerEntity, chatMessage, ChatFormatting.DARK_GREEN);
+					MyUtilities.sendChat(serverPlayerEntity, chatMessage, ChatFormatting.DARK_GREEN);
 		            chatMessage = 
   	            		    "  Debug Level...................: " + MyConfig.getDebugLevel()
 		            		+ "\n  Player Range.......................: " + MyConfig.getRequiredPlayerRange()
@@ -47,7 +43,7 @@ public class HarderSpawnersCommands {
 		            		+ "\n  Durability Item........: " + MyConfig.getDurabilityItem()  
 
 		            		;
-					Utility.sendChat(serverPlayerEntity, chatMessage, ChatFormatting.GREEN);
+					MyUtilities.sendChat(serverPlayerEntity, chatMessage, ChatFormatting.GREEN);
 		            return 1;
 			}
 			)
@@ -55,12 +51,10 @@ public class HarderSpawnersCommands {
 		);
 
 	}
-	
-	
-	public static int setDebugLevel (int newDebugLevel) {
-		MyConfig.setDebugLevel(newDebugLevel); 
+
+	public static int setDebugLevel(int newDebugLevel) {
+		MyConfig.setDebugLevel(newDebugLevel);
 		return 1;
 	}
-	
 
 }

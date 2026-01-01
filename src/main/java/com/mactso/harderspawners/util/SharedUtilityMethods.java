@@ -115,7 +115,7 @@ public class SharedUtilityMethods {
 				}
 			}
 		}
-		if (destroyedLava) Utility.debugMsg(2, mutPos,"Destroyed glowing fluid (lava?) near here.");
+		if (destroyedLava) MyUtilities.debugMsg(2, mutPos,"Destroyed glowing fluid (lava?) near here.");
 		return destroyedLight;
 	}
 	

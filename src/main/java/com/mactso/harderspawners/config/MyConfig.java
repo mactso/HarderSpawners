@@ -2,12 +2,10 @@
 package com.mactso.harderspawners.config;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.mactso.harderspawners.Main;
-import com.mactso.harderspawners.util.Utility;
+import com.mactso.harderspawners.util.MyUtilities;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -131,7 +129,7 @@ public class MyConfig {
 
 	public static final boolean CANCEL_EVENT = true;
 	public static final boolean CONTINUE_EVENT = false;
-	private static final Logger LOGGER = LogManager.getLogger();
+
 	public static final Common COMMON;
 	public static final ForgeConfigSpec COMMON_SPEC;
 	public static final int TICKS_PER_MINUTE = 1200;
@@ -275,17 +273,17 @@ public class MyConfig {
 	}
 
 	public static void pushDebugValue() {
-		Utility.debugMsg(1, "harderspawners debugLevel:" + MyConfig.debugLevel);
+		MyUtilities.debugMsg(1, "harderspawners debugLevel:" + MyConfig.debugLevel);
 		COMMON.debugLevel.set(MyConfig.debugLevel);
 	}
 
 	public static void pushSpawnerRevenge() {
-		Utility.debugMsg(1, "harderspawners: revengeLevel" + MyConfig.getSpawnerRevengeLevel());
+		MyUtilities.debugMsg(1, "harderspawners: revengeLevel" + MyConfig.getSpawnerRevengeLevel());
 		COMMON.spawnerRevengeLevel.set(MyConfig.getSpawnerRevengeLevel());
 	}
 
 	public static void pushSpawnersExplodePercentage() {
-		Utility.debugMsg(1, "harderspawners: breaking explode % :" + MyConfig.getSpawnersExplodePercentage());
+		MyUtilities.debugMsg(1, "harderspawners: breaking explode % :" + MyConfig.getSpawnersExplodePercentage());
 		COMMON.spawnersExplodePercentage.set(MyConfig.getSpawnersExplodePercentage());
 	}
 

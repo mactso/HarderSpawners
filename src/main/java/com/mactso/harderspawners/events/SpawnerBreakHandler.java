@@ -10,7 +10,7 @@ import com.mactso.harderspawners.capabilities.ISpawnerStatsStorage;
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.sounds.ModSounds;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
-import com.mactso.harderspawners.util.Utility;
+import com.mactso.harderspawners.util.MyUtilities;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.ChatFormatting;
@@ -49,6 +49,7 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber() 
 public class SpawnerBreakHandler {
 	static int spamLimiter = 0;
+	static int junk = 0;  // Stricter Forge "event" requirements.
 	static boolean SHOW_PARTICLES = true;
 	static long nextActionTime = 0;
 	static final int THREE_SECONDS = 60;
@@ -105,11 +106,11 @@ public class SpawnerBreakHandler {
 		        mySpawner.save(vout);
 		        CompoundTag tag = vout.buildResult(); 
 
-				Utility.debugMsg(1, pos, "Stunning Spawner for " + (MyConfig.getSpawnerTicksStunned()/20) + " seconds.");
+				MyUtilities.debugMsg(1, pos, "Stunning Spawner for " + (MyConfig.getSpawnerTicksStunned()/20) + " seconds.");
 				cap.setMinSpawnDelay(tag.getIntOr("MinSpawnDelay", 200));
 				cap.setMaxSpawnDelay(tag.getIntOr("MaxSpawnDelay", 800));
 				cap.setStunned(true);
-				Utility.debugMsg(2, pos, "Stunned Spawner saved values: (max):" + cap.getMaxSpawnDelay() + "(min):"
+				MyUtilities.debugMsg(2, pos, "Stunned Spawner saved values: (max):" + cap.getMaxSpawnDelay() + "(min):"
 						+ cap.getMinSpawnDelay());
 
 				tag.putInt("MinSpawnDelay", MyConfig.getSpawnerTicksStunned());
@@ -121,7 +122,7 @@ public class SpawnerBreakHandler {
 				
 
 				sbe.setChanged();
-				Utility.debugMsg(1, pos, "Stunned Spawner stunned values: (max):" + tag.getInt("MaxSpawnDelay")
+				MyUtilities.debugMsg(1, pos, "Stunned Spawner stunned values: (max):" + tag.getInt("MaxSpawnDelay")
 						+ "(min):" + tag.getInt("MinSpawnDelay"));
 
 				event.setResult(Result.DENY);    // cancel the event from happening.
@@ -143,20 +144,20 @@ public class SpawnerBreakHandler {
 	@SubscribeEvent
 	public static void handleBreakSpeed(PlayerEvent.BreakSpeed event) {
 
-		if (isEligible(event)) {
+		if (isEligible(junk, event)) {
 			// this optionally runs on both sides.
 			// On the server, change the real digging speed.
 			// On the server, inflict revenge
 			// On the optional client side, change the visual digging speed.
 			Player player = event.getEntity();
 			final BlockPos pos = event.getPosition().get();
-			doSidedDebugMessage(event, player);
-			doServerSideRevenge(event, pos, player);
-			doBreakSpeedAdjustment(event, player);
+			doSidedDebugMessage(junk, event, player);
+			doServerSideRevenge(junk, event, pos, player);
+			doBreakSpeedAdjustment(junk, event, player);
 		}
 	}
 
-	private static boolean isEligible(PlayerEvent.BreakSpeed event) {
+	private static boolean isEligible(int junk, PlayerEvent.BreakSpeed event) {
 
 		if (event.getState().getBlock() == null || event.getPosition().isEmpty()) {
 			return false;
@@ -173,7 +174,7 @@ public class SpawnerBreakHandler {
 		return true;
 	}
 
-	private static void doSidedDebugMessage(PlayerEvent.BreakSpeed event, Player player) {
+	private static void doSidedDebugMessage(int junk, PlayerEvent.BreakSpeed event, Player player) {
 		if (MyConfig.getDebugLevel() == 0)
 			return;
 
@@ -185,10 +186,10 @@ public class SpawnerBreakHandler {
 			debugSideType = "ServerSide";
 
 		}
-		Utility.debugMsg(1, debugSideType);
+		MyUtilities.debugMsg(1, debugSideType);
 	}
 
-	private static void doBreakSpeedAdjustment(PlayerEvent.BreakSpeed event, Player player) {
+	private static void doBreakSpeedAdjustment(int junk, PlayerEvent.BreakSpeed event, Player player) {
 		// potentially both sides
 		float baseDestroySpeed = event.getOriginalSpeed();
 		float newDestroySpeed = baseDestroySpeed;
@@ -196,7 +197,7 @@ public class SpawnerBreakHandler {
 			newDestroySpeed = newDestroySpeed / (1 + MyConfig.getSpawnerBreakSpeedModifier());
 			if (newDestroySpeed > 0) {
 				event.setNewSpeed(newDestroySpeed);
-				Utility.debugMsg(1,
+				MyUtilities.debugMsg(1,
 						"Slowed breaking spawner modifier applied:" + MyConfig.getSpawnerBreakSpeedModifier()
 								+ " slowing from " + baseDestroySpeed + " to " + newDestroySpeed + ".");
 			}
@@ -206,7 +207,7 @@ public class SpawnerBreakHandler {
 		}
 	}
 
-	private static void doServerSideRevenge(PlayerEvent.BreakSpeed event, final BlockPos pos, Player player) {
+	private static void doServerSideRevenge(int junk, PlayerEvent.BreakSpeed event, final BlockPos pos, Player player) {
 
 		if (MyConfig.getSpawnerRevengeLevel() == 0)
 			return;
@@ -238,7 +239,7 @@ public class SpawnerBreakHandler {
 		if (!player.level().isClientSide())
 			return;
 		if ((spamLimiter++) % 20 == 0 && (MyConfig.getSpawnerTextOff() == 0)) {
-			Utility.sendChat(player, "The spawner slowly breaks...", ChatFormatting.DARK_AQUA);
+			MyUtilities.sendChat(player, "The spawner slowly breaks...", ChatFormatting.DARK_AQUA);
 		}
 	}
 
@@ -258,7 +259,7 @@ public class SpawnerBreakHandler {
 			effect = MobEffects.WITHER;
 		}
 		int amplifier = revengeLevel - 1;
-		Utility.updateEffect(serverPlayer, amplifier, effect, THREE_SECONDS);
+		MyUtilities.updateEffect(serverPlayer, amplifier, effect, THREE_SECONDS);
 	}
 
 	private static void doSpawnerBreakingEffects(final BlockPos pos, Player player, ServerLevel sLevel, SpawnerBlockEntity sbe,

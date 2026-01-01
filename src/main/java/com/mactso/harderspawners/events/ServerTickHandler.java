@@ -8,8 +8,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.mactso.harderspawners.Main;
 import com.mactso.harderspawners.config.MyConfig;
-import com.mactso.harderspawners.util.Utility;
+import com.mactso.harderspawners.util.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.Packet;
@@ -24,7 +25,10 @@ import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
 
-@Mod.EventBusSubscriber() 
+@Mod.EventBusSubscriber(
+	    modid = Main.MODID,
+	    bus = Mod.EventBusSubscriber.Bus.FORGE
+	)
 public class ServerTickHandler {
 
 	public static record workRecord(ServerLevel level, BlockPos pos) {
@@ -65,15 +69,15 @@ public class ServerTickHandler {
 						WeakReference<SpawnerBlockEntity> wSbe = it.next();
 						SpawnerBlockEntity sbe = wSbe.get();
 						if (!isSpawnerValid(sbe)) {
-							Utility.debugMsg(1, "Removing invalid spawner from sbelist.");
+							MyUtilities.debugMsg(1, "Removing invalid spawner from sbelist.");
 							it.remove();
 						} else if (sbe.hasLevel()) {
 							// Without this, setting spawner player ranges higher won't work
 							// until the player is within the default spawner range.
-							Utility.debugMsg(1, "Initializing Spawner at " + sbe.getBlockPos());
+							MyUtilities.debugMsg(1, "Initializing Spawner at " + sbe.getBlockPos());
 							SpawnerSpawnEvent.doInitNewSpawner(sbe);
 							it.remove();
-							Utility.debugMsg(1, "Removing spawner after initialization at " + sbe.getBlockPos());
+							MyUtilities.debugMsg(1, "Removing spawner after initialization at " + sbe.getBlockPos());
 
 						}
 					}
@@ -87,10 +91,10 @@ public class ServerTickHandler {
 		}
 
 		if (hasEntriesTime == 0) {
-			hasEntriesTime = event.getServer().overworld().getGameTime();
+			hasEntriesTime = event.server().overworld().getGameTime();
 		}
 
-		long currentTime = event.getServer().overworld().getGameTime();
+		long currentTime = event.server().overworld().getGameTime();
 
 		if (currentTime > hasEntriesTime) {
 			Iterator<workRecord> wi = workList.iterator();
@@ -124,11 +128,11 @@ public class ServerTickHandler {
 	public static void addSbeWorklistEntry(SpawnerBlockEntity sbe) {
 		if (Thread.currentThread().getName().equals("Render thread"))
 			return;
-		Utility.debugMsg(1,"Adding Spawner at "+ sbe.getBlockPos()+" to spawnerLocations");
+		MyUtilities.debugMsg(1,"Adding Spawner at "+ sbe.getBlockPos()+" to spawnerLocations");
 		synchronized (spawnerLocations) {
 			spawnerLocations.add(sbe.getBlockPos());
 		}
-		Utility.debugMsg(1,"Adding Weak Reference to Spawner at "+ sbe.getBlockPos()+" to sbeList");
+		MyUtilities.debugMsg(1,"Adding Weak Reference to Spawner at "+ sbe.getBlockPos()+" to sbeList");
 		synchronized (addlist) {
 			addlist.add(new WeakReference<>(sbe));
 		}

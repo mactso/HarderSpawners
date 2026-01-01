@@ -3,6 +3,7 @@ package com.mactso.harderspawners.events;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 
+import com.mactso.harderspawners.Main;
 import com.mactso.harderspawners.config.MyConfig;
 
 import net.minecraft.core.Direction;
@@ -10,7 +11,10 @@ import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber() 
+@Mod.EventBusSubscriber(
+	    modid = Main.MODID,
+	    bus = Mod.EventBusSubscriber.Bus.FORGE
+	)
 public class SpawnerLightOnTopEvent {
 	@SubscribeEvent
 	public static boolean onNeighborNotifyEvent(BlockEvent.NeighborNotifyEvent event) {

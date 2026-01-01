@@ -12,7 +12,7 @@ import com.mactso.harderspawners.config.MobSpawnerManager;
 import com.mactso.harderspawners.config.MobSpawnerManager.SpawnerDurabilityItem;
 import com.mactso.harderspawners.config.MyConfig;
 import com.mactso.harderspawners.util.SharedUtilityMethods;
-import com.mactso.harderspawners.util.Utility;
+import com.mactso.harderspawners.util.MyUtilities;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.ChatFormatting;
@@ -59,6 +59,7 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber() 
 public class SpawnerSpawnEvent {
 	private static int debugThreadIdentifier = 0;
+	private static int junk = 0;  // this is a cheap hack to get around forges new requirement that event can't be parm1.
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static final org.slf4j.Logger LOGGERUTIL =  LogUtils.getLogger();
 	private static BlockPos lastSpawnerPos = null;
@@ -80,21 +81,21 @@ public class SpawnerSpawnEvent {
 	@SubscribeEvent(priority = Priority.HIGHEST)
 	public static boolean handleFinalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
 
-		if (isErrorFree(event)) {
+		if (isErrorFree(junk,event)) {
 			ServerLevel sLevel = (ServerLevel) event.getLevel();
 			if (!sLevel.isUnobstructed(event.getEntity())) {
 				return CANCEL_EVENT;
 			}
-			doDebugThreadMsg(event);
-			doProcessSpawner(event);
+			doDebugThreadMsg(junk,event);
+			doProcessSpawner(junk,event);
 		}
-		int debug=3;
+
 		return CONTINUE_EVENT;
 
 	}
 
 	// Note this is called once per mob spawned.
-	public static void doProcessSpawner(MobSpawnEvent.FinalizeSpawn event) {
+	public static void doProcessSpawner(int junk, MobSpawnEvent.FinalizeSpawn event) {
 
 		if (event.getSpawner().getSpawnerBlockEntity() instanceof SpawnerBlockEntity sbe) {
 
@@ -117,14 +118,14 @@ public class SpawnerSpawnEvent {
 				ServerTickHandler.addClientUpdate(sLevel, spawnerPos);
 			}
 
-			Utility.debugMsg(1, spawnerPos, "Spawn Time: " + sLevel.getGameTime() + " Lastspawntime: " + lastSpawnTime + ", lastSpawnPos" + lastSpawnerPos);
+			MyUtilities.debugMsg(1, spawnerPos, "Spawn Time: " + sLevel.getGameTime() + " Lastspawntime: " + lastSpawnTime + ", lastSpawnPos" + lastSpawnerPos);
 			if (isFirstSpawnInGroup(sLevel, spawnerPos)) {
 
 				doUseASpawn(sLevel, sbe, mySpawner);
 				if (isMonsterSpawner(sbe, tag)) {
-					doProtectiveMobBuffs(event, sLevel);
+					doProtectiveMobBuffs(junk, event, sLevel);
 					SharedUtilityMethods.doDestroyLightsNearBlockPos(sbe.getBlockPos(), sLevel);
-					doSpawnerFails(event, sbe);
+					doSpawnerFails(junk, event, sbe);
 				}
 			}
 		}
@@ -143,7 +144,7 @@ public class SpawnerSpawnEvent {
 
 	}
 
-	private static void doProtectiveMobBuffs(MobSpawnEvent.FinalizeSpawn event, ServerLevel sLevel) {
+	private static void doProtectiveMobBuffs(int junk,MobSpawnEvent.FinalizeSpawn event, ServerLevel sLevel) {
 
 		if ((MyConfig.getHostileSpawnerResistDaylightDuration() > 0)
 				&& (sLevel.getMaxLocalRawBrightness(event.getEntity().blockPosition()) > 8)) {
@@ -156,6 +157,8 @@ public class SpawnerSpawnEvent {
 		// choosing not to use it for now.
 		
 		if (sLevel.containsAnyLiquid(event.getEntity().getBoundingBox())) {
+			
+			// if (!event.getEntity().canBreatheInFluidType(event.getEntity().level().getFluidState(event.getEntity().blockPosition()).getType())) { ... }
 			if (!event.getEntity().canBreatheUnderwater()) {
 				event.getEntity().addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING,
 						MyConfig.getHostileSpawnerResistDaylightDuration() * 20, EFFECT_LEVEL_0, false, false));
@@ -165,7 +168,7 @@ public class SpawnerSpawnEvent {
 
 	// TODO: Test this every release.
 	// cap is confirmed valid before this method is called.
-	private static void doSpawnerFails(MobSpawnEvent.FinalizeSpawn event, SpawnerBlockEntity sbe) {
+	private static void doSpawnerFails(int junk, MobSpawnEvent.FinalizeSpawn event, SpawnerBlockEntity sbe) {
 
 		if (event.getEntity() instanceof Silverfish) {
 			return;
@@ -181,7 +184,7 @@ public class SpawnerSpawnEvent {
 			return;
 		
 		int durability = cap.getDurability();
-		if (cap.getDurability() > 0)
+		if (durability > 0)
 			return;
 		
 		ServerLevel sLevel = (ServerLevel) level;
@@ -208,7 +211,7 @@ public class SpawnerSpawnEvent {
 		if ((cap == null) || (cap.isInitialized()))
 			return false;
 
-		Utility.debugMsg(1, "Trying to initialize spawner at " + sbe.getBlockPos());
+		MyUtilities.debugMsg(1, "Trying to initialize spawner at " + sbe.getBlockPos());
 
 		// new code.
 		ScopedCollector preport = new ScopedCollector( LOGGERUTIL);
@@ -226,7 +229,7 @@ public class SpawnerSpawnEvent {
 	
 		
 		if (entityType.isPresent()) { // Getting Spawner Durability requires an Entity Type.
-			Utility.debugMsg(1, "Initializing spawner at " + sbe.getBlockPos());
+			MyUtilities.debugMsg(1, "Initializing spawner at " + sbe.getBlockPos());
 			doInitMonsterSpawnerNBT(sbe, spawnerTag, spawnDataTag, entityDataTag);
 			doInitNewSpawnerCapability(cap, entityType);
 			sbe.setChanged();
@@ -312,7 +315,7 @@ public class SpawnerSpawnEvent {
 		return optTag.get();
 	}
 
-	private static boolean isErrorFree(FinalizeSpawn event) {
+	private static boolean isErrorFree(int junk, FinalizeSpawn event) {
 
 		if ((event.getLevel().isClientSide()))
 			return false;
@@ -356,10 +359,10 @@ public class SpawnerSpawnEvent {
 		if (MyConfig.getDebugLevel() > 0)
 			return;
 		BlockPos pos = sbe.getBlockPos();
-		Utility.debugMsg(1, pos, "Restoring Stunned Spawner");
-		Utility.debugMsg(2, pos, "Stunned Spawner stunned values: (max):" + tag.getInt("MaxSpawnDelay") + "(min):"
+		MyUtilities.debugMsg(1, pos, "Restoring Stunned Spawner");
+		MyUtilities.debugMsg(2, pos, "Stunned Spawner stunned values: (max):" + tag.getInt("MaxSpawnDelay") + "(min):"
 				+ tag.getInt("MinSpawnDelay"));
-		Utility.debugMsg(2, pos,
+		MyUtilities.debugMsg(2, pos,
 				"Restoring Spawner saved values: (max):" + cap.getMaxSpawnDelay() + "(min):" + cap.getMinSpawnDelay());
 	}
 
@@ -381,7 +384,7 @@ public class SpawnerSpawnEvent {
 
 		cap.setDurability(spawnsLeft);
 		sbe.setChanged();
-		Utility.debugMsg(1, sbe.getBlockPos(), "Was First Spawn at(" + sLevel.getGameTime() + ") spawnsleft: "+ spawnsLeft);
+		MyUtilities.debugMsg(1, sbe.getBlockPos(), "Was First Spawn at(" + sLevel.getGameTime() + ") spawnsleft: "+ spawnsLeft);
 		if (spawnsLeft < 25) {
 			doSpawnerFailingEffects(sLevel, sbe, spawnsLeft);
 		}
@@ -535,9 +538,9 @@ public class SpawnerSpawnEvent {
 		}
 	}
 
-	private static void doDebugThreadMsg(MobSpawnEvent.FinalizeSpawn event) {
+	private static void doDebugThreadMsg(int junk, MobSpawnEvent.FinalizeSpawn event) {
 		debugThreadIdentifier = (debugThreadIdentifier + 1) % 10000;
-		Utility.debugMsg(1, "HarderSpawners: (" + debugThreadIdentifier + ") Checking Spawner Spawn Event at "
+		MyUtilities.debugMsg(1, "HarderSpawners: (" + debugThreadIdentifier + ") Checking Spawner Spawn Event at "
 				+ (int) event.getX() + "+(int)event.getY()+" + (int) event.getZ() + ".");
 	}
 

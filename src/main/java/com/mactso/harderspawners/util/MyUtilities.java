@@ -19,7 +19,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
-public class Utility {
+public class MyUtilities {
 	
 	final static int TWO_SECONDS = 40;
 	private static final Logger LOGGER = LogManager.getLogger();

@@ -10,7 +10,11 @@ import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber() 
+@Mod.EventBusSubscriber(
+	    modid = Main.MODID,
+	    bus = Mod.EventBusSubscriber.Bus.FORGE
+	)
+
 public class SbeAttachEvent
 {
 	private static final ResourceLocation KEY = ResourceLocation.fromNamespaceAndPath(Main.MODID, "spawnerstatssapability");

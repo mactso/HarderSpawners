@@ -2,10 +2,11 @@ package com.mactso.harderspawners.events;
 
 import java.util.List;
 
+import com.mactso.harderspawners.Main;
 import com.mactso.harderspawners.capabilities.CapabilitySpawner;
 import com.mactso.harderspawners.capabilities.ISpawnerStatsStorage;
 import com.mactso.harderspawners.config.MyConfig;
-import com.mactso.harderspawners.util.Utility;
+import com.mactso.harderspawners.util.MyUtilities;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -26,14 +27,19 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber() // Ensure the event subscriber is registered
+@Mod.EventBusSubscriber(
+	    modid = Main.MODID,
+	    bus = Mod.EventBusSubscriber.Bus.FORGE
+	) // Ensure the event subscriber is registered
 public class IncreaseSpawnerDurabilityEvent {
+	
+	private static int junk = 0; // stricter forge hack.
 
 	@SubscribeEvent
 	public static boolean onRightClick(PlayerInteractEvent.RightClickBlock event) {
 
 		Level level = event.getLevel();
-		if (level.isClientSide)
+		if (level.isClientSide())
 			return MyConfig.CONTINUE_EVENT;
 
 		ServerLevel sLevel = (ServerLevel) level;
@@ -43,7 +49,7 @@ public class IncreaseSpawnerDurabilityEvent {
 		ItemStack heldItem = event.getEntity().getItemInHand(InteractionHand.MAIN_HAND);
 
 		if (MyConfig.isDurabilityRepairEnabled()) {
-			if (doRepairSpawnerDurability(event, level, sLevel, heldItem)) {
+			if (doRepairSpawnerDurability(junk, event, level, sLevel, heldItem)) {
 				return MyConfig.CANCEL_EVENT; // consume the RightClickBlock event.
 			}
 		}
@@ -53,7 +59,7 @@ public class IncreaseSpawnerDurabilityEvent {
 		
 	}
 
-	private static boolean doRepairSpawnerDurability(PlayerInteractEvent.RightClickBlock event, Level level,
+	private static boolean doRepairSpawnerDurability(int junk, PlayerInteractEvent.RightClickBlock event, Level level,
 			ServerLevel sLevel, ItemStack heldItem) {
 		
 
@@ -83,7 +89,7 @@ public class IncreaseSpawnerDurabilityEvent {
 			doRemoveItemDisplay(sLevel, sbe);
 			doSpawnerRepairFeedback(level, sLevel, pos);
 			heldItem.shrink(1);
-			Utility.debugMsg(1, "Spawns Left Increased to :" + cap.getDurability());
+			MyUtilities.debugMsg(1, "Spawns Left Increased to :" + cap.getDurability());
 
 			// let Minecraft and Forge know to save these changes and update the Client.
 			sbe.setChanged();
