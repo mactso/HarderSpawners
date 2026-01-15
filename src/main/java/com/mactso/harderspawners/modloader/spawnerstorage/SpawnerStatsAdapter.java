@@ -97,10 +97,7 @@ public final class SpawnerStatsAdapter {
             stats.setStunned(false);
 
             MobSpawnerManager.SpawnerDurabilityItem durabilityConfig =
-                    MobSpawnerManager.SpawnerDurabilityRangeByMobType.getOrDefault(
-                            entityId,
-                            MobSpawnerManager.SpawnerDurabilityRangeByMobType.get("harderspawners:default")
-                    );
+                    MobSpawnerManager.getDurabilityForMob(entityId);
 
             stats.setDurability(durabilityConfig.initDurabilityValue());
             stats.setInfinite(durabilityConfig.isInfiniteDurability());

@@ -45,7 +45,8 @@ public class MyConfig {
 		public final ConfigValue<String> timeExtensionItem;
 		public final IntValue spawnsAmount;
 		public final ConfigValue<String> defMobSpawnerSpawnsRanges;
-		public final String initialMobSpawnerSpawnsRanges = "harderspawners:default,50,500;" + "minecraft:pig,0,0;"
+		// default is 200 to 600 spawns (About 30 seconds per spawn so 100 to 300 minutes til the spawner expires).
+		public final String initialMobSpawnerSpawnsRanges = "harderspawners:default,200,600;" + "minecraft:pig,0,0;"
 				+ "minecraft:cow,0,0;" + "minecraft:sheep,0,0;" + "minecraft:parrot,0,0;" + "minecraft:zombie,100,550;"
 				+ "minecraft:blaze,0,0;";
 

@@ -14,25 +14,23 @@ public class MobSpawnerManager {
     public static Hashtable<String, SpawnerDurabilityItem> SpawnerDurabilityRangeByMobType = new Hashtable<>();
     private static final String defaultKey = "harderspawners:default";
 
-//    public static SpawnerDurabilityItem getMobSpawnerSpawnsCountByMobType(EntityType<?> entityType) {
-//        if (SpawnerDurabilityRangeByMobType.isEmpty()) {
-//            init();
-//        }
-//
-//        // Use BuiltInRegistries to get the ResourceLocation for this EntityType
-//        ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
-//
-//        SpawnerDurabilityItem t = null;
-//        if (key != null) {
-//            t = SpawnerDurabilityRangeByMobType.get(key.toString());
-//        }
-//
-//        if (t == null) {
-//            t = SpawnerDurabilityRangeByMobType.get(defaultKey);
-//        }
-//
-//        return t;
-//    }
+    /** 
+     * Returns the SpawnerDurabilityItem for the given mob key.
+     * Falls back to the configured default, and if that is missing, uses 50–500.
+     */
+    public static SpawnerDurabilityItem getDurabilityForMob(String mobKey) {
+        SpawnerDurabilityItem t = SpawnerDurabilityRangeByMobType.get(mobKey);
+
+        if (t != null) return t;
+
+        // fallback to configured default
+        SpawnerDurabilityItem defaultItem = SpawnerDurabilityRangeByMobType.get(defaultKey);
+        if (defaultItem != null) return defaultItem;
+
+        // final hardcoded fallback
+        MyUtilities.debugMsg(0, "WARNING: No default spawner durability configured! Using fallback 200–600.");
+        return new SpawnerDurabilityItem(200, 600);
+    }
 
 	
 	
