@@ -1,16 +1,19 @@
-package com.mactso.harderspawners.util;
+package com.mactso.harderspawners.common.utility;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.mactso.harderspawners.config.MyConfig;
+import com.mactso.harderspawners.modloader.config.MyConfig;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -19,16 +22,24 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
-public class Utility {
+public class MyUtilities {
 	
 	final static int TWO_SECONDS = 40;
 	private static final Logger LOGGER = LogManager.getLogger();
 	
 
+	// -------------------------------
+	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
+	// -------------------------------
+		public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
+	    return access.registry(key).orElse(null);  // 1.21.1 pattern
+	}
+
+	
 	public static void drawParticleBeam(BlockPos pos, ServerLevel sLevel, 
 			ParticleOptions particleType) {
 		Vec3 bV3d = new Vec3(pos.getX()+0.5d, pos.getY()+0.5d, pos.getZ()+0.5d);
-		boolean doSpellParticleType = true;
+
 		double xOffset = 0.0f;
 		double zOffset = 0.0f;
 
@@ -97,5 +108,6 @@ public class Utility {
 	public static boolean isOutside(BlockPos pos, ServerLevel serverLevel) {
 		return serverLevel.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, pos) == pos;
 	}
+	
 
 }

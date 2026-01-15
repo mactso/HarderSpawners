@@ -1,30 +1,31 @@
 
-package com.mactso.harderspawners.config;
+package com.mactso.harderspawners.modloader.config;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
 
-import com.mactso.harderspawners.Main;
-import com.mactso.harderspawners.util.Utility;
+import com.mactso.harderspawners.common.utility.MyUtilities;
+import com.mactso.harderspawners.modloader.main.Main;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
-import net.minecraftforge.common.ForgeConfigSpec.DoubleValue;
-import net.minecraftforge.common.ForgeConfigSpec.IntValue;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
+import net.neoforged.neoforge.common.ModConfigSpec.DoubleValue;
+import net.neoforged.neoforge.common.ModConfigSpec.IntValue;
 
-@Mod.EventBusSubscriber(modid = Main.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
-
+@EventBusSubscriber(modid = Main.MODID)
 public class MyConfig {
 
+
+	@SubscribeEvent
+	public static void onModConfigEvent(final ModConfigEvent configEvent) {
+		if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC) {
+			bakeConfig();
+
+		}
+	}
+	
 	public static class Common {
 
 		public final IntValue debugLevel;
@@ -41,14 +42,14 @@ public class MyConfig {
 		public final IntValue hostileSpawnerResistDaylightDuration;
 		public final DoubleValue spawnersExplodePercentage;
 
-		public final ForgeConfigSpec.ConfigValue<String> durabilityRepairItem;
-		public final IntValue durabilityRepairAmount;
-		public final ConfigValue<String> defMobSpawnerDurabilityRanges;
-		public final String initMobSpawnerDurabilityRange = "harderspawners:default,50,500;" + "minecraft:pig,0,0;"
+		public final ConfigValue<String> timeExtensionItem;
+		public final IntValue spawnsAmount;
+		public final ConfigValue<String> defMobSpawnerSpawnsRanges;
+		public final String initialMobSpawnerSpawnsRanges = "harderspawners:default,50,500;" + "minecraft:pig,0,0;"
 				+ "minecraft:cow,0,0;" + "minecraft:sheep,0,0;" + "minecraft:parrot,0,0;" + "minecraft:zombie,100,550;"
 				+ "minecraft:blaze,0,0;";
 
-		public Common(ForgeConfigSpec.Builder builder) {
+		public Common(ModConfigSpec.Builder builder) {
 			builder.push("Harder Spawners Control Values");
 
 			debugLevel = builder.comment("Debug Level: 0 = Off, 1 = Log, 2 = Chat+Log")
@@ -111,29 +112,30 @@ public class MyConfig {
 
 			builder.push("Default Mob Spawner Durability and Durability Repair Values");
 
-			durabilityRepairItem = builder.comment("Item used to repair spawner Durability (format: 'modid:item_name')")
-					.define("durabilityRepairItem", "minecraft:iron_block");
+			timeExtensionItem = builder.comment("Item used to extend Spawner expiration time (format: 'modid:item_name')")
+					.define("timeExtensionItem", "minecraft:iron_block");
 
-			durabilityRepairAmount = builder.comment("How much spawn durability the repair item adds.  0 = off")
-					.translation(Main.MODID + ".config." + "durabilityRepairAmount ")
-					.defineInRange("durabilityRepairAmount ", () -> 5, 0, 1000);
+			spawnsAmount = builder.comment("How many spawns the time extension item adds.  0 = off")
+					.translation(Main.MODID + ".config." + "spawnsAmount ")
+					.defineInRange("spawnsAmount ", () -> 5, 0, 1000);
 
-			defMobSpawnerDurabilityRanges = builder.comment("Default Mob Spawner Durability Ranges")
-					.translation(Main.MODID + ".config" + "defMobSpawnerDurabilityRanges")
-					.define("defMobSpawnerDurabilityRanges", initMobSpawnerDurabilityRange);
+			defMobSpawnerSpawnsRanges = builder.comment("Default range of number of spawns a spawner can make, 0,0 = infinite")
+					.translation(Main.MODID + ".config" + "defMobSpawnerSpawnsRanges")
+					.define("defMobSpawnerSpawnsRanges", initialMobSpawnerSpawnsRanges);
 
 			builder.pop();
 		}
 
 	}
 
-	private static final Logger LOGGER = LogManager.getLogger();
-	public static final Common COMMON;
-	public static final ForgeConfigSpec COMMON_SPEC;
+
 	public static final int TICKS_PER_MINUTE = 1200;
 
+	public static final Common COMMON;
+	public static final ModConfigSpec COMMON_SPEC;
+
 	static {
-		final Pair<Common, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Common::new);
+		final Pair<Common, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Common::new);
 		COMMON_SPEC = specPair.getRight();
 		COMMON = specPair.getLeft();
 	}
@@ -152,8 +154,8 @@ public class MyConfig {
 	private static int hostileSpawnerLightLevel;
 	private static int hostileSpawnerResistDaylightDuration;
 	private static double spawnersExplodePercentage;
-	public static String durabilityRepairItem;
-	public static int durabilityRepairAmount;
+	public static String timeExtensionItem;
+	public static int spawnsAmount;
 	private static String mobSpawnerDurabilityRangesString;
 
 	public static void bakeConfig() {
@@ -172,9 +174,9 @@ public class MyConfig {
 		spawnRange = COMMON.spawnRange.get();
 		hostileSpawnerLightLevel = COMMON.hostileSpawnerLightLevel.get();
 		hostileSpawnerResistDaylightDuration = COMMON.hostileSpawnerResistDaylightDuration.get();
-		durabilityRepairItem = COMMON.durabilityRepairItem.get();
-		durabilityRepairAmount = COMMON.durabilityRepairAmount.get();
-		setMobSpawnerDurabilityRangesString(COMMON.defMobSpawnerDurabilityRanges.get());
+		timeExtensionItem = COMMON.timeExtensionItem.get();
+		spawnsAmount = COMMON.spawnsAmount.get();
+		setMobSpawnerDurabilityRangesString(COMMON.defMobSpawnerSpawnsRanges.get());
 
 	}
 
@@ -222,61 +224,38 @@ public class MyConfig {
 		return spawnRange;
 	}
 
-	public static String getDurabilityItem() {
-		ResourceLocation itemLocation = ResourceLocation.parse(durabilityRepairItem);
-		@Nullable
-		Item configuredItem = ForgeRegistries.ITEMS.getValue(itemLocation);
+	public static String getTimeExtensionItem() {
 
-		// Set default if the item is invalid
-		if (configuredItem == null) {
-			durabilityRepairItem = "minecraft:iron_block";
-		}
-		return durabilityRepairItem;
+		return timeExtensionItem;
 
 	}
 
-	public static Item getDurabilityItemAsItem() {
-		ResourceLocation itemLocation = ResourceLocation.parse(durabilityRepairItem);
-		@Nullable
-		Item configuredItem = ForgeRegistries.ITEMS.getValue(itemLocation);
 
-		// Set default if the item is invalid
-		if (configuredItem == null) {
-			configuredItem = Items.IRON_BLOCK;
-		}
-		return configuredItem;
-	}
 
-	public static boolean isDurabilityRepairEnabled() {
-		if (durabilityRepairAmount > 0)
+	public static boolean isTimeExtensionEnabled() {
+		if (spawnsAmount > 0)
 			return true;
 		return false;
 	}
 
-	public static int getDurabilityRepairAmount() {
-		return durabilityRepairAmount;
+	public static int getSpawnsAmount() {
+		return spawnsAmount;
 	}
 
-	@SubscribeEvent
-	public static void onModConfigEvent(final ModConfigEvent configEvent) {
-		if (configEvent.getConfig().getSpec() == MyConfig.COMMON_SPEC) {
-			bakeConfig();
-			MobSpawnerManager.init();
-		}
-	}
+
 
 	public static void pushDebugValue() {
-		Utility.debugMsg(1, "harderspawners debugLevel:" + MyConfig.debugLevel);
+		MyUtilities.debugMsg(1, "harderspawners debugLevel:" + MyConfig.debugLevel);
 		COMMON.debugLevel.set(MyConfig.debugLevel);
 	}
 
 	public static void pushSpawnerRevenge() {
-		Utility.debugMsg(1, "harderspawners: revengeLevel" + MyConfig.getSpawnerRevengeLevel());
+		MyUtilities.debugMsg(1, "harderspawners: revengeLevel" + MyConfig.getSpawnerRevengeLevel());
 		COMMON.spawnerRevengeLevel.set(MyConfig.getSpawnerRevengeLevel());
 	}
 
 	public static void pushSpawnersExplodePercentage() {
-		Utility.debugMsg(1, "harderspawners: breaking explode % :" + MyConfig.getSpawnersExplodePercentage());
+		MyUtilities.debugMsg(1, "harderspawners: breaking explode % :" + MyConfig.getSpawnersExplodePercentage());
 		COMMON.spawnersExplodePercentage.set(MyConfig.getSpawnersExplodePercentage());
 	}
 
