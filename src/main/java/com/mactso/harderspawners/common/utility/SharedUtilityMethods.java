@@ -129,7 +129,6 @@ public class SharedUtilityMethods {
 		RandomSource rand = serverLevel.getRandom();
 		
 		int fYmin = (int) pos.getY() - 4;
-
 		if (fYmin < serverLevel.getMinBuildHeight())
 			fYmin = serverLevel.getMinBuildHeight();
 		int fYmax = (int) pos.getY() + 8;

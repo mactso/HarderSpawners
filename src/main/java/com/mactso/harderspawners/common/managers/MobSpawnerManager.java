@@ -11,88 +11,95 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 
 public class MobSpawnerManager {
-    public static Hashtable<String, SpawnerDurabilityItem> SpawnerDurabilityRangeByMobType = new Hashtable<>();
-    private static final String defaultKey = "harderspawners:default";
+	public static Hashtable<String, SpawnerDurabilityItem> SpawnerDurabilityRangeByMobType = new Hashtable<>();
+	private static final String defaultKey = "harderspawners:default";
 
-    /** 
-     * Returns the SpawnerDurabilityItem for the given mob key.
-     * Falls back to the configured default, and if that is missing, uses 50–500.
-     */
-    public static SpawnerDurabilityItem getDurabilityForMob(String mobKey) {
-        SpawnerDurabilityItem t = SpawnerDurabilityRangeByMobType.get(mobKey);
+	/**
+	 * Returns the SpawnerDurabilityItem for the given mob key. Falls back to the
+	 * configured default, and if that is missing, uses 50–500.
+	 */
+	public static SpawnerDurabilityItem getDurabilityForMob(String mobKey) {
+		SpawnerDurabilityItem t = SpawnerDurabilityRangeByMobType.get(mobKey);
 
-        if (t != null) return t;
+		if (t != null)
+			return t;
 
-        // fallback to configured default
-        SpawnerDurabilityItem defaultItem = SpawnerDurabilityRangeByMobType.get(defaultKey);
-        if (defaultItem != null) return defaultItem;
+		// fallback to configured default
+		SpawnerDurabilityItem defaultItem = SpawnerDurabilityRangeByMobType.get(defaultKey);
+		if (defaultItem != null)
+			return defaultItem;
 
-        // final hardcoded fallback
-        MyUtilities.debugMsg(0, "WARNING: No default spawner durability configured! Using fallback 200–600.");
-        return new SpawnerDurabilityItem(200, 600);
-    }
+		// final hardcoded fallback
+		MyUtilities.debugMsg(0, "WARNING: No default spawner durability configured! Using fallback 200–600.");
+		return new SpawnerDurabilityItem(200, 600);
+	}
 
-	
-	
-    public static void init() {
+	public static void init() {
 
-        SpawnerDurabilityRangeByMobType.clear();
+		SpawnerDurabilityRangeByMobType.clear();
 
-        MyUtilities.debugMsg(0, "Harder Spawners: Initializing Spawner Durability Settings.");
+		MyUtilities.debugMsg(0, "Harder Spawners: Initializing Spawner Durability Settings.");
 
-        String configLine;
-        StringTokenizer lines = new StringTokenizer(MyConfig.getMobSpawnerDurabilityRangesString(), ";");
+		String configLine;
+		StringTokenizer lines = new StringTokenizer(MyConfig.getMobSpawnerDurabilityRangesString(), ";");
 
-        while (lines.hasMoreElements()) {
-            configLine = lines.nextToken().trim();
-            if (configLine.isEmpty()) continue;
+		while (lines.hasMoreElements()) {
+			configLine = lines.nextToken().trim();
+			if (configLine.isEmpty())
+				continue;
 
-            try {
-                StringTokenizer st = new StringTokenizer(configLine, ",");
-                String key = st.nextToken().trim(); // modid:mobid or "harderspawners:default"
+			try {
+				StringTokenizer st = new StringTokenizer(configLine, ",");
+				String key = st.nextToken().trim(); // modid:mobid or harderspawners:default
 
-                if (!key.equals(defaultKey)) {
-                    ResourceLocation entityKey = ResourceLocation.tryParse(key);
-                    if (entityKey == null || BuiltInRegistries.ENTITY_TYPE.get(entityKey) == null) {
-                        MyUtilities.debugMsg(0, "WARN : Harder Spawners : Undefined Mob : " + configLine);
-                    }
-                }
+				boolean valid = true;
 
-                int minSpawns = Integer.parseInt(st.nextToken().trim());
-                if (minSpawns < 0) minSpawns = 0;
+				if (!key.equals(defaultKey)) {
+					ResourceLocation entityKey = ResourceLocation.tryParse(key);
+					if (entityKey == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(entityKey)) {
+						MyUtilities.debugMsg(0, "WARN : Harder Spawners : Undefined Mob : " + configLine);
+						valid = false;
+					}
+				}
 
-                int maxSpawns = Integer.parseInt(st.nextToken().trim());
-                if (maxSpawns < minSpawns) maxSpawns = minSpawns;
+				int minSpawns = Integer.parseInt(st.nextToken().trim());
+				if (minSpawns < 0)
+					minSpawns = 0;
 
-                SpawnerDurabilityRangeByMobType.put(key, new SpawnerDurabilityItem(minSpawns, maxSpawns));
+				int maxSpawns = Integer.parseInt(st.nextToken().trim());
+				if (maxSpawns < minSpawns)
+					maxSpawns = minSpawns;
 
-            } catch (Exception e) {
-                MyUtilities.debugMsg(0, "ERROR: Harder Spawners : Bad Mob Config Line : " + configLine);
-            }
-        }
+				if (valid) {
+					SpawnerDurabilityRangeByMobType.put(key, new SpawnerDurabilityItem(minSpawns, maxSpawns));
+					MyUtilities.debugMsg(0, "Add valid : " + configLine);
+				}
+			} catch (Exception e) {
+				MyUtilities.debugMsg(0, "ERROR: Harder Spawners : Bad Mob Config Line : " + configLine);
+			}
+		}
 
-        MyUtilities.debugMsg(0, "Harder Spawners: Spawner Durability Settings Initialization complete.");
-    }
+		MyUtilities.debugMsg(0, "Harder Spawners: Spawner Durability Settings Initialization complete.");
+	}
 
 	// keeps track of the spawner durability by Mob Type.
 	public static class SpawnerDurabilityItem {
-		int minimumDurability;
-		int maximumDurability;
+		int minimumDurability; // min number of spawns
+		int maximumDurability; // max number of spawns
 
 		public SpawnerDurabilityItem(int minimumSpawnsIn, int maximumSpawnsIn) {
 			this.minimumDurability = minimumSpawnsIn;
 			this.maximumDurability = maximumSpawnsIn;
 		}
 
-		
-		public boolean isInfiniteDurability () {
+		public boolean isInfiniteDurability() {
 			if (minimumDurability == 0)
 				return true;
 			if (maximumDurability == 0)
 				return true;
 			return false;
 		}
-		
+
 		public int initDurabilityValue() {
 
 			if (minimumDurability == 0)
