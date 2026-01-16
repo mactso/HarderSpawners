@@ -153,15 +153,15 @@ public class SpawnerBreakHandler {
 								+ " slowing from " + baseDestroySpeed + " to " + newDestroySpeed + ".");
 			}
 		}
-		doOptionalClientMessage(player);
+		doOptionalMessage(player);
 	}
 
 	// This only runs if installed on both sides or on the integrated server.
-	private void doOptionalClientMessage(Player player) {
-		if (!player.level().isClientSide())
-			return;
-		if ((spamLimiter++) % 20 == 0 && (MyConfig.getSpawnerTextOff() == 0)) {
-			MyUtilities.sendChat(player, "The spawner slowly breaks...", ChatFormatting.DARK_AQUA);
+	private void doOptionalMessage(Player player) {
+		if (player instanceof ServerPlayer sp) {
+			if ((spamLimiter++) % 20 == 0 && (MyConfig.getSpawnerTextOff() == 0)) {
+				MyUtilities.sendChat(sp, "The spawner slowly breaks...", ChatFormatting.DARK_AQUA);
+			}
 		}
 	}
 

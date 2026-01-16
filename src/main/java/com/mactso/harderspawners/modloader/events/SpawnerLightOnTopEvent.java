@@ -58,7 +58,7 @@ public class SpawnerLightOnTopEvent {
 		for (int i = 0; i < 16; i++) {
 		    BlockPos abovePos = event.getPos().above(i);
 
-		    if (abovePos.getY() > serverLevel.getMaxBuildHeight()) break;
+		    if (abovePos.getY() > serverLevel.getHeight()) break;
 
 		    if (serverLevel.getBlockState(abovePos).getLightEmission(serverLevel, abovePos) < 8) break;
 

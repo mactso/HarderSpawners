@@ -1,5 +1,7 @@
 package com.mactso.harderspawners.common.logic;
 
+import java.util.Optional;
+
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter;
@@ -8,7 +10,6 @@ import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -87,15 +88,15 @@ public class SpawnerExpiration {
             return Items.IRON_BLOCK;
         }
 
-        RegistryAccess registryAccess = sLevel.registryAccess();
-        Registry<Item> itemRegistry = registryAccess.registryOrThrow(Registries.ITEM);
+        Registry<Item> itemRegistry = MyUtilities.getRegistrySafe(sLevel.registryAccess(), Registries.ITEM);
 
-        Item timeExtensionItem = itemRegistry.get(itemLocation);
-        if (timeExtensionItem == null) {
+        Optional<Item> optItem = itemRegistry.getOptional(itemLocation);
+        if (optItem.isEmpty()) {
         	MyUtilities.debugMsg(0, "ERROR: Configured Time extension item " + configTimeExtensionItem + " is not registered.  Using Items.IRON_BLOCK");
         	return Items.IRON_BLOCK;
         }
-        
+
+        Item timeExtensionItem = optItem.get();
         cachedTimeExtensionConfiguredValue = configTimeExtensionItem;
         cachedTimeExtensionItem = timeExtensionItem;
 

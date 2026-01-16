@@ -1,5 +1,7 @@
 package com.mactso.harderspawners.common.utility;
 
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,10 +17,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
@@ -32,7 +34,10 @@ public class MyUtilities {
 	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
 	// -------------------------------
 		public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
-	    return access.registry(key).orElse(null);  // 1.21.1 pattern
+			Optional<Registry<T>> optRegistry = access.lookup(key);
+			if (optRegistry.isEmpty())
+				return null;
+	    return optRegistry.get();  // 1.21.4 to 1.21.5 pattern
 	}
 
 	
@@ -67,20 +72,20 @@ public class MyUtilities {
 		
 	}
 
-	public static void sendBoldChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendBoldChat(ServerPlayer sp, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal (chatMessage);
 		component.setStyle(component.getStyle().withBold(true));
 		component.setStyle(component.getStyle().withColor(ChatFormatting.DARK_GREEN));
-		p.sendSystemMessage(component);
+		sp.sendSystemMessage(component);
 	}	
 	
 
-	public static void sendChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendChat(ServerPlayer sp, String chatMessage, ChatFormatting textColor) {
 
         MutableComponent component = Component.literal (chatMessage);
 		component.setStyle(component.getStyle().withColor(ChatFormatting.GREEN));
-        p.sendSystemMessage(component);
+        sp.sendSystemMessage(component);
 	}
 	
 	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect, int duration) {

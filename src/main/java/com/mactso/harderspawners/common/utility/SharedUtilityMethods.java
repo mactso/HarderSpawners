@@ -127,13 +127,12 @@ public class SharedUtilityMethods {
 
 
 		RandomSource rand = serverLevel.getRandom();
-		
 		int fYmin = (int) pos.getY() - 4;
-		if (fYmin < serverLevel.getMinBuildHeight())
-			fYmin = serverLevel.getMinBuildHeight();
+		if (fYmin < serverLevel.getHeight())
+			fYmin = serverLevel.getHeight();
 		int fYmax = (int) pos.getY() + 8;
-		if (fYmax > serverLevel.getMaxBuildHeight())
-			fYmax = serverLevel.getMaxBuildHeight();
+		if (fYmax > serverLevel.getMinY())
+			fYmax = serverLevel.getMinY();
 		
 		int scanSize = MyConfig.getDestroyLightRange();
 		int lavaScanBoost = 0;
