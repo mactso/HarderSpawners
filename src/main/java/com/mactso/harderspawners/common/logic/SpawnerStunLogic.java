@@ -2,6 +2,7 @@ package com.mactso.harderspawners.common.logic;
 
 import com.mactso.harderspawners.common.sounds.ModSounds;
 import com.mactso.harderspawners.common.utility.MyUtilities;
+import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsStorage;
@@ -23,6 +24,7 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 
 public class SpawnerStunLogic {
 	
+	
     /**
      * Stuns a spawner: updates delays, plays sound, and extends expiration.
      * Expensive: reloads spawner NBT.
@@ -38,17 +40,16 @@ public class SpawnerStunLogic {
 		serverLevel.playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 1.0f, 1.0f);
 
 		// Save current spawner state
-		CompoundTag tag = new CompoundTag();
-		spawner.save(tag);  // <--- expensive
+		CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
 
 		MyUtilities.debugMsg(2, pos, "Stunned Spawner saved values: (max):" + stats.getOriginalTag().getInt("MinSpawnDelay")
 				+ " (min):" + stats.getOriginalTag().getInt("MaxSpawnDelay"));
 
 		// Apply new delays for stunned state
 		int stunnedTicks = MyConfig.getSpawnerTicksStunned();
-		tag.putInt("MinSpawnDelay", stunnedTicks);
-		tag.putInt("MaxSpawnDelay", stunnedTicks + 10);
-		tag.putInt("Delay", stunnedTicks + 5);
+		spawnerTag.putInt("MinSpawnDelay", stunnedTicks);
+		spawnerTag.putInt("MaxSpawnDelay", stunnedTicks + 10);
+		spawnerTag.putInt("Delay", stunnedTicks + 5);
 		
 		// extend the spawner expiration time so stunned time doesn't count against it.
 		int timestunned = MyConfig.getSpawnerTicksStunned();
@@ -60,13 +61,11 @@ public class SpawnerStunLogic {
 			
 		}
 		
-		sbe.setChanged();
-		// Load updated tag into spawner
-		spawner.load(serverLevel, pos, tag);  // <----- this is expensive
+		SharedUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
 		sbe.setChanged();
 
-		MyUtilities.debugMsg(1, pos, "Stunned Spawner stunned values: (max):" + tag.getInt("MaxSpawnDelay") + " (min):"
-				+ tag.getInt("MinSpawnDelay"));
+		MyUtilities.debugMsg(1, pos, "Stunned Spawner stunned values: (max):" + spawnerTag.getInt("MaxSpawnDelay") + " (min):"
+				+ spawnerTag.getInt("MinSpawnDelay"));
 	}
 
 	  /**
@@ -101,7 +100,7 @@ public class SpawnerStunLogic {
      * this is called just before a stunned spawner spawns again.
      */
 	public static boolean doSpawnerRecoverFromStun(SpawnerBlockEntity sbe,
-			CompoundTag tag,
+			CompoundTag spawnerTag,
 			SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper ) {
 	
 		// If spawner is not stunned, nothing to do
@@ -110,7 +109,7 @@ public class SpawnerStunLogic {
 		}
 	
 		// Debug info
-		doStunDebugMsg(sbe, tag, statsWrapper);
+		doStunDebugMsg(sbe, spawnerTag, statsWrapper);
 	
 		// Restore original min/max spawn delays from backed-up tag
 		CompoundTag originalTag = statsWrapper.getOriginalTag();
@@ -118,12 +117,12 @@ public class SpawnerStunLogic {
 		    int originalMin = originalTag.getInt("MinSpawnDelay").orElse(200);
 			int originalMax = originalTag.getInt("MaxSpawnDelay").orElse(800);
 
-		    tag.putInt("MinSpawnDelay", originalMin);
-		    tag.putInt("MaxSpawnDelay", originalMax);
+		    spawnerTag.putInt("MinSpawnDelay", originalMin);
+		    spawnerTag.putInt("MaxSpawnDelay", originalMax);
 		}
 		
 		// Load the restored tag into the spawner  <--- this is expensive but 1 to 27 minutes apart.
-		sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), tag);
+		SharedUtilityMethods.loadSpawnerFromTag(sbe, originalTag);
 
 		// Play spooky “spawner spawner recovers” sound.  this is the minecraft villager infected sound.
 		sbe.getLevel().playSound(null, sbe.getBlockPos(), ModSounds.SPAWNER_RECOVERS.value(), SoundSource.BLOCKS, 1.0f, 1.0f);

@@ -22,6 +22,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
@@ -92,8 +93,11 @@ public class MyUtilities {
 
 	
 	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect, int duration) {
+
 		// neoforge issue.   spawning mobs effect maps are not finalized so this creates them.
-		e.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 3, 0, false, true));  // for 3 ticks...
+		if (e instanceof Monster) {
+			e.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 2, 0, false, true));  // for 3 ticks...
+		}
 		
 		MobEffectInstance ei = e.getEffect(mobEffect);
 

@@ -27,7 +27,7 @@ public class SpawnerRevenge {
 	
 		float volume = 0.8f;
 		if (SharedUtilityMethods.isSpawnerStunned(sbe)) {
-			serverPlayer.serverLevel().playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 0.25f, 0.25f);
+			serverPlayer.level().playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 0.25f, 0.25f);
 			return;
 		}
 	
@@ -50,20 +50,20 @@ public class SpawnerRevenge {
 			return;
 	
 		ServerPlayer serverPlayer = (ServerPlayer) player;
-		ServerLevel serverlevel = (ServerLevel) serverPlayer.level();
+		ServerLevel serverLevel = (ServerLevel) serverPlayer.level();
 
-		BlockEntity be = serverlevel.getBlockEntity(pos);
+		BlockEntity be = serverLevel.getBlockEntity(pos);
 		if (be == null) 
 			return;
 		if (!(be instanceof SpawnerBlockEntity sbe))  // should always be true by this point
 			return;
 	
-		long gameTime = serverlevel.getGameTime();
+		long gameTime = serverLevel.getGameTime();
 	
 		if (SpawnerBreakHandler.nextActionTime < gameTime) {
-			RandomSource rand = serverPlayer.serverLevel().getRandom();
+			RandomSource rand = serverLevel.getRandom();
 			SpawnerBreakHandler.nextActionTime = gameTime + 13 + rand.nextInt(5);
-			SpecialEffects.doSpawnerBreakingEffects(pos, serverPlayer, serverlevel, sbe, rand);
+			SpecialEffects.doSpawnerBreakingEffects(pos, serverPlayer, serverLevel, sbe, rand);
 			SharedUtilityMethods.doDestroyLightingNearSpawner(sbe);
 			doSpawnerRevenge(pos, serverPlayer, sbe);
 		}

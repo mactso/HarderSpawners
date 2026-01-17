@@ -3,12 +3,15 @@ package com.mactso.harderspawners.common.utility;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerAttachments;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsStorage;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ProblemReporter.ScopedCollector;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
@@ -23,9 +26,13 @@ import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
 
 public class SharedUtilityMethods {
 
+	private static final org.slf4j.Logger LOGGERUTIL =  LogUtils.getLogger();
 	
 	/**
 	 * Utility methods shared across the Harder Spawners mod.
@@ -44,6 +51,20 @@ public class SharedUtilityMethods {
 	 * </ul>
 	 * </p>
 	 */
+
+	public static CompoundTag saveSpawnerToTag(SpawnerBlockEntity sbe) {
+	    ScopedCollector problemReporter = new ScopedCollector(LOGGERUTIL);
+	    TagValueOutput output = TagValueOutput.createWithoutContext(problemReporter);
+	    sbe.getSpawner().save(output);
+	    return output.buildResult();
+	}
+	
+	public static void loadSpawnerFromTag(SpawnerBlockEntity sbe, CompoundTag tag) {
+	    ScopedCollector collector = new ScopedCollector(LOGGERUTIL);
+	    ValueInput input = TagValueInput.create(collector, sbe.getLevel().registryAccess(), tag);
+	    sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), input);
+	}
+	
 	
 	public static boolean isSpawnerStunned(SpawnerBlockEntity sbe) {
 		SpawnerStatsStorage stats = sbe.getData(SpawnerAttachments.SPAWNER_STATS.get());

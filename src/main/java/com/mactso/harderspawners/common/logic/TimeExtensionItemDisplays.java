@@ -3,6 +3,7 @@ package com.mactso.harderspawners.common.logic;
 import java.util.List;
 
 import com.mactso.harderspawners.modloader.config.MyConfig;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -11,16 +12,21 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ProblemReporter.ScopedCollector;
 import net.minecraft.world.entity.Display.ItemDisplay;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public class TimeExtensionItemDisplays {
-
+	
+	private static final org.slf4j.Logger LOGGERUTIL =  LogUtils.getLogger();
+	
 	public static void buildDisplay(ServerLevel sLevel, BlockEntity sbe) {
 	
 		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
@@ -29,8 +35,9 @@ public class TimeExtensionItemDisplays {
 		itemDisplay.setCustomName(SpawnerExpiration.TIP);
 		itemDisplay.setCustomNameVisible(true);
 		
-		CompoundTag temptag = TimeExtensionItemDisplays.buildDisplayNBT(itemDisplay);
-		itemDisplay.load(temptag);
+		CompoundTag temptag = buildItemDisplayNBT(itemDisplay);
+		ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+		itemDisplay.load(TagValueInput.create(preport, sbe.getLevel().registryAccess(), temptag));
 		
 		// Position the display above the spawner
 		Vec3 vWork = sbe.getBlockPos().getBottomCenter();
@@ -39,15 +46,20 @@ public class TimeExtensionItemDisplays {
 		sLevel.addFreshEntity(itemDisplay);
 	
 	}
+	
 
-	public static CompoundTag buildDisplayNBT(ItemDisplay i) {
-		CompoundTag tag = new CompoundTag();
-		i.save(tag);
-		tag.put("transformation", TimeExtensionItemDisplays.buildTransformationTag());
-		tag.put("item", TimeExtensionItemDisplays.buildItemTag());
+	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
+		
+        ScopedCollector preport = new ScopedCollector(LOGGERUTIL);
+        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+        i.save(vout);
+        CompoundTag tag = vout.buildResult(); 
+		tag.put("transformation", buildTransformationTag());
+		tag.put("item", buildItemTag());
 		tag.putString("billboard", "center");
 		return tag;
 	}
+
 
 	public static void showDisplay(ServerLevel sLevel, BlockEntity sbe) {
 		// Build an AABB centered on the spawner's block position, 2 blocks in each

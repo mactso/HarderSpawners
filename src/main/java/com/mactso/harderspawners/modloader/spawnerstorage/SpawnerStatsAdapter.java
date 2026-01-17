@@ -4,12 +4,16 @@ import java.util.Optional;
 
 import com.mactso.harderspawners.common.logic.ProcessSpawners;
 import com.mactso.harderspawners.common.managers.MobSpawnerManager;
+import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.config.MyConfig;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.util.ProblemReporter.ScopedCollector;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.storage.TagValueInput;
 
 /**
  * Adapter class to isolate NeoForge-specific storage logic.
@@ -18,6 +22,8 @@ import net.minecraft.world.level.chunk.ChunkAccess;
  */
 public final class SpawnerStatsAdapter {
 
+	private static final org.slf4j.Logger LOGGERUTIL =  LogUtils.getLogger();
+	
     private SpawnerStatsAdapter() {} // prevent instantiation
 
     /**
@@ -34,11 +40,10 @@ public final class SpawnerStatsAdapter {
         }
 
         // Do not create stats or statswrapper if entity id is empty or null.
-        CompoundTag tag = new CompoundTag();
-        sbe.getSpawner().save(tag);
-
+        CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+		
         // Safely get nested SpawnData -> entity -> id
-        Optional<CompoundTag> optSpawnData = tag.getCompound("SpawnData");
+        Optional<CompoundTag> optSpawnData = spawnerTag.getCompound("SpawnData");
         Optional<CompoundTag> optEntityData = optSpawnData.flatMap(spawnData -> spawnData.getCompound("entity"));
         Optional<String> optEntityId = optEntityData.flatMap(entityData -> entityData.getString("id"));
 
@@ -92,11 +97,9 @@ public final class SpawnerStatsAdapter {
         /** Initialize a new spawner's stats and normalize its tag */
         private void initializeStats() {
             // 1. Snapshot vanilla spawner
-            CompoundTag tag = new CompoundTag();
-            sbe.getSpawner().save(tag);
-
+			CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
             // 2. Normalize spawner config (ONE TIME)
-            doApplyConfigToMonsterSpawners(sbe, tag);
+            doApplyConfigToMonsterSpawners(sbe, spawnerTag);
 
             // 3. Backup normalized baseline
             stats.backupOriginalSpawner(sbe);
@@ -138,8 +141,8 @@ public final class SpawnerStatsAdapter {
 
     public static void doApplyConfigToMonsterSpawners(SpawnerBlockEntity sbe, CompoundTag tag) {
     	
-        CompoundTag spawnerTag = new CompoundTag();
-        sbe.getSpawner().save(spawnerTag);
+        CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+        
         Optional<CompoundTag> optTag = spawnerTag.getCompound("SpawnData");
         if (optTag.isEmpty())
         	return;
@@ -166,6 +169,8 @@ public final class SpawnerStatsAdapter {
                 optSpawnRange.get() != MyConfig.getSpawnRange()) {
                 tag.putInt("SpawnRange", MyConfig.getSpawnRange());
             }
+            
+            
 
             Optional<Tag> workSpawnData = ProcessSpawners.buildCustomLightLevelSpawnData(spawnDataTag);
             if (workSpawnData.isPresent() && !spawnDataTag.equals(workSpawnData.get())) {
@@ -173,7 +178,11 @@ public final class SpawnerStatsAdapter {
             }
 
             // Save tag back to spawner
-            sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), tag);
+			ScopedCollector loadPreport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+			sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), TagValueInput.create(loadPreport, sbe.getLevel().registryAccess(), spawnerTag));
+			SharedUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
+
+
         }
     }
 }
