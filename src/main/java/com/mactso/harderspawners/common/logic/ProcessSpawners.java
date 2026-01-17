@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
+import com.mactso.harderspawners.modloader.adapter.Adapters;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsHelper;
@@ -40,27 +41,28 @@ import net.minecraft.world.phys.Vec3;
 public class ProcessSpawners {
 
 	private static final Logger LOGGER = LogManager.getLogger();
-
+	// private static int spam = 0;
 	// Could be in your utility class or main mod class
 	private static final Map<ServerLevel, Set<BlockPos>> pendingLavaBlocks = new ConcurrentHashMap<>();
 
+	private static int last_delay = Integer.MAX_VALUE;
+	
     /**
-     * Adds a lava block to the pending queue to be processed on the next player tick.
+	 * Adds a lava block to the pending queue to be processed on the next player
+	 * tick.
      */
     public static void queuePendingLava(ServerLevel level, BlockPos pos) {
-        pendingLavaBlocks.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet())
-                          .add(pos);
+		pendingLavaBlocks.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet()).add(pos);
     }
     
     /**
-     * Clears all queued pending lava blocks for the given player level.
-     * Should be called once per player tick.
+	 * Clears all queued pending lava blocks for the given player level. Should be
+	 * called once per player tick.
      *
      * @param sp The server player whose level will be processed.
      */
     public static void clearPendingLava(ServerPlayer sp) {
 		ServerLevel level = sp.serverLevel();
-
 
         // Get the pending lava set for this level
         Set<BlockPos> pending = pendingLavaBlocks.get(level);
@@ -84,15 +86,13 @@ public class ProcessSpawners {
 	/**
 	 * Seek and process nearby spawners within 32 blocks (x,y,z ) of the player. 
 	 * 
-	 * Attach Attachments with mod Spawner Values and Calculated values to each spawner found
-	 * Record the spawner blockpos in a list for later use
+	 * Attach Attachments with mod Spawner Values and Calculated values to each
+	 * spawner found Record the spawner blockpos in a list for later use
 	 * 
-	 * Process each spawner found:
-	 *    Recover from stunned state
-	 *    Check if spawner is nearing expiration time and make "failing" special effects 
-	 *    If spawner has passed expiration time, then 
-	 *    1) destroy it with no drop
-	 *    2) based on the config, optionally explode the spawner.
+	 * Process each spawner found: Recover from stunned state Check if spawner is
+	 * nearing expiration time and make "failing" special effects If spawner has
+	 * passed expiration time, then 1) destroy it with no drop 2) based on the
+	 * config, optionally explode the spawner.
 	 *    
 	 * Called by handleBlockPlacement, handleBucketPlacement, onPlayerTick    
 	 */
@@ -100,6 +100,14 @@ public class ProcessSpawners {
 		ServerLevel level = serverPlayer.serverLevel();
 		BlockPos playerPos = serverPlayer.blockPosition();
 		ChunkPos playerChunk = new ChunkPos(playerPos);
+
+		// debug sounds here.  plays once per 6 seconds.
+//		spam = (spam + 1) % 120;
+//		if (spam == 0) {
+//			level.playSound(null, serverPlayer.blockPosition(), ModSounds.SPAWNER_RECOVERS.value(), SoundSource.BLOCKS,
+//					1.0f, 1.0f);
+//			MyUtilities.debugMsg(0, "play sound");
+//		}
 
 		// Determine which far chunks we can skip based on player's position in the
 		// chunk
@@ -142,17 +150,38 @@ public class ProcessSpawners {
 						continue;
 					
 					SpawnerRegistry.recordSpawnerPos(sbe);
+					BaseSpawner spawner = sbe.getSpawner();
+					CompoundTag tag = new CompoundTag();
+
 					// Check spawner delay
 					// optimize this later with an access widener or Reflection to 
 					// BaseSpawner.spawnDelay
-					BaseSpawner spawner = sbe.getSpawner();
-					CompoundTag tag = new CompoundTag();
-					spawner.save(tag); //<--- this is expensive!
+					MyUtilities.debugMsg(1, "Spawner.spawnerDelay Adapter check ");
+					int delay = -Integer.MAX_VALUE;
+					boolean tagSaved = false;
+					if (Adapters.isWorking()) {
+						delay = Adapters.getDelay(spawner);
+						MyUtilities.debugMsg(2, "Adapter working.  Delay = "+ delay);
+					} 
 
-					int delay = tag.getShort("Delay");
+					if (delay == -Integer.MAX_VALUE){
+						spawner.save(tag); // <--- this is expensive!
+						delay = tag.getShort("Delay");
+						tagSaved = true;
+						MyUtilities.debugMsg(2, "Adapter failed.  Delay = "+ delay);
+					}
+
+					if (last_delay < delay) 
+						MyUtilities.debugMsg(1, "Post Spawn Delay = "+ delay);
+						
+					last_delay=delay;
+
 					// if delay %600 make stunned effect.
 					if (delay == 1) {
-						MyUtilities.debugMsg(1, sbe.getBlockPos(), "Delay: " + delay);
+						if (!tagSaved) {
+							spawner.save(tag); // <--- this is expensive!
+						}
+						MyUtilities.debugMsg(2, sbe.getBlockPos(), "Delay: " + delay);
 						doProcessSpawner(level, sbe, spawner, tag);
 					}
 				}
@@ -177,7 +206,6 @@ public class ProcessSpawners {
 		return dz > maxDistance;
 	}
 
-
 	public static void doProcessSpawner(ServerLevel serverLevel, SpawnerBlockEntity sbe, BaseSpawner spawner,
 			CompoundTag tag) {
 		if (sbe == null || spawner == null || serverLevel == null)
@@ -185,15 +213,17 @@ public class ProcessSpawners {
 
 		SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
 
-
 		// Handle stunned spawner logic (reset delays, etc.)
-		boolean changed = SpawnerStunLogic.doSpawnerRecoverFromStun(sbe,tag, statsWrapper);
+		boolean changed = SpawnerStunLogic.doSpawnerRecoverFromStun(sbe, tag, statsWrapper);
 		if (changed)
 			MyUtilities.debugMsg(1, "Spawner recovered from stun.");
 
-
 		// If this is a monster spawner, destroy nearby lights, and check failure
 		if (ProcessSpawners.isMonsterSpawner(sbe, tag)) {
+			
+			// Re-apply custom light rules ONLY right before the spawn attempt since other mods are removing them.
+	        reapplyCustomLightRules(sbe, tag);
+	        
 			SharedUtilityMethods.doDestroyLightingNearSpawner(sbe);
 			SpecialEffects.doSpawnerExpiringSoonEffects(sbe);
 			ProcessSpawners.doSpawnerExpires(serverLevel, sbe);
@@ -202,8 +232,10 @@ public class ProcessSpawners {
 
 	// TODO: Test this every release.
 	// cap is confirmed valid before this method is called.
-	// If a spawner has reached or exceeded its lifespan, it expires.	// if they are expired, handle the expiration by poofing or exploding
-	// this routine cleans up and then either poofs the spawner or explodes the spawner.
+	// If a spawner has reached or exceeded its lifespan, it expires. // if they are
+	// expired, handle the expiration by poofing or exploding
+	// this routine cleans up and then either poofs the spawner or explodes the
+	// spawner.
 	
 	public static void doSpawnerExpires(ServerLevel serverLevel, SpawnerBlockEntity sbe) {
 
@@ -225,7 +257,8 @@ public class ProcessSpawners {
 		BlockPos pos = sbe.getBlockPos();
 		serverLevel.destroyBlock(pos, false);
 
-		// Skip if the spawner is for Silverfish (legacy behavior) so we don't hurt End gates
+		// Skip if the spawner is for Silverfish (legacy behavior) so we don't hurt End
+		// gates
 		CompoundTag spawnDataTag = statsWrapper.getOriginalTag().getCompound("SpawnData").getCompound("entity");
 		String entityId = spawnDataTag.getString("id");
 		if (entityId.equals("minecraft:silverfish")) {
@@ -244,6 +277,22 @@ public class ProcessSpawners {
 					true, // causes block damage
 					ExplosionInteraction.BLOCK);
 		}
+	}
+
+	public static void reapplyCustomLightRules(SpawnerBlockEntity sbe, CompoundTag tag) {
+	    CompoundTag spawnDataTag = tag.getCompound("SpawnData");
+	    if (spawnDataTag.isEmpty()) return;
+
+	    // Use your existing codec-based method to build the new tag
+	    Optional<Tag> workSpawnData = ProcessSpawners.buildCustomLightLevelSpawnData(spawnDataTag);
+	    
+	    if (workSpawnData.isPresent()) {
+	        tag.put("SpawnData", workSpawnData.get());
+	        // Crucial: Load the modified tag back into the internal BaseSpawner logic
+	        sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), tag);
+	        sbe.setChanged();
+	        MyUtilities.debugMsg(2, "JIT: Light levels reapplied to " + sbe.getBlockPos().toShortString());
+	    }
 	}
 
 	public static Optional<Tag> buildCustomLightLevelSpawnData(CompoundTag spawnDataTag) {
@@ -268,11 +317,14 @@ public class ProcessSpawners {
 
 	public static boolean isMonsterSpawner(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
 	
-	    if (spawnerTag == null) return false;
+		if (spawnerTag == null)
+			return false;
 	    CompoundTag spawnDataTag = spawnerTag.getCompound("SpawnData");
-	    if (spawnDataTag == null) return false;
+		if (spawnDataTag == null)
+			return false;
 	    CompoundTag entityDataTag = spawnDataTag.getCompound("entity");
-	    if (entityDataTag == null) return false;
+		if (entityDataTag == null)
+			return false;
 	
 		Optional<EntityType<?>> eType = EntityType.byString(entityDataTag.getString("id"));
 	

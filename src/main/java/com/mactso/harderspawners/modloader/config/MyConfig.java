@@ -188,6 +188,10 @@ public class MyConfig {
 	public static int getDebugLevel() {
 		return debugLevel;
 	}
+	
+	public static boolean isDebug() {
+		return (debugLevel > 0);
+	}
 
 	public static int getDestroyLightPercentage() {
 		return destroyLightPercentage;
