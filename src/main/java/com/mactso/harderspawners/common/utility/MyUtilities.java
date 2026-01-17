@@ -20,6 +20,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
@@ -88,11 +89,14 @@ public class MyUtilities {
         sp.sendSystemMessage(component);
 	}
 	
+
+	
 	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect, int duration) {
+		// neoforge issue.   spawning mobs effect maps are not finalized so this creates them.
+		e.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 3, 0, false, true));  // for 3 ticks...
+		
 		MobEffectInstance ei = e.getEffect(mobEffect);
-		if (amplifier == 10) {
-			amplifier = 20;  // player "plaid" speed.
-		}
+
 		if (ei != null) {
 			if (amplifier > ei.getAmplifier()) {
 				e.removeEffect(mobEffect);
@@ -108,7 +112,6 @@ public class MyUtilities {
 		e.addEffect(new MobEffectInstance(mobEffect, duration, amplifier, true, true));
 		return;
 	}
-	
 	
 	public static boolean isOutside(BlockPos pos, ServerLevel serverLevel) {
 		return serverLevel.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, pos) == pos;

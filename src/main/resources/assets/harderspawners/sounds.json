@@ -1,0 +1,9 @@
+{
+  "spawner_recovers": {
+    "subtitle": "subtitle.spawner.recovers",
+    "sounds": [
+      "harderspawners:spawner_recovers/spawner_recovers"
+    ]
+  }
+}
+
