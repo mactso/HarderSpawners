@@ -8,7 +8,7 @@ import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class MobSpawnerManager {
 	public static Hashtable<String, SpawnerDurabilityItem> SpawnerDurabilityRangeByMobType = new Hashtable<>();
@@ -55,7 +55,7 @@ public class MobSpawnerManager {
 				boolean valid = true;
 
 				if (!key.equals(defaultKey)) {
-					ResourceLocation entityKey = ResourceLocation.tryParse(key);
+					Identifier entityKey = Identifier.tryParse(key);
 					if (entityKey == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(entityKey)) {
 						MyUtilities.debugMsg(0, "WARN : Harder Spawners : Undefined Mob : " + configLine);
 						valid = false;

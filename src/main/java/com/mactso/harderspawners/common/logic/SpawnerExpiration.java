@@ -12,7 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
@@ -83,7 +83,7 @@ public class SpawnerExpiration {
     			return cachedTimeExtensionItem;
     	}
 
-    	ResourceLocation itemLocation = ResourceLocation.tryParse(configTimeExtensionItem);
+    	Identifier itemLocation = Identifier.tryParse(configTimeExtensionItem);
         if (itemLocation == null) {
             return Items.IRON_BLOCK;
         }
