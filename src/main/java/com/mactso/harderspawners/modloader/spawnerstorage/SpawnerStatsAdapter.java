@@ -36,13 +36,19 @@ public final class SpawnerStatsAdapter {
         // Do not create stats or statswrapper if entity id is empty or null.
         CompoundTag tag = new CompoundTag();
         sbe.getSpawner().save(tag);
-        CompoundTag spawnData = tag.getCompound("SpawnData").getCompound("entity");
-        if (spawnData == null) return null;
-        String entityId = spawnData.getString("id");
-        if (entityId == null || entityId.isEmpty()) return null;
+
+        // Safely get nested SpawnData -> entity -> id
+        Optional<CompoundTag> optSpawnData = tag.getCompound("SpawnData");
+        Optional<CompoundTag> optEntityData = optSpawnData.flatMap(spawnData -> spawnData.getCompound("entity"));
+        Optional<String> optEntityId = optEntityData.flatMap(entityData -> entityData.getString("id"));
+
+        // Return null if missing or empty
+        if (optEntityId.isEmpty() || optEntityId.get().isEmpty()) {
+            return null;
+        }
 
         // Full wrapper: will initialize stats
-        return new SpawnerStatsWrapper(sbe, entityId);
+        return new SpawnerStatsWrapper(sbe, optEntityId.get());
     }
 
     /**
@@ -134,16 +140,32 @@ public final class SpawnerStatsAdapter {
     	
         CompoundTag spawnerTag = new CompoundTag();
         sbe.getSpawner().save(spawnerTag);
-        CompoundTag spawnDataTag = spawnerTag.getCompound("SpawnData");
+        Optional<CompoundTag> optTag = spawnerTag.getCompound("SpawnData");
+        if (optTag.isEmpty())
+        	return;
+        CompoundTag spawnDataTag = optTag.get();
         if (spawnDataTag.isEmpty()) return;
  
         if (ProcessSpawners.isMonsterSpawner(sbe, spawnerTag)) {
-            if (tag.getInt("MaxNearbyEntities") != MyConfig.getMaxNearbyEntities())
+            // MaxNearbyEntities
+            Optional<Integer> optMaxNearby = tag.getInt("MaxNearbyEntities");
+            if (optMaxNearby.isEmpty() ||
+                optMaxNearby.get() != MyConfig.getMaxNearbyEntities()) {
                 tag.putInt("MaxNearbyEntities", MyConfig.getMaxNearbyEntities());
-            if (tag.getInt("RequiredPlayerRange") != MyConfig.getRequiredPlayerRange())
+            }
+            // RequiredPlayerRange
+            Optional<Integer> optRequiredRange = tag.getInt("RequiredPlayerRange");
+            if (optRequiredRange.isEmpty() ||
+                optRequiredRange.get() != MyConfig.getRequiredPlayerRange()) {
                 tag.putInt("RequiredPlayerRange", MyConfig.getRequiredPlayerRange());
-            if (tag.getInt("SpawnRange") != MyConfig.getSpawnRange())
+            }
+
+            // SpawnRange
+            Optional<Integer> optSpawnRange = tag.getInt("SpawnRange");
+            if (optSpawnRange.isEmpty() ||
+                optSpawnRange.get() != MyConfig.getSpawnRange()) {
                 tag.putInt("SpawnRange", MyConfig.getSpawnRange());
+            }
 
             Optional<Tag> workSpawnData = ProcessSpawners.buildCustomLightLevelSpawnData(spawnDataTag);
             if (workSpawnData.isPresent() && !spawnDataTag.equals(workSpawnData.get())) {

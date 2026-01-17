@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.mactso.harderspawners.common.sounds.ModSounds;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.adapter.Adapters;
@@ -22,7 +21,6 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.InclusiveRange;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityType;
@@ -43,14 +41,14 @@ import net.minecraft.world.phys.Vec3;
 public class ProcessSpawners {
 
 	private static final Logger LOGGER = LogManager.getLogger();
-	private static int spam = 0;
+	// private static int spam = 0;
 	// Could be in your utility class or main mod class
 	private static final Map<ServerLevel, Set<BlockPos>> pendingLavaBlocks = new ConcurrentHashMap<>();
 
-	private static final java.lang.reflect.Field SPAWN_DELAY_FIELD = 
-		    net.neoforged.fml.util.ObfuscationReflectionHelper.findField(
-		        net.minecraft.world.level.BaseSpawner.class, "spawnDelay"
-		    );
+//	private static final java.lang.reflect.Field SPAWN_DELAY_FIELD = 
+//		    net.neoforged.fml.util.ObfuscationReflectionHelper.findField(
+//		        net.minecraft.world.level.BaseSpawner.class, "spawnDelay"
+//		    );
 	private static int last_delay = Integer.MAX_VALUE;
 	
 	/**
@@ -172,7 +170,8 @@ public class ProcessSpawners {
 
 					if (delay == -Integer.MAX_VALUE){
 						spawner.save(tag); // <--- this is expensive!
-						delay = tag.getShort("Delay");
+						Optional<Short> optDelay = tag.getShort("Delay");
+						delay = optDelay.orElse((short) 0); // provide a default if missing
 						tagSaved = true;
 						MyUtilities.debugMsg(2, "Adapter failed.  Delay = "+ delay);
 					}
@@ -263,12 +262,10 @@ public class ProcessSpawners {
 		BlockPos pos = sbe.getBlockPos();
 		serverLevel.destroyBlock(pos, false);
 
-		// Skip if the spawner is for Silverfish (legacy behavior) so we don't hurt End
-		// gates
-		CompoundTag spawnDataTag = statsWrapper.getOriginalTag().getCompound("SpawnData").getCompound("entity");
-		String entityId = spawnDataTag.getString("id");
-		if (entityId.equals("minecraft:silverfish")) {
-			return;
+		// Avoid Exploding SilverFish Spawners to protect End Portals.
+		Optional<String> optEntityId = getEntityId(statsWrapper);
+		if (optEntityId.isPresent() && optEntityId.get().equals("minecraft:silverfish")) {
+		    return;
 		}
 
 		// Random chance for explosion
@@ -285,13 +282,30 @@ public class ProcessSpawners {
 		}
 	}
 	
+	
+	/**
+	 * Returns the entity ID string from a spawner's original tag, if present.
+	 */
+	public static Optional<String> getEntityId(SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper) {
+	    return statsWrapper.getOriginalTag()
+	        .getCompound("SpawnData")
+	        .flatMap(spawnData -> spawnData.getCompound("entity"))
+	        .flatMap(entityData -> entityData.getString("id"));
+	}
+	
+	
 	public static void reapplyCustomLightRules(SpawnerBlockEntity sbe, CompoundTag tag) {
-	    CompoundTag spawnDataTag = tag.getCompound("SpawnData");
-	    if (spawnDataTag.isEmpty()) return;
+		Optional<CompoundTag> optTag = tag.getCompound("SpawnData");
+		if (optTag.isEmpty())
+			return;
+	    CompoundTag spawnDataTag = optTag.get();
+	    if (spawnDataTag.isEmpty()) 
+	    	return;
 
 	    // Use your existing codec-based method to build the new tag
 	    Optional<Tag> workSpawnData = ProcessSpawners.buildCustomLightLevelSpawnData(spawnDataTag);
-	    
+	    if (workSpawnData == null)
+	    	return;
 	    if (workSpawnData.isPresent()) {
 	        tag.put("SpawnData", workSpawnData.get());
 	        // Crucial: Load the modified tag back into the internal BaseSpawner logic
@@ -314,7 +328,10 @@ public class ProcessSpawners {
 		CustomSpawnRules c = new SpawnData.CustomSpawnRules(new InclusiveRange<Integer>(0, blocklight),
 				new InclusiveRange<Integer>(0, skylight));
 
-		CompoundTag entityTag = spawnDataTag.getCompound("entity");
+		Optional<CompoundTag> optEntityTag = spawnDataTag.getCompound("entity");
+		if (optEntityTag.isEmpty())
+			return null;
+		CompoundTag entityTag = optEntityTag.get();
 		SpawnData s = new SpawnData(entityTag, Optional.of(c), equipment);
 
 		return SpawnData.CODEC.encodeStart(NbtOps.INSTANCE, s).result();
@@ -323,24 +340,45 @@ public class ProcessSpawners {
 
 	public static boolean isMonsterSpawner(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
 
-		if (spawnerTag == null)
-			return false;
-		CompoundTag spawnDataTag = spawnerTag.getCompound("SpawnData");
-		if (spawnDataTag == null)
-			return false;
-		CompoundTag entityDataTag = spawnDataTag.getCompound("entity");
-		if (entityDataTag == null)
-			return false;
+		
+	    if (spawnerTag == null) {
+	        return false;
+	    }
+	    // --- OLD STYLE ---
+	    /*
+	    Optional<CompoundTag> optSpawnData = spawnerTag.getCompound("SpawnData");
+	    if (optSpawnData.isEmpty()) 
+	        return false;
+	    CompoundTag spawnDataTag = optSpawnData.get();
+	    Optional<CompoundTag> optEntityData = spawnDataTag.getCompound("entity");
+	    if (optEntityData.isEmpty())
+	        return false;
+	    Optional<String> optIdString = optEntityData.get().getString("id");
+	    if (optIdString.isEmpty())
+	        return false;		
+	    Optional<EntityType<?>> eType = EntityType.byString(optIdString.get());
+	    if (eType.isEmpty())
+	        return false;
 
-		Optional<EntityType<?>> eType = EntityType.byString(entityDataTag.getString("id"));
+	    if (eType.get().getCategory() == MobCategory.MONSTER)
+	        return true;
+	    */
 
-		if (eType.isEmpty())
-			return false;
-
-		if (eType.get().getCategory() == MobCategory.MONSTER)
-			return true;
-
-		return false;
+	    // --- MODERN STYLE (with old style return for easier debugging)  ---
+	    /**
+	     * flatMap takes a value inside an Optional and applies a function that also returns an Optional.
+	     * If the original Optional is empty, it does nothing and returns empty.
+	     * It lets you chain multiple Optional-returning operations safely without nested Optionals.
+	     */
+	    
+	    boolean returnVal = spawnerTag.getCompound("SpawnData")
+	        .flatMap(spawnData -> spawnData.getCompound("entity"))
+	        .flatMap(entityData -> entityData.getString("id"))
+	        .flatMap(EntityType::byString)
+	        .map(eType -> eType.getCategory() == MobCategory.MONSTER)
+	        .orElse(false);
+	    
+	    return returnVal;
 	}
 
 }

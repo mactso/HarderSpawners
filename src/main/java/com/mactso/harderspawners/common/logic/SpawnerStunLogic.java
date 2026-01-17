@@ -9,7 +9,6 @@ import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.BaseSpawner;
@@ -84,8 +83,13 @@ public class SpawnerStunLogic {
 	
 		// Read the saved min/max delays from the spawner's original tag
 		CompoundTag originalTag = statsWrapper.getOriginalTag();
-		int savedMax = originalTag != null ? originalTag.getInt("MaxSpawnDelay") : 0;
-		int savedMin = originalTag != null ? originalTag.getInt("MinSpawnDelay") : 0;
+		int savedMax = 0;
+		int savedMin = 0;
+
+		if (originalTag != null) {
+		    savedMax = originalTag.getInt("MaxSpawnDelay").orElse(0);
+		    savedMin = originalTag.getInt("MinSpawnDelay").orElse(0);
+		}
 	
 		MyUtilities.debugMsg(2, pos, "Stunned Spawner tag values: (max):" + tag.getInt("MaxSpawnDelay") + " (min):"
 				+ tag.getInt("MinSpawnDelay"));
@@ -111,10 +115,11 @@ public class SpawnerStunLogic {
 		// Restore original min/max spawn delays from backed-up tag
 		CompoundTag originalTag = statsWrapper.getOriginalTag();
 		if (originalTag != null) {
-			int originalMax = originalTag.getInt("MaxSpawnDelay");
-			int originalMin = originalTag.getInt("MinSpawnDelay");
-			tag.putInt("MaxSpawnDelay", originalMax);
-			tag.putInt("MinSpawnDelay", originalMin);
+		    int originalMin = originalTag.getInt("MinSpawnDelay").orElse(200);
+			int originalMax = originalTag.getInt("MaxSpawnDelay").orElse(800);
+
+		    tag.putInt("MinSpawnDelay", originalMin);
+		    tag.putInt("MaxSpawnDelay", originalMax);
 		}
 		
 		// Load the restored tag into the spawner  <--- this is expensive but 1 to 27 minutes apart.

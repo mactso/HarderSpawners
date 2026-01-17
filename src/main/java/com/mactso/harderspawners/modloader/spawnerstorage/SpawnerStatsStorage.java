@@ -1,5 +1,7 @@
 package com.mactso.harderspawners.modloader.spawnerstorage;
 
+import java.util.Optional;
+
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
@@ -58,10 +60,12 @@ public class SpawnerStatsStorage implements INBTSerializable<CompoundTag> {
         if (originalTag == null) {
             return 0L;
         }
-        int minDelay = originalTag.getInt("MinSpawnDelay");
-        int maxDelay = originalTag.getInt("MaxSpawnDelay");
-        long avg = ((long) minDelay + (long) maxDelay) / 2L;
-        return avg;
+
+        // Use OptionalInt to handle missing fields safely
+        int minDelay = originalTag.getInt("MinSpawnDelay").orElse(200);
+        int maxDelay = originalTag.getInt("MaxSpawnDelay").orElse(800);
+
+        return ((long) minDelay + (long) maxDelay) / 2L;
     }
 
     /**
@@ -108,12 +112,25 @@ public class SpawnerStatsStorage implements INBTSerializable<CompoundTag> {
 
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        durability = nbt.getInt("Durability");
-        stunned = nbt.getBoolean("Stunned");
-        infinite = nbt.getBoolean("Infinite");
-        initialized = nbt.getBoolean("Initialized");
-        spawnerExpirationTime = nbt.getLong("FailureGameTime");
-        if (nbt.contains("OriginalTag"))
-            originalTag = nbt.getCompound("OriginalTag").copy();
+    	Optional<Boolean> optStunned = nbt.getBoolean("Stunned");
+    	stunned = optStunned.orElse(false);
+
+    	Optional<Boolean> optInfinite = nbt.getBoolean("Infinite");
+    	infinite = optInfinite.orElse(false);
+
+    	Optional<Boolean> optInitialized = nbt.getBoolean("Initialized");
+    	initialized = optInitialized.orElse(false);
+
+    	Optional<Long> optSpawnerExpirationTime = nbt.getLong("FailureGameTime");
+    	spawnerExpirationTime = optSpawnerExpirationTime.orElse(0L);
+    	
+    	Optional<CompoundTag> optOriginalTag = nbt.getCompound("OriginalTag");
+    	if (optOriginalTag.isEmpty()) {
+    	    // original tag missing, skip initialization or handle error
+    	    return; // or throw an exception, depending on context
+    	}
+
+    	// Copy the tag safely
+    	originalTag = optOriginalTag.get().copy();
     }
 }

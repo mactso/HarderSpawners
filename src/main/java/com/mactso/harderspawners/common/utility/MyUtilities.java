@@ -93,7 +93,7 @@ public class MyUtilities {
 	
 	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect, int duration) {
 		// neoforge issue.   spawning mobs effect maps are not finalized so this creates them.
-		e.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 3, 0, false, true));  // for 3 ticks...
+		e.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 3, 0, false, true));  // for 3 ticks...
 		
 		MobEffectInstance ei = e.getEffect(mobEffect);
 

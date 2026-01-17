@@ -25,12 +25,15 @@ public class TimeExtensionItemDisplays {
 	
 		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
 		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel,EntitySpawnReason.COMMAND);
+		
 		itemDisplay.setCustomName(SpawnerExpiration.TIP);
 		itemDisplay.setCustomNameVisible(true);
+		
 		CompoundTag temptag = TimeExtensionItemDisplays.buildDisplayNBT(itemDisplay);
 		itemDisplay.load(temptag);
+		
+		// Position the display above the spawner
 		Vec3 vWork = sbe.getBlockPos().getBottomCenter();
-		itemDisplay.moveTo(vWork.x, vWork.y + 1.5, vWork.z, 0.0f, 0.0f);
 		itemDisplay.setPos(vWork.x, vWork.y + 1.5, vWork.z);
 		itemDisplay.setDeltaMovement(0.0f, 0.0f, 0.0f);
 		sLevel.addFreshEntity(itemDisplay);
