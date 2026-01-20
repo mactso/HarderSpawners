@@ -64,7 +64,7 @@ public class SpawnerRevenge {
 			RandomSource rand = serverLevel.getRandom();
 			SpawnerBreakHandler.nextActionTime = gameTime + 13 + rand.nextInt(5);
 			SpecialEffects.doSpawnerBreakingEffects(pos, serverPlayer, serverLevel, sbe, rand);
-			SharedUtilityMethods.doDestroyLightingNearSpawner(sbe);
+			SharedUtilityMethods.destroyLightingNearSpawner(sbe);
 			doSpawnerRevenge(pos, serverPlayer, sbe);
 		}
 	

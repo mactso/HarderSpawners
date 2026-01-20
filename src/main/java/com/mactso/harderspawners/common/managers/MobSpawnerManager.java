@@ -11,37 +11,37 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 
 public class MobSpawnerManager {
-	public static Hashtable<String, SpawnerDurabilityItem> SpawnerDurabilityRangeByMobType = new Hashtable<>();
+	public static Hashtable<String, SpawnerLifespanItem> SpawnerLifespanRangeByMobType = new Hashtable<>();
 	private static final String defaultKey = "harderspawners:default";
 
 	/**
 	 * Returns the SpawnerDurabilityItem for the given mob key. Falls back to the
 	 * configured default, and if that is missing, uses 50–500.
 	 */
-	public static SpawnerDurabilityItem getDurabilityForMob(String mobKey) {
-		SpawnerDurabilityItem t = SpawnerDurabilityRangeByMobType.get(mobKey);
+	public static SpawnerLifespanItem getLifespanForMob(String mobKey) {
+		SpawnerLifespanItem t = SpawnerLifespanRangeByMobType.get(mobKey);
 
 		if (t != null)
 			return t;
 
 		// fallback to configured default
-		SpawnerDurabilityItem defaultItem = SpawnerDurabilityRangeByMobType.get(defaultKey);
+		SpawnerLifespanItem defaultItem = SpawnerLifespanRangeByMobType.get(defaultKey);
 		if (defaultItem != null)
 			return defaultItem;
 
 		// final hardcoded fallback
-		MyUtilities.debugMsg(0, "WARNING: No default spawner durability configured! Using fallback 200–600.");
-		return new SpawnerDurabilityItem(200, 600);
+		MyUtilities.debugMsg(0, "WARNING: No default spawner lifespan configured! Using fallback 200–600.");
+		return new SpawnerLifespanItem(150, 650); // this is the number of spawns
 	}
 
 	public static void init() {
 
-		SpawnerDurabilityRangeByMobType.clear();
+		SpawnerLifespanRangeByMobType.clear();
 
-		MyUtilities.debugMsg(0, "Harder Spawners: Initializing Spawner Durability Settings.");
+		MyUtilities.debugMsg(0, "Harder Spawners: Initializing Spawner Lifespan Settings.");
 
 		String configLine;
-		StringTokenizer lines = new StringTokenizer(MyConfig.getMobSpawnerDurabilityRangesString(), ";");
+		StringTokenizer lines = new StringTokenizer(MyConfig.getMobSpawnerLifespanRangesString(), ";");
 
 		while (lines.hasMoreElements()) {
 			configLine = lines.nextToken().trim();
@@ -71,7 +71,7 @@ public class MobSpawnerManager {
 					maxSpawns = minSpawns;
 
 				if (valid) {
-					SpawnerDurabilityRangeByMobType.put(key, new SpawnerDurabilityItem(minSpawns, maxSpawns));
+					SpawnerLifespanRangeByMobType.put(key, new SpawnerLifespanItem(minSpawns, maxSpawns));
 					MyUtilities.debugMsg(0, "Add valid : " + configLine);
 				}
 			} catch (Exception e) {
@@ -83,45 +83,45 @@ public class MobSpawnerManager {
 	}
 
 	// keeps track of the spawner durability by Mob Type.
-	public static class SpawnerDurabilityItem {
-		int minimumDurability; // min number of spawns
-		int maximumDurability; // max number of spawns
+	public static class SpawnerLifespanItem {
+		int minLifespan; // min number of spawns
+		int maxLifespan; // max number of spawns
 
-		public SpawnerDurabilityItem(int minimumSpawnsIn, int maximumSpawnsIn) {
-			this.minimumDurability = minimumSpawnsIn;
-			this.maximumDurability = maximumSpawnsIn;
+		public SpawnerLifespanItem(int minimumSpawnsIn, int maximumSpawnsIn) {
+			this.minLifespan = minimumSpawnsIn;
+			this.maxLifespan = maximumSpawnsIn;
 		}
 
-		public boolean isInfiniteDurability() {
-			if (minimumDurability == 0)
+		public boolean isInfiniteLifespan() {
+			if (minLifespan == 0)
 				return true;
-			if (maximumDurability == 0)
+			if (maxLifespan == 0)
 				return true;
 			return false;
 		}
 
-		public int initDurabilityValue() {
+		public int initLifespanValue() {
 
-			if (minimumDurability == 0)
+			if (minLifespan == 0)
 				return 0;
-			if (maximumDurability == 0)
+			if (maxLifespan == 0)
 				return 0;
-			if (maximumDurability <= minimumDurability)
+			if (maxLifespan <= minLifespan)
 				return 0;
 
 			Random r = new Random();
-			int range = maximumDurability - minimumDurability;
+			int range = maxLifespan - minLifespan;
 
-			return r.nextInt(range) + minimumDurability;
+			return r.nextInt(range) + minLifespan;
 
 		}
 
-		public int getMinimumDurability() {
-			return minimumDurability;
+		public int getMinLifespan() {
+			return minLifespan;
 		}
 
-		public double getMaximumdurability() {
-			return maximumDurability;
+		public double getMaxLifespan() {
+			return maxLifespan;
 		}
 
 	}

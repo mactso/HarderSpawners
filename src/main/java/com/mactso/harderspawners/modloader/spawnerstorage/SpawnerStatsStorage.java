@@ -1,94 +1,104 @@
 package com.mactso.harderspawners.modloader.spawnerstorage;
 
-import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
-
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.chunk.ChunkAccess;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.common.util.ValueIOSerializable;
 
 public class SpawnerStatsStorage implements ValueIOSerializable {
 
+    // --- Versioning ---
+    private static final int CURRENT_DATA_VERSION = 2; // bumped version for entity ID support
+    private int dataVersion = 0; // old spawners will deserialize as 0
 
     // --- Core Fields ---
-    private int durability = -1;
+    private long lifeSpanInTicks = -1;
     private boolean stunned;
     private boolean infinite;
     private boolean initialized;
 
-    // --- Timing ---
-    private long spawnerExpirationTime = -1L;
+    // --- Cached original spawn delays ---
+    private int originalMinSpawnDelay = 200;
+    private int originalMaxSpawnDelay = 800;
 
-    // Backup of original spawner data
-    private CompoundTag originalTag;
+    // --- Original entity ID ---
+    private String originalEntityId = "";
 
     // --- Accessors ---
-    public int getDurability() { return durability; }
-    public void setDurability(int durability) { this.durability = durability; }
+    public long getLifespan() { return lifeSpanInTicks; }
+    public void setLifespan(long lifeSpan) { this.lifeSpanInTicks = lifeSpan; }
 
     public boolean isStunned() { return stunned; }
     public void setStunned(boolean stunned) { this.stunned = stunned; }
 
     public boolean isInfinite() { return infinite; }
-    public void setInfinite(boolean infinite) { this.infinite = infinite; }
+    public void setInfinite(boolean infinite) {
+        this.infinite = infinite;
+        if (infinite) lifeSpanInTicks = Long.MAX_VALUE;
+    }
 
     public boolean isInitialized() { return initialized; }
     public void setInitialized() { this.initialized = true; }
 
-    public long getSpawnerExpirationTime() { return spawnerExpirationTime; }
-    public void setSpawnerExpirationTime(long time) { this.spawnerExpirationTime = time; }
+    public int getOriginalMinSpawnDelay() { return originalMinSpawnDelay; }
+    public void setOriginalMinSpawnDelay(int minDelay) { this.originalMinSpawnDelay = minDelay; }
 
-    public CompoundTag getOriginalTag() { return originalTag; }
+    public int getOriginalMaxSpawnDelay() { return originalMaxSpawnDelay; }
+    public void setOriginalMaxSpawnDelay(int maxDelay) { this.originalMaxSpawnDelay = maxDelay; }
+
+    public String getOriginalEntityId() { return originalEntityId; }
+    public void setOriginalEntityId(String entityId) { this.originalEntityId = entityId != null ? entityId : ""; }
+
+    public int getDataVersion() { return dataVersion; }
+    public void setDataVersion(int version) { this.dataVersion = version; }
 
     // --- Logic ---
-    public boolean hasExpired(SpawnerBlockEntity sbe) {
-        if (infinite) return false;
-        if (sbe == null || sbe.getLevel() == null) return false;
-
-        ChunkAccess chunk = sbe.getLevel().getChunk(sbe.getBlockPos());
-        return chunk.getInhabitedTime() > spawnerExpirationTime;
+    public boolean hasExpired() {
+        return !infinite && lifeSpanInTicks <= 0;
     }
 
-    public long getAverageTimePerSpawn() {
-        if (originalTag == null) return 0L;
-        int minDelay = originalTag.getIntOr("MinSpawnDelay", 200);
-        int maxDelay = originalTag.getIntOr("MaxSpawnDelay", 800);
-        return ((long) minDelay + (long) maxDelay) / 2L;
+    public void decrementLifespan(long ticks) {
+        if (!infinite && lifeSpanInTicks > 0) {
+            lifeSpanInTicks -= ticks;
+            if (lifeSpanInTicks < 0) lifeSpanInTicks = 0;
+        }
     }
 
-    public long getInitialFailureTime(long chunkInhabitedTime) {
-        if (infinite) return Long.MAX_VALUE;
-        return chunkInhabitedTime + ((long) durability * getAverageTimePerSpawn());
-    }
-
-    // --- Backup ---
-    public void backupOriginalSpawner(SpawnerBlockEntity sbe) {
-        if (originalTag != null) return;
-        originalTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
-    }
-
-    // --- ValueIOSerializable implementation ---
+    // --- ValueIOSerializable ---
     @Override
     public void serialize(ValueOutput output) {
-        output.putInt("Durability", durability);
-        output.putBoolean("Stunned", stunned);
-        output.putBoolean("Infinite", infinite);
+        output.putInt("DataVersion", dataVersion);
         output.putBoolean("Initialized", initialized);
-        output.putLong("FailureGameTime", spawnerExpirationTime);
-        if (originalTag != null) { // this was the spawner compound tag minecraft, or a mod, or a map had set.
-        	output.storeNullable("OriginalTag", CompoundTag.CODEC, originalTag);
-        }
+        output.putBoolean("Infinite", infinite);
+        output.putLong("Lifespan", lifeSpanInTicks);
+        output.putBoolean("Stunned", stunned);
+        output.putInt("OriginalMinSpawnDelay", originalMinSpawnDelay);
+        output.putInt("OriginalMaxSpawnDelay", originalMaxSpawnDelay);
+        output.putString("OriginalEntityId", originalEntityId);
     }
 
     @Override
     public void deserialize(ValueInput input) {
-        durability = input.getIntOr("Durability", -1);
-        stunned = input.getBooleanOr("Stunned", false);
-        infinite = input.getBooleanOr("Infinite", false);
+        dataVersion = input.getIntOr("DataVersion", 0);
         initialized = input.getBooleanOr("Initialized", false);
-        spawnerExpirationTime = input.getLongOr("FailureGameTime", -1L);
-        originalTag = input.read("OriginalTag", CompoundTag.CODEC).orElse(null);
+        infinite = input.getBooleanOr("Infinite", false);
+        stunned = input.getBooleanOr("Stunned", false);
+
+        // --- Migration for old spawners ---
+        if (dataVersion < CURRENT_DATA_VERSION) {
+            if (infinite) {
+                lifeSpanInTicks = Long.MAX_VALUE;
+            } else {
+                lifeSpanInTicks = 600L * ((200 + 800) / 2L); // default 600 spawns
+            }
+            originalMinSpawnDelay = 200;
+            originalMaxSpawnDelay = 800;
+            originalEntityId = "";
+            dataVersion = CURRENT_DATA_VERSION;
+        } else {
+            lifeSpanInTicks = input.getLongOr("Lifespan", infinite ? Long.MAX_VALUE : 0L);
+            originalMinSpawnDelay = input.getIntOr("OriginalMinSpawnDelay", 200);
+            originalMaxSpawnDelay = input.getIntOr("OriginalMaxSpawnDelay", 800);
+            originalEntityId = input.getStringOr("OriginalEntityId", "");
+        }
     }
 }
