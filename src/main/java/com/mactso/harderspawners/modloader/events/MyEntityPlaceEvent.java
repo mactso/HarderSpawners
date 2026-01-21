@@ -3,6 +3,8 @@ package com.mactso.harderspawners.modloader.events;
 import com.mactso.harderspawners.common.logic.BlockFluidPlacementLogic;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.BlockPlaceCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -10,50 +12,43 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.level.BlockEvent;
 
 public class MyEntityPlaceEvent {
 
-	@SubscribeEvent
-	public void bucket(PlayerInteractEvent.RightClickBlock event) {
+    public static void register() {
+        // Right-click (bucket) event
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            if (!(player instanceof ServerPlayer sp))
+                return InteractionResult.PASS;
 
-		if (!(event.getEntity() instanceof ServerPlayer sp))
-			return;
-		ServerLevel sLevel = (ServerLevel) sp.level();
-		ItemStack stack = event.getItemStack();
+            ServerLevel sLevel = (ServerLevel) sp.level();
+            ItemStack stack = player.getItemInHand(hand);
 
-		if (!(stack.getItem() instanceof BucketItem bucket))
-			return;
+            if (!(stack.getItem() instanceof BucketItem bucket))
+                return InteractionResult.PASS;
 
-		BlockPos clickedPos = event.getPos();
-		Direction clickedFace = event.getFace();
+            BlockPos clickedPos = hitResult.getBlockPos();
+            Direction clickedFace = hitResult.getDirection();
 
-		// Delegate to the common logic class
-		boolean shouldCancel = BlockFluidPlacementLogic.handleBucketPlacement(sp, stack, clickedPos, clickedFace);
+            boolean shouldCancel = BlockFluidPlacementLogic.handleBucketPlacement(sp, stack, clickedPos, clickedFace);
+            if (shouldCancel) {
+                BlockPos targetPos = clickedPos.relative(clickedFace);
+                BlockFluidPlacementLogic.queuePendingLava(sLevel, targetPos);
+                return InteractionResult.FAIL;
+            }
+            return InteractionResult.PASS;
+        });
 
-		if (shouldCancel) {
-			BlockPos targetPos = clickedPos.relative(clickedFace);
-			BlockFluidPlacementLogic.queuePendingLava(sLevel, targetPos);
-			event.setCanceled(true);
-			event.setCancellationResult(InteractionResult.FAIL);
-		}
-	}
+        // Block placement event
+        BlockPlaceCallback.EVENT.register((player, world, pos, state, blockEntity) -> {
+            if (!(player instanceof ServerPlayer sp))
+                return false;
 
-	@SubscribeEvent
-	public void onPlaceBlock(BlockEvent.EntityPlaceEvent event) {
-
-		if (!(event.getEntity() instanceof ServerPlayer sp))
-			return;
-
-		boolean destroyedBlock = BlockFluidPlacementLogic.handleBlockPlacement(sp, event.getPlacedBlock(),
-				event.getPos());
-		if (destroyedBlock)
-			MyUtilities.debugMsg(1, event.getPos(), "Destroyed placed block " + event.getPlacedBlock().getBlock() );
-
-	}
-
-
-
+            boolean destroyedBlock = BlockFluidPlacementLogic.handleBlockPlacement(sp, state, pos);
+            if (destroyedBlock) {
+                MyUtilities.debugMsg(1, pos, "Destroyed placed block " + state.getBlock());
+            }
+            return false; // false = allow normal placement
+        });
+    }
 }

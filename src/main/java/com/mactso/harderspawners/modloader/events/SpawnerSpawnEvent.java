@@ -3,20 +3,25 @@ package com.mactso.harderspawners.modloader.events;
 import com.mactso.harderspawners.common.logic.BlockFluidPlacementLogic;
 import com.mactso.harderspawners.common.logic.ProcessSpawners;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
-public class SpawnerSpawnEvent {
+/**
+ * Handles per-player tick logic for spawner processing.
+ * Converted from NeoForge PlayerTickEvent.
+ */
+public final class SpawnerSpawnEvent {
 
-	
-    @SubscribeEvent
-    public void onPlayerTick(PlayerTickEvent.Pre event) {
-        if (!(event.getEntity() instanceof ServerPlayer sp))
-            return;
+    private SpawnerSpawnEvent() {}
 
-        // Delegate all the logic to the common class
-        BlockFluidPlacementLogic.clearPendingLava(sp);
-        ProcessSpawners.findAndProcessNearbySpawners(sp);
+    /** Registers the player tick callback. Call this in Main.onInitialize(). */
+    public static void register() {
+        ServerTickEvents.START_PLAYER_TICK.register(player -> {
+            if (!(player instanceof ServerPlayer sp)) return;
+
+            // Delegate all the logic to the common class
+            BlockFluidPlacementLogic.clearPendingLava(sp);
+            ProcessSpawners.findAndProcessNearbySpawners(sp);
+        });
     }
 }

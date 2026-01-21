@@ -11,6 +11,28 @@ import net.minecraft.world.level.block.state.BlockState;
  */
 public class SpawnerLightLogic {
 
+    /**
+     * Checks all tracked spawners in the given level for blocks above them
+     * that may interfere with mob spawning (light or fluids) and handles them.
+     */
+    public static void handleAllSpawners(ServerLevel serverLevel) {
+        // Iterate over all loaded block entities
+        for (BlockEntity be : serverLevel.blockEntities.values()) {
+            if (!(be instanceof SpawnerBlockEntity sbe)) continue;
+
+            BlockPos spawnerPos = sbe.getBlockPos();
+
+            // Check up to 16 blocks above the spawner
+            for (int yOffset = 1; yOffset <= 16; yOffset++) {
+                BlockPos checkPos = spawnerPos.above(yOffset);
+                var state = serverLevel.getBlockState(checkPos);
+
+                // Call your existing single-spawner logic
+                handleBlockAboveSpawner(serverLevel, checkPos, state);
+            }
+        }
+    }
+    
     public static void handleBlockAboveSpawner(ServerLevel serverLevel, BlockPos changedPos, BlockState changedState) {
         BlockPos spawnerPos = changedPos.below();
         if (serverLevel.getBlockState(spawnerPos).getBlock() != Blocks.SPAWNER) return;

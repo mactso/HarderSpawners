@@ -1,4 +1,3 @@
-
 package com.mactso.harderspawners.modloader.main;
 
 import com.mactso.harderspawners.common.sounds.ModSounds;
@@ -13,37 +12,46 @@ import com.mactso.harderspawners.modloader.events.SpawnerLightOnTopEvent;
 import com.mactso.harderspawners.modloader.events.SpawnerSpawnEvent;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerAttachments;
 
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.neoforge.common.NeoForge;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 /**
- * Main entry point for the Harder Spawners mod. Handles mod setup, config
- * registration, and event subscriptions.
+ * Main entry point for the Harder Spawners mod under Fabric.
+ * Handles mod setup, config registration, and event subscriptions.
  */
+public class Main implements ModInitializer {
 
-@Mod("harderspawners")
-public class Main {
+    public static final String MODID = "harderspawners";
+    public static final String MOD_VERSION = "v30.6 1.21.3";
 
-	public static final String MODID = "harderspawners";
-	public static final String MOD_VERSION = "v30.6 1.21.3";
+    @Override
+    public void onInitialize() {
 
-	public Main(IEventBus modEventBus, ModContainer modContainer) {
+        // --- Config ---
+        MyConfig.register();
 
-		NeoForge.EVENT_BUS.register(new MyCommandsRegisterEvent());
-		NeoForge.EVENT_BUS.register(new ExtendSpawnerExpirationTimeEvent());
-		NeoForge.EVENT_BUS.register(new MobSpawnHandler());
-		NeoForge.EVENT_BUS.register(new SpawnerBreakHandler());
-		NeoForge.EVENT_BUS.register(new SpawnerSpawnEvent());
-		NeoForge.EVENT_BUS.register(new SpawnerLightOnTopEvent());
-		NeoForge.EVENT_BUS.register(new MyEntityPlaceEvent());
-		NeoForge.EVENT_BUS.register(new ServerEvents());
-		
-		SpawnerAttachments.register(modEventBus);
-		modContainer.registerConfig(ModConfig.Type.COMMON, MyConfig.COMMON_SPEC);
-		ModSounds.SOUND_EVENTS.register(modEventBus);
-	}
+        // --- Sounds ---
+        ModSounds.register();
 
+        // --- Event registration ---
+        ExtendSpawnerExpirationTimeEvent.register();
+        MobSpawnHandler.register();
+        SpawnerBreakHandler.register();
+        SpawnerSpawnEvent.register();
+        SpawnerLightOnTopEvent.register();
+        MyEntityPlaceEvent.register();
+        ServerEvents.register();
+
+        // --- Commands ---
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            MyCommandsRegisterEvent.register(dispatcher);
+        });
+
+        // --- Spawner attachments ---
+        SpawnerAttachments.register();
+
+    }
 }
