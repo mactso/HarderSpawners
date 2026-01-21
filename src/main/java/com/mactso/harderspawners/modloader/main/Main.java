@@ -28,7 +28,7 @@ import net.neoforged.neoforge.common.NeoForge;
 public class Main {
 
 	public static final String MODID = "harderspawners";
-	public static final String MOD_VERSION = "1.21.11";
+	public static final String MOD_VERSION = "v30.5 1.21.11";
 
 	public Main(IEventBus modEventBus, ModContainer modContainer) {
 

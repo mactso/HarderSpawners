@@ -54,7 +54,7 @@ public class SpawnerExpiration {
 
 	    // --- Handle expired or zero lifespans ---
 	    long currentLifespan = statsWrapper.getLifespan();
-	    long extraAmount = MyConfig.getExtraLifespanAmount();
+	    long extraAmount = MyConfig.getExtraLifespanAmount() * statsWrapper.averageSpawnDelay();
 	    long newLifespan;
 
 	    if (currentLifespan <= 0) {
@@ -64,7 +64,15 @@ public class SpawnerExpiration {
 	        // Otherwise, extend by addLifespanAmount
 	        newLifespan = currentLifespan + extraAmount;
 	    }
-
+	    
+	    MyUtilities.debugMsg(
+	    	    0,
+	    	    sbe.getBlockPos(),
+	    	    "Lifespan extend: Beginning=" + currentLifespan +
+	    	    ", extra=" + extraAmount +
+	    	    ", new=" + newLifespan
+	    	);
+	    
 	    statsWrapper.setLifespan(newLifespan);
 
 	    // Visual / special effects

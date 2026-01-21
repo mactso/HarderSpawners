@@ -1,4 +1,4 @@
-package com.mactso.harderspawners.common.logic;
+package com.mactso.harderspawners.common.managers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +11,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 
-public class SpawnerRegistry {
+public class SpawnerPositionManager {
 
 	static final Map<ResourceKey<Level>, Set<BlockPos>> spawnerLocations =
 	new ConcurrentHashMap<>();

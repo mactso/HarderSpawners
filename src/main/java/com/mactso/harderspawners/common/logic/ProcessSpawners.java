@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.adapter.Adapters;
@@ -73,12 +74,20 @@ public class ProcessSpawners {
 					BaseSpawner spawner = sbe.getSpawner();
 					if ( spawner == null )
 						continue;
+					
+					SpawnerPositionManager.recordSpawnerPos(sbe);
 					CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+
 					if (!spawnerTag.isEmpty()) {
+						String entityId = SpawnerStatsAdapter.extractEntityId(spawnerTag);
+						if (entityId == null) continue;
+						if (entityId.isEmpty() || entityId.isBlank()) continue;
+
 						int delay = getSpawnerDelay(sbe, spawner, spawnerTag);
 						if (delay == ABOUT_TO_SPAWN) {
 							// this is not "hot".  only once every 200-800 ticks.
 							processSpawnerIfReady(serverLevel, sbe, spawner, spawnerTag); 
+
 						}
 					}
 				}
@@ -141,12 +150,16 @@ public class ProcessSpawners {
 
 	public static void processSpawnerIfReady(ServerLevel serverLevel, SpawnerBlockEntity sbe, BaseSpawner spawner,
 			CompoundTag spawnerTag) {
+		if (sbe == null || spawner == null || serverLevel == null)
+			return;
 
 
 		SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
 		if (statsWrapper == null) // null if spawner lacks an entityId
 			return; // can't process a spawner with no stats
 
+		SpawnerPositionManager.recordSpawnerPos(sbe);
+		
 		boolean recovered = SpawnerStunLogic.doSpawnerRecoverFromStun(sbe, spawnerTag, statsWrapper);
 		if ((MyConfig.isDebug()) && (recovered)) {
 			MyUtilities.debugMsg(1, "Spawner recovered from stun.");
@@ -161,7 +174,7 @@ public class ProcessSpawners {
 
 		// --- Additional "monster only"spawner effects ---
 		if (SharedUtilityMethods.isMonsterSpawner(sbe, spawnerTag)) {
-			reapplyCustomLightRules(sbe, spawnerTag, statsWrapper);
+//	TODO:		reapplyCustomLightRules(sbe, spawnerTag, statsWrapper);
 			SharedUtilityMethods.destroyLightingNearSpawner(sbe);
 			SpecialEffects.doSpawnerExpiringSoonEffects(sbe);
 
@@ -202,7 +215,8 @@ public class ProcessSpawners {
 
 		// Destroy the spawner block
 		BlockPos pos = sbe.getBlockPos();
-		serverLevel.destroyBlock(pos, false);
+		SpawnerPositionManager.forgetSpawner(serverLevel, pos);
+		serverLevel.destroyBlock(pos, true); // drops loot table drops, not spawner blocks even with silk touch.
 
 		// Avoid Exploding SilverFish Spawners to protect End Portals.
 		String entityId = statsWrapper.getOriginalEntityId();

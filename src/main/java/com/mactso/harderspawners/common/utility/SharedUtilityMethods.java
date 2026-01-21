@@ -1,7 +1,9 @@
 package com.mactso.harderspawners.common.utility;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.mactso.harderspawners.common.logic.ProcessSpawners;
 import com.mactso.harderspawners.modloader.config.MyConfig;
@@ -365,7 +367,27 @@ public class SharedUtilityMethods {
 		return returnVal;
 	}
 	
+	public static void logSpawnerCompoundTag(SpawnerBlockEntity sbe, String context) {
+	    if (sbe == null) return;
 
+	    CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+	    BlockPos pos = sbe.getBlockPos();
+
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("{");
+
+	    for (Map.Entry<String, Tag> entry : spawnerTag.entrySet()) {
+	        sb.append(entry.getKey())
+	          .append("=")
+	          .append(entry.getValue())
+	          .append(", ");
+	    }
+
+	    if (sb.length() > 1) sb.setLength(sb.length() - 2); // remove trailing comma
+	    sb.append("}");
+
+	    MyUtilities.debugMsg(0, pos, context + " Spawner CompoundTag: " + sb.toString());
+	}
 
 
 }

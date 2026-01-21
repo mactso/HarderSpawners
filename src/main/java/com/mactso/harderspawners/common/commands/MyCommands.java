@@ -3,7 +3,7 @@ package com.mactso.harderspawners.common.commands;
 
 import java.util.List;
 
-import com.mactso.harderspawners.common.logic.SpawnerRegistry;
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.adapter.Adapters;
@@ -39,7 +39,7 @@ public class MyCommands {
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        MyUtilities.debugMsg(0, "Registering " + Main.MODID + " commands.");
+        MyUtilities.debugMsg(0, "Registering " + Main.MODID + " "+Main.MOD_VERSION + " commands.");
 
         dispatcher.register(
         	    Commands.literal(Main.MODID)
@@ -100,7 +100,7 @@ public class MyCommands {
        + "info - Show info about the spawner you are looking at\n"
        + "setlifespan <ticks> - Set the spawner lifespan to specified ticks (20 to " + Long.MAX_VALUE + "). Example: /harderspawners setlifespan 3000\n"
        + "setinfinitelifespan - Set the spawner to infinite lifespan\n"
-       + "shownearbyspawners - List up to 21 nearby registered spawners\n"
+       + "shownearbyspawners - List up to 21 nearby spawners within 64 blocks of the operator.\n"
        + "help - Show this help message",
          ChatFormatting.GREEN
      );
@@ -158,13 +158,17 @@ public class MyCommands {
             msg.append("Spawn Delay Range: <unknown>\n");
         }
 
-
-    	String hms = getLifespanHMS(statsWrapper) ;       
-        msg.append("Lifespan ends: ").append(hms).append(" from now.\n");
+    	String hms = "Never.\n";
+        if (!statsWrapper.isInfinite()) {
+        	hms = getLifespanHMS(statsWrapper) + "from now.\n";
+        } 
+    	
+        msg.append("Lifespan ends: ").append(hms);
         String nextSpawnHMS = getNextSpawnHMS(sbe);
         msg.append("Next spawn in: ").append(nextSpawnHMS).append(" from now.\n");
         // Optional light-level check
-        int lightLevel = sbe.getLevel().getRawBrightness(sbe.getBlockPos(), 0);
+        int lightLevel = sbe.getLevel().getMaxLocalRawBrightness(sbe.getBlockPos());
+        
         if (lightLevel > MyConfig.getHostileSpawnerLightLevel()) {
         	msg.append("Too bright ("+lightLevel+") to spawn right now.\n");
         }        
@@ -256,12 +260,12 @@ public class MyCommands {
 
         // Show header
         MyUtilities.sendBoldChat(player, "\n" + Main.MODID + " " + Main.MOD_VERSION + "\n", ChatFormatting.DARK_GREEN);
-        MyUtilities.sendChat(player, "List of up to " + maxCount + " nearby registered spawners:", ChatFormatting.GREEN);
+        MyUtilities.sendChat(player, "List of up to " + maxCount + " nearby spawners:", ChatFormatting.GREEN);
 
-        List<BlockPos> nearby = SpawnerRegistry.getNearbySpawners(level, playerPos, 64, maxCount); // 64-block range
+        List<BlockPos> nearby = SpawnerPositionManager.getNearbySpawners(level, playerPos, 64, maxCount); // 64-block range
 
         if (nearby.isEmpty()) {
-            MyUtilities.sendChat(player, "No spawners registered nearby.", ChatFormatting.YELLOW);
+            MyUtilities.sendChat(player, "No spawners nearby.", ChatFormatting.YELLOW);
             return CommandResult.NONE;
         }
 

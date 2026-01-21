@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.config.MyConfig;
@@ -50,7 +51,7 @@ public class BlockFluidPlacementLogic {
 
 		BlockPos placedPos = clickedPos.relative(face);
 
-		if (!SpawnerRegistry.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
+		if (!SpawnerPositionManager.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
 			return false;
 
 		// Play sound and particles
@@ -106,7 +107,7 @@ public class BlockFluidPlacementLogic {
 		ProcessSpawners.findAndProcessNearbySpawners(sp);
 
 		// Skip if no nearby spawner
-		if (!SpawnerRegistry.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
+		if (!SpawnerPositionManager.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
 			return false;
 
 		sLevel.destroyBlock(placedPos, true);

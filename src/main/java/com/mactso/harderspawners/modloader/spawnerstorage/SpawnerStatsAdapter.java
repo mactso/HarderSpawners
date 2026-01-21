@@ -1,6 +1,8 @@
 package com.mactso.harderspawners.modloader.spawnerstorage;
 
 import com.mactso.harderspawners.common.managers.MobSpawnerManager;
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
+import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 
 import net.minecraft.nbt.CompoundTag;
@@ -47,7 +49,7 @@ public final class SpawnerStatsAdapter {
     /**
      * Extracts the current entity ID from the spawner tag 
      */
-    private static String extractEntityId(CompoundTag spawnerTag) {
+    public static String extractEntityId(CompoundTag spawnerTag) {
         CompoundTag spawnData = spawnerTag.getCompound("SpawnData").orElse(null);
         if (spawnData != null && !spawnData.isEmpty()) {
             CompoundTag entityData = spawnData.getCompound("entity").orElse(null);
@@ -89,10 +91,14 @@ public final class SpawnerStatsAdapter {
             if (!stats.isInitialized()) {
                 initializeStats();
             }
+            
+            // --- Record position safely ---
+            SpawnerPositionManager.recordSpawnerPos(sbe);
         }
 
         /** Initialize a new spawner's stats */
         private void initializeStats() {
+        	MyUtilities.debugMsg(0, "Initializing Spawner");
             CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
             SharedUtilityMethods.applyConfigToMonsterSpawners(sbe, spawnerTag);
 
@@ -108,6 +114,7 @@ public final class SpawnerStatsAdapter {
 
             // Initialize lifespan
             if (!stats.isInfinite()) {
+            	MyUtilities.debugMsg(0, "Initializing Lifespan");
                 long avgTicks = averageSpawnDelay();
                 stats.setLifespan(lifespanConfig.initLifespanValue() * avgTicks);
             } else {

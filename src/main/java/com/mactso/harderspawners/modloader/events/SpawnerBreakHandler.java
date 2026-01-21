@@ -3,9 +3,9 @@ package com.mactso.harderspawners.modloader.events;
 import java.util.List;
 import java.util.ListIterator;
 
-import com.mactso.harderspawners.common.logic.SpawnerRegistry;
 import com.mactso.harderspawners.common.logic.SpawnerRevenge;
 import com.mactso.harderspawners.common.logic.SpawnerStunLogic;
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 
@@ -73,7 +73,7 @@ public class SpawnerBreakHandler {
 
 	    // If the block will actually break, remove from registry
 	    if (sp.isCreative() || MyConfig.getSpawnerMinutesStunned() == 0 || targetBlock != Blocks.SPAWNER) {
-	        SpawnerRegistry.forgetSpawner(serverLevel, pos);
+	        SpawnerPositionManager.forgetSpawner(serverLevel, pos);
 	        return; // allow break
 	    }
 
