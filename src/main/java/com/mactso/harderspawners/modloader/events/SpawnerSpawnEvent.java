@@ -1,5 +1,6 @@
 package com.mactso.harderspawners.modloader.events;
 
+import com.mactso.harderspawners.common.logic.BlockFluidPlacementLogic;
 import com.mactso.harderspawners.common.logic.ProcessSpawners;
 
 import net.minecraft.server.level.ServerPlayer;
@@ -15,7 +16,7 @@ public class SpawnerSpawnEvent {
             return;
 
         // Delegate all the logic to the common class
-        ProcessSpawners.clearPendingLava(sp);
+        BlockFluidPlacementLogic.clearPendingLava(sp);
         ProcessSpawners.findAndProcessNearbySpawners(sp);
     }
 }

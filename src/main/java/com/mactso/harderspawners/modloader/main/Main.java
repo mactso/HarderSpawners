@@ -5,6 +5,7 @@ import com.mactso.harderspawners.common.sounds.ModSounds;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.events.ExtendSpawnerExpirationTimeEvent;
 import com.mactso.harderspawners.modloader.events.MobSpawnHandler;
+import com.mactso.harderspawners.modloader.events.MyCommandsRegisterEvent;
 import com.mactso.harderspawners.modloader.events.MyEntityPlaceEvent;
 import com.mactso.harderspawners.modloader.events.ServerEvents;
 import com.mactso.harderspawners.modloader.events.SpawnerBreakHandler;
@@ -27,9 +28,11 @@ import net.neoforged.neoforge.common.NeoForge;
 public class Main {
 
 	public static final String MODID = "harderspawners";
+	public static final String MOD_VERSION = "v30.5 1.21.9";
 
 	public Main(IEventBus modEventBus, ModContainer modContainer) {
 
+		NeoForge.EVENT_BUS.register(new MyCommandsRegisterEvent());
 		NeoForge.EVENT_BUS.register(new ExtendSpawnerExpirationTimeEvent());
 		NeoForge.EVENT_BUS.register(new MobSpawnHandler());
 		NeoForge.EVENT_BUS.register(new SpawnerBreakHandler());
@@ -37,6 +40,7 @@ public class Main {
 		NeoForge.EVENT_BUS.register(new SpawnerLightOnTopEvent());
 		NeoForge.EVENT_BUS.register(new MyEntityPlaceEvent());
 		NeoForge.EVENT_BUS.register(new ServerEvents());
+		
 		SpawnerAttachments.register(modEventBus);
 		modContainer.registerConfig(ModConfig.Type.COMMON, MyConfig.COMMON_SPEC);
 		ModSounds.SOUND_EVENTS.register(modEventBus);

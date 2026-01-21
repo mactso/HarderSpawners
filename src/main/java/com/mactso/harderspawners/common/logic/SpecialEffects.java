@@ -15,7 +15,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -36,46 +35,42 @@ public class SpecialEffects {
 
 		// Wrap the stats
 		SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
-
 		if (statsWrapper == null || statsWrapper.isInfinite()) {
-			return; // Infinite durability or missing stats → no failure effects
+			return; // Infinite Lifespan or missing stats → no failure effects
 		}
 		
 		Level level = sbe.getLevel();
 		if ((level == null) || (!(level instanceof ServerLevel serverLevel)))
 				return;
 
-		// Get the chunk the spawner is in
-		ChunkAccess chunk = serverLevel.getChunk(sbe.getBlockPos());
-		long currentChunkAge = chunk.getInhabitedTime();
 
-		long timeUntilExpiration = statsWrapper.getSpawnerExpirationTime() - currentChunkAge;
-		MyUtilities.debugMsg(2, sbe.getBlockPos(), "Spawner time until failure: " + timeUntilExpiration);
+		long lifeSpan = statsWrapper.getLifespan();
+		MyUtilities.debugMsg(2, sbe.getBlockPos(), "Spawner time until failure: " + lifeSpan);
 
 		// Threshold for "near failure" special effects (25 spawns * 500 ticks per spawn)
 		// TODO: test this with a stunned spawner.
 		// note avgTimePerSpawn is normally 200t+800t = 1000t / 2 = 500t = 25 seconds.
 		// you can force debugging by setting avgTimePerSpawn to 20.
-		long avgTimePerSpawn = statsWrapper.getAverageTimePerSpawn();
+		long avgTimePerSpawn = statsWrapper.averageSpawnDelay();
 
 		if (avgTimePerSpawn < 1)
 			return;
 		long expirationThreshold = 30L * avgTimePerSpawn;
-		if (timeUntilExpiration > expirationThreshold)
+		if (lifeSpan > expirationThreshold)
 			return;
 
-		// Show repair item if durability repair is enabled
-		if (MyConfig.isTimeExtensionEnabled()) {
-			TimeExtensionItemDisplays.showDisplay(serverLevel, sbe);
+		// Show repair item if Lifespan Extension Enabled is enabled
+		if (MyConfig.isAddLifespanEnabled()) {
+			ExtraLifetimeItemDisplays.showDisplay(serverLevel, sbe);
 		}
 
 		// this occurs only on a spawn event in Forge. 
 		// and it only occurs when delay=1 in Neoforge 
 
 		// Play failing noise and particles
-		int	remainingDurability = (int) (timeUntilExpiration / avgTimePerSpawn);
-		SpecialEffects.doSpawnerExpiringNoise(serverLevel, sbe.getBlockPos(), remainingDurability);
-		SpecialEffects.doSpawnerExpiringParticles(serverLevel, sbe.getBlockPos(), remainingDurability);
+		int	remainingSpawns = (int) (lifeSpan / avgTimePerSpawn);
+		SpecialEffects.doSpawnerExpiringNoise(serverLevel, sbe.getBlockPos(), remainingSpawns);
+		SpecialEffects.doSpawnerExpiringParticles(serverLevel, sbe.getBlockPos(), remainingSpawns);
 	}
 
 	

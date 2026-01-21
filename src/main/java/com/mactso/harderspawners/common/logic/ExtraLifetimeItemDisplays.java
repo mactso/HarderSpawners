@@ -23,7 +23,7 @@ import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public class TimeExtensionItemDisplays {
+public class ExtraLifetimeItemDisplays {
 	
 	private static final org.slf4j.Logger LOGGERUTIL =  LogUtils.getLogger();
 	
@@ -50,8 +50,8 @@ public class TimeExtensionItemDisplays {
 
 	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
 		
-        ScopedCollector preport = new ScopedCollector(LOGGERUTIL);
-        TagValueOutput vout = TagValueOutput.createWithoutContext(preport);
+        ScopedCollector problemReporter = new ScopedCollector(LOGGERUTIL);
+        TagValueOutput vout = TagValueOutput.createWithoutContext(problemReporter);
         i.save(vout);
         CompoundTag tag = vout.buildResult(); 
 		tag.put("transformation", buildTransformationTag());
@@ -115,7 +115,7 @@ public class TimeExtensionItemDisplays {
 
 	public static CompoundTag buildItemTag() {
 		CompoundTag itemTag = new CompoundTag();
-		itemTag.putString("id", MyConfig.getTimeExtensionItem());
+		itemTag.putString("id", MyConfig.getAddLifespanItem());
 		itemTag.putInt("Count", 1);
 		return itemTag;
 	}

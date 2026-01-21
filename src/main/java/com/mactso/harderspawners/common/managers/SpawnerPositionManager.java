@@ -1,5 +1,7 @@
-package com.mactso.harderspawners.common.logic;
+package com.mactso.harderspawners.common.managers;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,7 +11,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 
-public class SpawnerRegistry {
+public class SpawnerPositionManager {
 
 	static final Map<ResourceKey<Level>, Set<BlockPos>> spawnerLocations =
 	new ConcurrentHashMap<>();
@@ -74,6 +76,42 @@ public class SpawnerRegistry {
         return Math.abs(a.getX() - b.getX()) <= range
             && Math.abs(a.getY() - b.getY()) <= range
             && Math.abs(a.getZ() - b.getZ()) <= range;
+    }
+    
+    /**
+     * Returns up to 'maxCount' tracked spawner positions within a certain range
+     * of a reference position in the given level.
+     *
+     * @param level the level/dimension to query
+     * @param referencePos the position to measure distance from
+     * @param range maximum distance in blocks along each axis
+     * @param maxCount maximum number of spawner positions to return
+     * @return a list of nearby spawner positions, up to maxCount
+     */
+    public static List<BlockPos> getNearbySpawners(Level level, BlockPos referencePos, int range, int maxCount) {
+        if (level == null || referencePos == null || maxCount <= 0 || range < 0) {
+            return List.of();
+        }
+
+        Set<BlockPos> locations = spawnerLocations.get(level.dimension());
+        if (locations == null || locations.isEmpty()) {
+            return List.of();
+        }
+
+        List<BlockPos> nearby = new ArrayList<>(Math.min(maxCount, locations.size()));
+        int count = 0;
+
+        for (BlockPos pos : locations) {
+            if (Math.abs(pos.getX() - referencePos.getX()) <= range
+                    && Math.abs(pos.getY() - referencePos.getY()) <= range
+                    && Math.abs(pos.getZ() - referencePos.getZ()) <= range) {
+                nearby.add(pos);
+                count++;
+                if (count >= maxCount) break;
+            }
+        }
+
+        return nearby;
     }
 
 }
