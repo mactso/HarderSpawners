@@ -1,20 +1,16 @@
 package com.mactso.harderspawners.modloader.spawnerstorage;
 
-import java.util.Optional;
-
-import com.mactso.harderspawners.common.logic.ProcessSpawners;
 import com.mactso.harderspawners.common.managers.MobSpawnerManager;
-import com.mactso.harderspawners.modloader.config.MyConfig;
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
+import com.mactso.harderspawners.common.utility.MyUtilities;
+import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.chunk.ChunkAccess;
 
 /**
  * Adapter class to isolate NeoForge-specific storage logic.
- * All direct access to SpawnerAttachments or SpawnerStatsStorage should
- * go through this adapter.
+ * All direct access to SpawnerAttachments or SpawnerStatsStorage goes through this adapter.
  */
 public final class SpawnerStatsAdapter {
 
@@ -22,54 +18,70 @@ public final class SpawnerStatsAdapter {
 
     /**
      * Returns a wrapper around the stats for the given spawner.
-     * If the spawner has no entityId, returns null.
-     * If the stats don't exist yet, creates and initializes them.
+     * Populates old spawners with blank entity IDs.
+     * Returns null if the spawner has no valid entity ID.
      */
     public static SpawnerStatsWrapper getOrCreateStats(SpawnerBlockEntity sbe) {
-
         // Quick path: already-initialized stats
         SpawnerStatsStorage existingStats = sbe.getData(SpawnerAttachments.SPAWNER_STATS.get());
+
+        CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+        String entityId = extractEntityId(spawnerTag);
+        if (entityId == null || entityId.isEmpty()) return null;
+		
+        // Stats exist: return their wrapper.
         if (existingStats != null && existingStats.isInitialized()) {
-            return new SpawnerStatsWrapper(existingStats, sbe, false); // no init, just wrap
+
+            String originalEntityId = existingStats.getOriginalEntityId();
+            // --- Migration for old spawner storage stats: populate blank entityId ---
+            if (originalEntityId.isEmpty()) {
+                originalEntityId = entityId;
+                // Persist the fixed entityId back into storage
+                existingStats.setOriginalEntityId(originalEntityId);
+                sbe.setChanged(); // ensure persistence
+            }
+            return new SpawnerStatsWrapper(sbe, originalEntityId);
+        }
+        // No existing stats: create wrapper from current entity ID
+        return new SpawnerStatsWrapper(sbe, entityId);
         }
 
-        // Do not create stats or statswrapper if entity id is empty or null.
-        CompoundTag tag = new CompoundTag();
-        sbe.getSpawner().save(tag);
-        CompoundTag spawnData = tag.getCompound("SpawnData").getCompound("entity");
-        if (spawnData == null) return null;
-        String entityId = spawnData.getString("id");
-        if (entityId == null || entityId.isEmpty()) return null;
-
-        // Full wrapper: will initialize stats
-        return new SpawnerStatsWrapper(sbe, entityId);
+    /**
+     * Extracts the current entity ID from the spawner tag 
+     */
+    public static String extractEntityId(CompoundTag spawnerTag) {
+        CompoundTag spawnData = spawnerTag.getCompound("SpawnData");
+        if (spawnData != null && !spawnData.isEmpty()) {
+            CompoundTag entityData = spawnData.getCompound("entity");
+            if (entityData != null && !entityData.isEmpty()) {
+                String id = entityData.getString("id");
+                if (id != null && !id.isBlank()) {
+                    return id.trim();
+                }
+            }
+        }
+        return null;
     }
 
     /**
-     * Wrapper class that exposes only the public interface for logic code.
-     * Tracks whether this wrapper/stats was just created for the first time.
+     * Wrapper class exposing public spawner stats logic.
+     * Handles lifespan-based expiration, average spawn delay, and original entity tracking.
      */
     public static class SpawnerStatsWrapper {
+
         private final SpawnerBlockEntity sbe;
         private final SpawnerStatsStorage stats;
-        private final String entityId;
-        private final boolean justCreated;
+        
+        /** Original entity ID at the time of wrapper creation. Immutable. */
+        private final String originalEntityId;
 
-        /** Constructor for already-initialized stats */
-        private SpawnerStatsWrapper(SpawnerStatsStorage stats, SpawnerBlockEntity sbe, boolean justCreated) {
-            this.sbe = sbe;
-            this.stats = stats;
-            this.entityId = null; // already initialized, entityId not needed
-            this.justCreated = justCreated;
-        }
-
-        /** Constructor for uninitialized spawner: will perform full initialization */
+        /** Constructor for uninitialized spawner: performs full initialization */
         private SpawnerStatsWrapper(SpawnerBlockEntity sbe, String entityId) {
             this.sbe = sbe;
-            this.entityId = entityId;
+            
+            this.originalEntityId = entityId;
 
             SpawnerStatsStorage existingStats = sbe.getData(SpawnerAttachments.SPAWNER_STATS.get());
-            this.justCreated = (existingStats == null || !existingStats.isInitialized());
 
             if (existingStats == null) {
                 this.stats = new SpawnerStatsStorage();
@@ -81,77 +93,92 @@ public final class SpawnerStatsAdapter {
             if (!stats.isInitialized()) {
                 initializeStats();
             }
+            
+            // --- Record position safely ---
+            SpawnerPositionManager.recordSpawnerPos(sbe);
         }
 
-        /** Initialize a new spawner's stats and normalize its tag */
+        /** Initialize a new spawner's stats */
         private void initializeStats() {
-            // 1. Snapshot vanilla spawner
-            CompoundTag tag = new CompoundTag();
-            sbe.getSpawner().save(tag);
+        	MyUtilities.debugMsg(1, "Initializing Spawner");
+			CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+            SharedUtilityMethods.applyConfigToMonsterSpawners(sbe, spawnerTag);
 
-            // 2. Normalize spawner config (ONE TIME)
-            doApplyConfigToMonsterSpawners(sbe, tag);
-
-            // 3. Backup normalized baseline
-            stats.backupOriginalSpawner(sbe);
             stats.setStunned(false);
 
-            MobSpawnerManager.SpawnerDurabilityItem durabilityConfig =
-                    MobSpawnerManager.getDurabilityForMob(entityId);
+            // Use original entity ID consistently
+            MobSpawnerManager.SpawnerLifespanItem lifespanConfig = MobSpawnerManager.getLifespanForMob(originalEntityId);
+            stats.setInfinite(lifespanConfig.isInfiniteLifespan());
 
-            stats.setDurability(durabilityConfig.initDurabilityValue());
-            stats.setInfinite(durabilityConfig.isInfiniteDurability());
+            // Cache original min/max spawn delays
+            if (spawnerTag.contains("MinSpawnDelay")) {
+                stats.setOriginalMinSpawnDelay(spawnerTag.getInt("MinSpawnDelay"));
+            } else {
+                stats.setOriginalMinSpawnDelay(200);
+            }
 
-            ChunkAccess chunk = sbe.getLevel().getChunk(sbe.getBlockPos());
-            stats.setSpawnerExpirationTime(stats.getInitialFailureTime(chunk.getInhabitedTime()));
+            if (spawnerTag.contains("MaxSpawnDelay")) {
+                stats.setOriginalMaxSpawnDelay(spawnerTag.getInt("MaxSpawnDelay"));
+            } else {
+                stats.setOriginalMaxSpawnDelay(800);
+            }
+
+            // Initialize lifespan
+            if (!stats.isInfinite()) {
+            	MyUtilities.debugMsg(1, "Initializing Lifespan");
+                long avgTicks = averageSpawnDelay();
+                stats.setLifespan(lifespanConfig.initLifespanValue() * avgTicks);
+            } else {
+                stats.setLifespan(Long.MAX_VALUE);
+            }
 
             stats.setInitialized();
             sbe.setChanged();
-        }
-
-        /** Returns true if this wrapper/stats was created during this call */
-        public boolean isJustCreated() {
-            return justCreated;
         }
 
         // --- Public API ---
         public boolean isInfinite() { return stats.isInfinite(); }
         public boolean isStunned() { return stats.isStunned(); }
         public void setStunned(boolean stunned) { stats.setStunned(stunned); sbe.setChanged(); }
-        public int getDurability() { return stats.getDurability(); }
-        public void setDurability(int durability) { stats.setDurability(durability); sbe.setChanged(); }
-        public boolean hasExpired() { return stats.hasExpired(sbe); }
-        public long getAverageTimePerSpawn() { return stats.getAverageTimePerSpawn(); }
-        public long getSpawnerExpirationTime() { return stats.getSpawnerExpirationTime(); }
-        public CompoundTag getOriginalTag() { return stats.getOriginalTag(); }
-        public boolean isInitialized() { return stats.isInitialized(); }
-		public void setSpawnerExpirationTime(long newExpirationTime) {
-			stats.setSpawnerExpirationTime(newExpirationTime);
-		}
-    }
-
-    public static void doApplyConfigToMonsterSpawners(SpawnerBlockEntity sbe, CompoundTag tag) {
-    	
-        CompoundTag spawnerTag = new CompoundTag();
-        sbe.getSpawner().save(spawnerTag);
-        CompoundTag spawnDataTag = spawnerTag.getCompound("SpawnData");
-        if (spawnDataTag.isEmpty()) return;
- 
-        if (ProcessSpawners.isMonsterSpawner(sbe, spawnerTag)) {
-            if (tag.getInt("MaxNearbyEntities") != MyConfig.getMaxNearbyEntities())
-                tag.putInt("MaxNearbyEntities", MyConfig.getMaxNearbyEntities());
-            if (tag.getInt("RequiredPlayerRange") != MyConfig.getRequiredPlayerRange())
-                tag.putInt("RequiredPlayerRange", MyConfig.getRequiredPlayerRange());
-            if (tag.getInt("SpawnRange") != MyConfig.getSpawnRange())
-                tag.putInt("SpawnRange", MyConfig.getSpawnRange());
-
-            Optional<Tag> workSpawnData = ProcessSpawners.buildCustomLightLevelSpawnData(spawnDataTag);
-            if (workSpawnData.isPresent() && !spawnDataTag.equals(workSpawnData.get())) {
-                tag.put("SpawnData", workSpawnData.get());
+        public boolean isExpired() { return stats.hasExpired(); }
+        
+        /** Returns average spawn delay from cached min/max */
+        public long averageSpawnDelay() {
+            return (stats.getOriginalMinSpawnDelay() + stats.getOriginalMaxSpawnDelay()) / 2L;
             }
 
-            // Save tag back to spawner
-            sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), tag);
+        /** Remaining estimated spawns */
+        public int getEstimatedSpawns() {
+            if (stats.isInfinite()) return -1;
+            long avgSpawn = averageSpawnDelay();
+            return (int) Math.max(stats.getLifespan() / avgSpawn, 0);
+            }
+            
+        /** Decrement lifespan by average spawn delay */
+        public void decrementLifespan() {
+            stats.decrementLifespan(averageSpawnDelay());
+            sbe.setChanged();
         }
+            
+        /** Set lifespan explicitly */
+        public void setLifespan(long ticks) {
+            stats.setLifespan(ticks);
+            sbe.setChanged();
+        }
+
+		public void setInfinite(boolean b) {
+            stats.setInfinite(b);
+            }
+
+        // --- Accessors ---
+        public long getLifespan() { return stats.getLifespan(); }
+        public int getOriginalMinSpawnDelay() { return stats.getOriginalMinSpawnDelay(); }
+        public int getOriginalMaxSpawnDelay() { return stats.getOriginalMaxSpawnDelay(); }
+        public boolean isInitialized() { return stats.isInitialized(); }
+
+        /** Returns the original entity ID captured when the wrapper was created */
+        public String getOriginalEntityId() { return originalEntityId; }
+
+
     }
 }

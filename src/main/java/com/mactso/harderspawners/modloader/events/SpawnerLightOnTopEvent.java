@@ -1,9 +1,10 @@
 package com.mactso.harderspawners.modloader.events;
 
+import com.mactso.harderspawners.common.logic.SpawnerLightLogic;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
@@ -28,46 +29,14 @@ public class SpawnerLightOnTopEvent {
 	@SubscribeEvent
 	public void onNeighborNotifyEvent(BlockEvent.NeighborNotifyEvent event) {
 
-		if (!(event.getNotifiedSides().contains(Direction.DOWN)))
-			return;
+        // Extract event fields
+        ServerLevel serverLevel = event.getLevel() instanceof ServerLevel sl ? sl : null;
+        BlockPos changedPos = event.getPos();
+        BlockState changedState = event.getState();
+        boolean notifiedDown = event.getNotifiedSides().contains(Direction.DOWN);
 
-		if (!(event.getLevel() instanceof ServerLevel serverLevel))
-			return;
+        if (serverLevel == null || !notifiedDown) return;
 
-		if (serverLevel.getBlockState(event.getPos().below()).getBlock() != Blocks.SPAWNER)
-			return;
-
-		// check that the block isn't emitting light at the spawner location
-		// chatgpt, please get the dimension spawning light level from the serverLevel.
-		int dimensionSpawningLightLimit = serverLevel.dimensionType().monsterSpawnBlockLightLimit();
-		BlockState bS = event.getState();
-		if ((bS.getLightEmission(serverLevel, event.getPos().below()) < dimensionSpawningLightLimit)
-				&& (bS.getBlock() != Blocks.REDSTONE_LAMP)) {
-			return;
-		}
-
-		serverLevel.destroyBlock(event.getPos(), true);
-		event.setCanceled(true);
-
-		if (event.getLevel().getFluidState(event.getPos()).isEmpty()) {
-			return;
-		}
-
-		// search for glowing liquid coming from above.
-
-		for (int i = 0; i < 16; i++) {
-		    BlockPos abovePos = event.getPos().above(i);
-
-		    if (abovePos.getY() > serverLevel.getHeight()) break;
-
-		    if (serverLevel.getBlockState(abovePos).getLightEmission(serverLevel, abovePos) < 8) break;
-
-		    if (serverLevel.getFluidState(abovePos).isSource()) {
-		        serverLevel.setBlock(abovePos, Blocks.COBBLESTONE.defaultBlockState(), 3);
-		    } else {
-		        serverLevel.setBlock(abovePos, Blocks.AIR.defaultBlockState(), 3);
-		    }
-		}
-
+        SpawnerLightLogic.handleBlockAboveSpawner(serverLevel, changedPos, changedState);
 	}
 }

@@ -1,0 +1,33 @@
+
+Testing procedure Harder Spawners
+Start new world
+Create spawner
+show info
+show tag
+set infinate lifespan
+show info
+set lifespan 100
+observe poof or explosion.
+edit config: Set to linger
+edit config: Set stun to 1 minute
+create spawner
+set lifespan 100
+observe linger mode
+show info confirm uses 0
+repair it
+show info and confirm uses increased.
+create spawner
+destroy it with pickaxe in survival mode
+confirm it is stunned.
+Confirm it recovers from stun.
+
+
+
+30.7 Ideas
+
+default min and max delay overrides.
+command to set min (< max) & > 40) on a particular spawner
+command to set max (> min) & > 200) on a particular spawner
+
+
+

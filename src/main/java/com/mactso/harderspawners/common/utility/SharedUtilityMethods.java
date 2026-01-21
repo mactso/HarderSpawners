@@ -1,15 +1,25 @@
 package com.mactso.harderspawners.common.utility;
 
+import java.util.Optional;
+import java.util.Set;
+
+import com.mactso.harderspawners.common.logic.ProcessSpawners;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerAttachments;
+import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter.SpawnerStatsWrapper;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsStorage;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.BaseSpawner;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Block;
@@ -24,35 +34,106 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 
-public class SharedUtilityMethods {
-
-	
-	/**
+/**
 	 * Utility methods shared across the Harder Spawners mod.
 	 * 
-	 * <p>Includes helper functions for spawner status, block brightness adjustments,
-	 * and destruction of lights near blocks.</p>
+ * <p>
+ * Includes helper functions for spawner status, block brightness adjustments,
+ * and destruction of lights near blocks.
+ * </p>
 	 * 
-	 * <p><strong>Important:</strong> Some methods are computationally expensive but
+ * <p>
+ * <strong>Important:</strong> Some methods are computationally expensive but
 	 * are safe because they are throttled:
 	 * <ul>
-	 *   <li>{@link #doDestroyLightingNearSpawner(BlockPos, ServerLevel)} is only called
-	 *       when a spawner is about to spawn (spawnDelay == 1) or when a player attempts
-	 *       to break a spawner.</li>
+ * <li>{@link #doDestroyLightingNearSpawner(BlockPos, ServerLevel)} is only
+ * called when a spawner is about to spawn (spawnDelay == 1) or when a player
+ * attempts to break a spawner.</li>
 	 *   <li>This ensures that even with 3D scanning of nearby blocks, the performance
 	 *       impact is limited.</li>
 	 * </ul>
 	 * </p>
 	 */
+public class SharedUtilityMethods {
 	
+	private static final Set<Class<? extends Block>> ALWAYS_MAX_LIGHT = Set.of(RedstoneLampBlock.class,
+			PoweredBlock.class, RedStoneWireBlock.class, LeverBlock.class, RepeaterBlock.class, ComparatorBlock.class);
+
+	/*
+	 * Debugging utility.  Command showspawnertag probably deprecates this.
+	 */
+	public static void logSpawnerState(
+	        int level,
+	        String context,
+	        SpawnerBlockEntity sbe,
+	        SpawnerStatsWrapper wrapper
+	) {
+	    if (sbe == null)
+	        return;
+
+	    BaseSpawner spawner = sbe.getSpawner();
+	    CompoundTag spawnerTag = saveSpawnerToTag(sbe);
+	    int delay = ProcessSpawners.getSpawnerDelay(sbe, spawner, spawnerTag);
+
+	    MyUtilities.debugMsg(
+	        level,
+	        sbe.getBlockPos(),
+	        context
+	        + " Spawner state | life="
+	        + (wrapper == null ? "null" : wrapper.getLifespan())
+	        + " | stunned="
+	        + (wrapper == null ? "null" : wrapper.isStunned())
+	        + " | Orig [min="
+	        + (wrapper == null ? "null" : wrapper.getOriginalMinSpawnDelay())
+	        + ", max="
+	        + (wrapper == null ? "null" : wrapper.getOriginalMaxSpawnDelay())
+	        + ", delay="
+	        + delay
+	        + "] | NBT[min="
+	        + spawnerTag.getInt("MinSpawnDelay")
+	        + ", max="
+	        + spawnerTag.getInt("MaxSpawnDelay")
+	        + ", delay="
+	        + spawnerTag.getInt("Delay")
+	        + "]"
+	    );
+	}
+
+	/** 
+	 * Serializes a SpawnerBlockEntity into a CompoundTag. 
+	 * @param sbe the spawner block entity 
+	 * @return serialized NBT representing the spawner 
+	 */
+    public static CompoundTag saveSpawnerToTag(SpawnerBlockEntity sbe) {
+        CompoundTag tag = new CompoundTag();
+        sbe.getSpawner().save(tag);
+        return tag;
+    }
+	
+	/** 
+	 * Loads spawner data from a CompoundTag into a SpawnerBlockEntity. 
+	 * @param sbe target spawner 
+	 * @param tag NBT to load 
+	 */
+    public static void loadSpawnerFromTag(SpawnerBlockEntity sbe, CompoundTag tag) {
+        sbe.getSpawner().load(
+            sbe.getLevel(),
+            sbe.getBlockPos(),
+            tag
+        );
+    }
+	/** 
+	 * Returns true if the given spawner is stunned according to its SpawnerStats. 
+	 */
 	public static boolean isSpawnerStunned(SpawnerBlockEntity sbe) {
 		SpawnerStatsStorage stats = sbe.getData(SpawnerAttachments.SPAWNER_STATS.get());
 		return stats != null && stats.isStunned();
 	}
 
     /**
-     * Adjusts the effective light level of a block, taking certain redstone components
-     * into account (which can provide maximum brightness regardless of the normal light emission).
+	 * Adjusts the effective light level of a block, taking certain redstone
+	 * components into account (which can provide maximum brightness regardless of
+	 * the normal light emission).
      *
      * @param world the level containing the block
      * @param placedBlockState the state of the block
@@ -63,43 +144,34 @@ public class SharedUtilityMethods {
 	public static int checkAdjustedBlockBrightness(Level world, BlockState placedBlockState, Block placedBlock,
 			BlockPos placedPos) {
 
-		if (placedBlock instanceof RedstoneLampBlock)
-			return 15;
-		if (placedBlock instanceof PoweredBlock)
-			return 15;
-		if (placedBlock instanceof RedStoneWireBlock)
-			return 15;
-		if (placedBlock instanceof LeverBlock)
-			return 15;
-		if (placedBlock instanceof RepeaterBlock)
-			return 15;
-		if (placedBlock instanceof ComparatorBlock)
+		if (ALWAYS_MAX_LIGHT.contains(placedBlock.getClass()))
 			return 15;
 
 		return placedBlockState.getLightEmission(world, placedPos);
 
 	}
 
-
     /**
      * Destroys light sources near the given block position if they exceed the
-     * hostile spawner light level limit.
-     * Note: This *only* runs when someone tries to break a spawner or when the
-	 * spawner tries to spawn.
+	 * hostile spawner light level limit. Note: This *only* runs when someone tries
+	 * to break a spawner or when the spawner tries to spawn.
      *
-     * <p><strong>Trigger conditions:</strong>
+	 * <p>
+	 * <strong>Trigger conditions:</strong>
      * <ul>
      *   <li>Called when a player attempts to break a spawner block.</li>
      *   <li>Called when a spawner is about to spawn (spawnDelay == 1).</li>
      * </ul>
      * 
-     * <p>The method scans a cubic area around the target block and may:
+	 * <p>
+	 * The method scans a cubic area around the target block and may:
      * <ul>
      *   <li>Destroy blocks emitting light above the configured level.</li>
      *   <li>Extinguish fluids such as lava while playing a sound effect.</li>
      * </ul>
      * 
-     * <p>Although this method performs a potentially expensive 3D scan, the
+	 * <p>
+	 * Although this method performs a potentially expensive 3D scan, the
      * performance impact is minimal due to the throttled trigger conditions.
      *
      * @param pos the block position to scan around
@@ -107,8 +179,7 @@ public class SharedUtilityMethods {
      * @return true if any lights or lava were destroyed
      */
 	
-	public static boolean doDestroyLightingNearSpawner( SpawnerBlockEntity sbe) {
-
+	public static boolean destroyLightingNearSpawner(SpawnerBlockEntity sbe) {
 		
 		Level level = sbe.getLevel();
 		if ((level == null) || (!(level instanceof ServerLevel serverLevel)))
@@ -125,14 +196,9 @@ public class SharedUtilityMethods {
 		if (serverLevel.getMaxLocalRawBrightness(pos) < 1)
 			return false;
 
-
 		RandomSource rand = serverLevel.getRandom();
-		int fYmin = (int) pos.getY() - 4;
-		if (fYmin < serverLevel.getHeight())
-			fYmin = serverLevel.getHeight();
-		int fYmax = (int) pos.getY() + 8;
-		if (fYmax > serverLevel.getMinY())
-			fYmax = serverLevel.getMinY();
+		int fYmin = Math.max((int) pos.getY() - 4, serverLevel.getMinY()); // 4 lower but not outside the world.
+		int fYmax = Math.min((int) pos.getY() + 8, serverLevel.getHeight()); // 8 higher but not outside the world
 		
 		int scanSize = MyConfig.getDestroyLightRange();
 		int lavaScanBoost = 0;
@@ -145,7 +211,7 @@ public class SharedUtilityMethods {
 			for (int dx = pos.getX() - scanSize; dx <= pos.getX() + scanSize; dx++) {
 				for (int dz = pos.getZ() - scanSize; dz <= pos.getZ() + scanSize; dz++) {
 
-					if (rand.nextInt(100)>MyConfig.getDestroyLightPercentage())
+					if (rand.nextInt(100) > MyConfig.getDestroyLightPercentage())
 						continue;
 					
 					mutPos.setX(dx);
@@ -167,7 +233,8 @@ public class SharedUtilityMethods {
 					}
 					Fluid f = serverLevel.getFluidState(mutPos).getType();
 					if (f.getFluidType().getLightLevel() > 0) {
-						serverLevel.playSound(null, mutPos, SoundEvents.LAVA_EXTINGUISH, SoundSource.AMBIENT, 0.9f, 0.25f);
+						serverLevel.playSound(null, mutPos, SoundEvents.LAVA_EXTINGUISH, SoundSource.AMBIENT, 0.9f,
+								0.25f);
 						serverLevel.setBlock(mutPos, Blocks.AIR.defaultBlockState(), 3);
 						lavaScanBoost = 4; // found lava- scan a larger vertical area.
 						destroyedLava = true;
@@ -180,5 +247,170 @@ public class SharedUtilityMethods {
 			MyUtilities.debugMsg(2, pos, "Destroyed lava near spawner.");
 		return destroyedLight;
 	}
+
+	
+	public static void applyConfigToMonsterSpawners(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
+
+		// Local debug level for testing
+		int testingDebugLevel = 0;
+
+		MyUtilities.debugMsg(testingDebugLevel,
+				"Entering doApplyConfigToMonsterSpawners for spawner at " + sbe.getBlockPos());
+
+		// Nested SpawnData inside the spawner
+	    CompoundTag spawnDataTag = spawnerTag.getCompound("SpawnData");
+	    if (spawnDataTag.isEmpty()) {
+			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag is empty, aborting.");
+			return;
+		}
+
+		// Only apply to monster spawners
+		if (!isMonsterSpawner(sbe, spawnerTag)) {
+			MyUtilities.debugMsg(testingDebugLevel, "Spawner is not a monster spawner, skipping.");
+			return;
+		}
+
+		MyUtilities.debugMsg(testingDebugLevel, "Applying configuration overrides to spawner.");
+
+		// Apply configuration overrides directly to the spawner tag
+		putIntIfDifferent(spawnerTag, "MaxNearbyEntities", MyConfig.getMaxNearbyEntities());
+		MyUtilities.debugMsg(testingDebugLevel, "MaxNearbyEntities set to " + MyConfig.getMaxNearbyEntities());
+
+		putIntIfDifferent(spawnerTag, "RequiredPlayerRange", MyConfig.getRequiredPlayerRange());
+		MyUtilities.debugMsg(testingDebugLevel, "RequiredPlayerRange set to " + MyConfig.getRequiredPlayerRange());
+
+		putIntIfDifferent(spawnerTag, "SpawnRange", MyConfig.getSpawnRange());
+		MyUtilities.debugMsg(testingDebugLevel, "SpawnRange set to " + MyConfig.getSpawnRange());
+
+		maybeOverrideSpawnDelays(spawnerTag);
+		MyUtilities.debugMsg(testingDebugLevel, "Spawn delays processed with maybeOverrideSpawnDelays.");
+
+		// Optionally rebuild SpawnData with custom light levels
+		Optional<Tag> workSpawnData = ProcessSpawners.buildCustomLightLevelSpawnData(spawnDataTag);
+		if (workSpawnData.isPresent() && !spawnDataTag.equals(workSpawnData.get())) {
+			spawnerTag.put("SpawnData", workSpawnData.get());
+			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag updated with custom light level spawn data.");
+		} else {
+			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag unchanged after custom light level processing.");
+		}
+
+		// Save back to spawner
+		loadSpawnerFromTag(sbe, spawnerTag);
+		MyUtilities.debugMsg(testingDebugLevel, "Spawner NBT loaded back into spawner block entity.");
+	}
+
+	private static void maybeOverrideSpawnDelays(CompoundTag tag) {
+
+		int testingDebugLevel = 0;
+
+		// Check if both min/max are vanilla
+		boolean isVanilla = isSpawnerDelayVanilla(tag);
+
+		// Preserve check
+		if (MyConfig.isPreserveNonVanillaSpawnerTiming() && !isVanilla) {
+			MyUtilities.debugMsg(testingDebugLevel,
+					"PreserveNonVanillaSpawnerTiming is true and delays are non-vanilla, skipping override.");
+			return;
+		}
+		MyUtilities.debugMsg(testingDebugLevel, "Overriding vanilla spawner delays.");
+		 
+		putIntIfDifferent(tag, "MinSpawnDelay", MyConfig.getMinSpawnDelayOverride());
+		MyUtilities.debugMsg(testingDebugLevel, "MinSpawnDelay overridden to " + MyConfig.getMinSpawnDelayOverride());
+
+		putIntIfDifferent(tag, "MaxSpawnDelay", MyConfig.getMaxSpawnDelayOverride());
+		MyUtilities.debugMsg(testingDebugLevel, "MaxSpawnDelay overridden to " + MyConfig.getMaxSpawnDelayOverride());
+
+	}
+
+	private static boolean isSpawnerDelayVanilla(CompoundTag tag) {
+	    if (!tag.contains("MinSpawnDelay") || !tag.contains("MaxSpawnDelay")) {
+	        return false;
+	    }
+
+	    int min = tag.getInt("MinSpawnDelay");
+	    int max = tag.getInt("MaxSpawnDelay");
+
+	    return min == 200 && max == 800;
+	}
+
+
+	public static int getIntOrDefault(CompoundTag tag, String key, int defaultValue) {
+	    if (tag.contains(key)) {
+	        return tag.getInt(key);
+	    }
+	    return defaultValue;
+	}
+
+	
+	private static void putIntIfDifferent(CompoundTag tag, String key, int value) {
+	    if (!tag.contains(key) || tag.getInt(key) != value) {
+	        tag.putInt(key, value);
+	    }
+	}
+
+	
+	
+	/**
+	 * Returns true if the spawner contains a monster-type entity.
+	 */
+	public static boolean isMonsterSpawner(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
+
+	    if (spawnerTag == null) {
+	        return false;
+	    }
+
+	    CompoundTag spawnData = spawnerTag.getCompound("SpawnData");
+	    if (spawnData == null || spawnData.isEmpty()) {
+	        return false;
+	    }
+
+	    CompoundTag entityData = spawnData.getCompound("entity");
+	    if (entityData == null || entityData.isEmpty()) {
+	        return false;
+	    }
+
+	    String id = entityData.getString("id");
+	    if (id == null || id.isBlank()) {
+	        return false;
+	    }
+
+	    Optional<EntityType<?>> entityTypeOpt = EntityType.byString(id);
+	    if (entityTypeOpt.isEmpty()) {
+	        return false;
+	    }
+
+	    EntityType<?> entityType = entityTypeOpt.get();
+	    return entityType.getCategory() == MobCategory.MONSTER;
+	}
+	
+	public static String makeSpawnerCompoundTagReport(SpawnerBlockEntity sbe) {
+	    if (sbe == null) return "<null spawner>";
+
+	    CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+	    BlockPos pos = sbe.getBlockPos();
+
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("Spawner @ ").append(pos).append("\n");
+	    sb.append("{\n");
+
+	    for (String key : spawnerTag.getAllKeys()) {
+	        Tag value = spawnerTag.get(key);
+
+	        // ---- formatting rules ----
+	        if ("entity".equals(key) || "custom_spawn_rules".equals(key)) {
+	            sb.append("\n");
+	        }
+
+	        sb.append("  ")
+	          .append(key)
+	          .append(" = ")
+	          .append(value)
+	          .append("\n");
+	    }
+
+	    sb.append("}");
+	    return sb.toString();
+	}
+	
 
 }
