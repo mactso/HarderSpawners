@@ -15,12 +15,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
@@ -69,31 +69,33 @@ public class MyUtilities {
 		
 	}
 
-	public static void sendBoldChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendBoldChat(ServerPlayer sp, String chatMessage, ChatFormatting textColor) {
 
 		MutableComponent component = Component.literal (chatMessage);
 		component.setStyle(component.getStyle().withBold(true));
 		component.setStyle(component.getStyle().withColor(ChatFormatting.DARK_GREEN));
-		p.sendSystemMessage(component);
+		sp.sendSystemMessage(component);
 	}	
 	
 
-	public static void sendChat(Player p, String chatMessage, ChatFormatting textColor) {
+	public static void sendChat(ServerPlayer sp, String chatMessage, ChatFormatting textColor) {
 
         MutableComponent component = Component.literal (chatMessage);
 		component.setStyle(component.getStyle().withColor(ChatFormatting.GREEN));
-        p.sendSystemMessage(component);
+        sp.sendSystemMessage(component);
 	}
 	
+
+	
 	public static void updateEffect(LivingEntity e, int amplifier,  Holder<MobEffect> mobEffect, int duration) {
-		
+
+		// neoforge issue.   spawning mobs effect maps are not finalized so this creates them.
 		if (e instanceof Mob) {
-			e.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 2, amplifier, true, true));
+			e.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 2, amplifier, true, true));
 		}
+		
 		MobEffectInstance ei = e.getEffect(mobEffect);
-		if (amplifier == 10) {
-			amplifier = 20;  // player "plaid" speed.
-		}
+
 		if (ei != null) {
 			if (amplifier > ei.getAmplifier()) {
 				e.removeEffect(mobEffect);
@@ -109,7 +111,6 @@ public class MyUtilities {
 		e.addEffect(new MobEffectInstance(mobEffect, duration, amplifier, true, true));
 		return;
 	}
-	
 	
 	public static boolean isOutside(BlockPos pos, ServerLevel serverLevel) {
 		return serverLevel.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, pos) == pos;

@@ -18,32 +18,40 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public class TimeExtensionItemDisplays {
+public class ExtraLifetimeItemDisplays {
+	
 
 	public static void buildDisplay(ServerLevel sLevel, BlockEntity sbe) {
 	
 		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
 		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel);
+		
 		itemDisplay.setCustomName(SpawnerExpiration.TIP);
 		itemDisplay.setCustomNameVisible(true);
-		CompoundTag temptag = TimeExtensionItemDisplays.buildDisplayNBT(itemDisplay);
+		
+		CompoundTag temptag = buildItemDisplayNBT(itemDisplay);
 		itemDisplay.load(temptag);
+		
+		// Position the display above the spawner
 		Vec3 vWork = sbe.getBlockPos().getBottomCenter();
-		itemDisplay.moveTo(vWork.x, vWork.y + 1.5, vWork.z, 0.0f, 0.0f);
 		itemDisplay.setPos(vWork.x, vWork.y + 1.5, vWork.z);
 		itemDisplay.setDeltaMovement(0.0f, 0.0f, 0.0f);
 		sLevel.addFreshEntity(itemDisplay);
 	
 	}
+	
 
-	public static CompoundTag buildDisplayNBT(ItemDisplay i) {
+	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
+		
 		CompoundTag tag = new CompoundTag();
 		i.save(tag);
-		tag.put("transformation", TimeExtensionItemDisplays.buildTransformationTag());
-		tag.put("item", TimeExtensionItemDisplays.buildItemTag());
+		tag.put("transformation", buildTransformationTag());
+		tag.put("item", buildItemTag());
 		tag.putString("billboard", "center");
 		return tag;
+		
 	}
+
 
 	public static void showDisplay(ServerLevel sLevel, BlockEntity sbe) {
 		// Build an AABB centered on the spawner's block position, 2 blocks in each
@@ -99,7 +107,7 @@ public class TimeExtensionItemDisplays {
 
 	public static CompoundTag buildItemTag() {
 		CompoundTag itemTag = new CompoundTag();
-		itemTag.putString("id", MyConfig.getTimeExtensionItem());
+		itemTag.putString("id", MyConfig.getAddLifespanItem());
 		itemTag.putInt("Count", 1);
 		return itemTag;
 	}

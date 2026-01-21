@@ -1,7 +1,6 @@
 package com.mactso.harderspawners.modloader.events;
 
 import com.mactso.harderspawners.common.logic.BlockFluidPlacementLogic;
-import com.mactso.harderspawners.common.logic.ProcessSpawners;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 
 import net.minecraft.core.BlockPos;
@@ -36,7 +35,7 @@ public class MyEntityPlaceEvent {
 
 		if (shouldCancel) {
 			BlockPos targetPos = clickedPos.relative(clickedFace);
-			ProcessSpawners.queuePendingLava(sLevel, targetPos);
+			BlockFluidPlacementLogic.queuePendingLava(sLevel, targetPos);
 			event.setCanceled(true);
 			event.setCancellationResult(InteractionResult.FAIL);
 		}

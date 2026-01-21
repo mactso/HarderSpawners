@@ -1,5 +1,11 @@
 package com.mactso.harderspawners.common.logic;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
+import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 
@@ -15,6 +21,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 
@@ -44,7 +51,7 @@ public class BlockFluidPlacementLogic {
 
 		BlockPos placedPos = clickedPos.relative(face);
 
-		if (!SpawnerRegistry.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
+		if (!SpawnerPositionManager.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
 			return false;
 
 		// Play sound and particles
@@ -100,11 +107,49 @@ public class BlockFluidPlacementLogic {
 		ProcessSpawners.findAndProcessNearbySpawners(sp);
 
 		// Skip if no nearby spawner
-		if (!SpawnerRegistry.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
+		if (!SpawnerPositionManager.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
 			return false;
 
 		sLevel.destroyBlock(placedPos, true);
 
 		return true; // bright block should be destroyed
+	}
+
+	static final Map<ServerLevel, Set<BlockPos>> pendingLavaBlocks = new ConcurrentHashMap<>();
+
+	/**
+	 * Adds a lava block to the pending queue to be processed on the next player
+	 * tick.
+	 */
+	public static void queuePendingLava(ServerLevel level, BlockPos pos) {
+		pendingLavaBlocks.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet()).add(pos);
+	}
+
+	/**
+	 * Clears all queued pending lava blocks for the given player level. Should be
+	 * called once per player tick.
+	 *
+	 * @param sp The server player whose level will be processed.
+	 */
+	public static void clearPendingLava(ServerPlayer sp) {
+	
+		ServerLevel serverLevel = (ServerLevel) sp.level();
+		// Get the pending lava set for this level
+		Set<BlockPos> pending = pendingLavaBlocks.get(serverLevel);
+		if (pending == null || pending.isEmpty()) {
+			return; // Nothing to do
+		}
+	
+		MyUtilities.debugMsg(1, "Clearing Lava");
+		for (BlockPos pos : pending) {
+			BlockState state = serverLevel.getBlockState(pos);
+			if (state.getBlock() == Blocks.LAVA) {
+				// Remove the lava block (flash was displayed)
+				serverLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+			}
+		}
+	
+		// Clear the set so we don't process the same blocks again
+		pending.clear();
 	}
 }

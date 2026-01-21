@@ -11,7 +11,6 @@ public class Adapters {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final Field SPAWN_DELAY_FIELD;
 
-    
     static {
         Field field = null;
         try {
