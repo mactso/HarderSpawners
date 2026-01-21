@@ -1,19 +1,18 @@
 package com.mactso.harderspawners.common.logic;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.adapter.Adapters;
 import com.mactso.harderspawners.modloader.config.MyConfig;
+import com.mactso.harderspawners.modloader.config.MyConfig.EndOfLifespanAction;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter;
-import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsHelper;
+import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter.SpawnerStatsWrapper;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -23,69 +22,21 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.InclusiveRange;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentTable;
-import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.BaseSpawner;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level.ExplosionInteraction;
 import net.minecraft.world.level.SpawnData;
 import net.minecraft.world.level.SpawnData.CustomSpawnRules;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
 
 public class ProcessSpawners {
 
 	private static final Logger LOGGER = LogManager.getLogger();
-	// private static int spam = 0;
-	// Could be in your utility class or main mod class
-	private static final Map<ServerLevel, Set<BlockPos>> pendingLavaBlocks = new ConcurrentHashMap<>();
-
-//	private static final java.lang.reflect.Field SPAWN_DELAY_FIELD = 
-//		    net.neoforged.fml.util.ObfuscationReflectionHelper.findField(
-//		        net.minecraft.world.level.BaseSpawner.class, "spawnDelay"
-//		    );
-	private static int last_delay = Integer.MAX_VALUE;
-	
-	/**
-	 * Adds a lava block to the pending queue to be processed on the next player
-	 * tick.
-	 */
-	public static void queuePendingLava(ServerLevel level, BlockPos pos) {
-		pendingLavaBlocks.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet()).add(pos);
-	}
-
-	/**
-	 * Clears all queued pending lava blocks for the given player level. Should be
-	 * called once per player tick.
-	 *
-	 * @param sp The server player whose level will be processed.
-	 */
-	public static void clearPendingLava(ServerPlayer sp) {
-
-		ServerLevel serverLevel = sp.level();
-		// Get the pending lava set for this level
-		Set<BlockPos> pending = pendingLavaBlocks.get(serverLevel);
-		if (pending == null || pending.isEmpty()) {
-			return; // Nothing to do
-		}
-
-		MyUtilities.debugMsg(1, "Clearing Lava");
-		for (BlockPos pos : pending) {
-			BlockState state = serverLevel.getBlockState(pos);
-			if (state.getBlock() == Blocks.LAVA) {
-				// Remove the lava block (flash was displayed)
-				serverLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-			}
-		}
-
-		// Clear the set so we don't process the same blocks again
-		pending.clear();
-	}
+	public static final int ABOUT_TO_SPAWN = 1;
 
 	/**
 	 * Seek and process nearby spawners within 32 blocks (x,y,z ) of the player.
@@ -105,93 +56,79 @@ public class ProcessSpawners {
 		BlockPos playerPos = serverPlayer.blockPosition();
 		ChunkPos playerChunk = new ChunkPos(playerPos);
 
-		// debug sounds here.  plays once per 6 seconds.
-//		spam = (spam + 1) % 120;
-//		if (spam == 0) {
-//			level.playSound(null, serverPlayer.blockPosition(), ModSounds.SPAWNER_RECOVERS.value(), SoundSource.BLOCKS,
-//					1.0f, 1.0f);
-//			MyUtilities.debugMsg(0, "play sound");
-//		}
-
-		// Determine which far chunks we can skip based on player's position in the
-		// chunk
-		int localX = playerPos.getX() & 15; // 0-15 in current chunk
+		int localX = playerPos.getX() & 15;
 		int localZ = playerPos.getZ() & 15;
+		boolean skipWest = localX < 8, skipEast = localX >= 8, skipNorth = localZ < 8, skipSouth = localZ >= 8;
 
-		// we only care about spawners 32 blocks away so optimize the chunk scan.
-		boolean skipWest = localX < 8; // player is on east side, can skip far west chunks
-		boolean skipEast = localX >= 8; // player is on west side, can skip far east chunks
-		boolean skipNorth = localZ < 8; // player is on south side, can skip far north chunks
-		boolean skipSouth = localZ >= 8; // player is on north side, can skip far south chunks
-
-		// Scan nearby chunks
 		for (int dx = -2; dx <= 2; dx++) {
-			if (dx < -1 && skipWest)
-				continue; // skip far west
-			if (dx > 1 && skipEast)
-				continue; // skip far east
 			for (int dz = -2; dz <= 2; dz++) {
-				if (dz < -1 && skipNorth)
-					continue; // skip far north
-				if (dz > 1 && skipSouth)
-					continue; // skip far south
+				if (shouldSkipChunk(dx, dz, skipWest, skipEast, skipNorth, skipSouth))
+					continue;
 
-				ChunkPos chunkPos = new ChunkPos(playerChunk.x + dx, playerChunk.z + dz);
-				LevelChunk chunk = serverLevel.getChunk(chunkPos.x, chunkPos.z);
-
-				// Iterate all block entities in the chunk
+				LevelChunk chunk = serverLevel.getChunk(playerChunk.x + dx, playerChunk.z + dz);
 				for (BlockEntity be : chunk.getBlockEntities().values()) {
 					if (!(be instanceof SpawnerBlockEntity sbe))
 						continue;
-
-					// Axis-aligned 32-block x,y,z distance check
 					if (isSpawnerTooFarAway(playerPos, sbe.getBlockPos(), 32))
 						continue;
-
-					// Initialize stats (may return null if no entity)
-					SpawnerStatsAdapter.SpawnerStatsWrapper stats = SpawnerStatsHelper.getOrCreateStats(sbe);
-					if (stats == null)
-						continue;
-
-					SpawnerRegistry.recordSpawnerPos(sbe);
 					BaseSpawner spawner = sbe.getSpawner();
-					CompoundTag spawnerTag = new CompoundTag();
-
-					// Check spawner delay
-					// optimize this later with an access widener or Reflection to
-					// BaseSpawner.spawnDelay
-					MyUtilities.debugMsg(1, "Spawner.spawnerDelay Adapter check ");
-					int delay = -Integer.MAX_VALUE;
-					boolean tagSaved = false;
-					if (Adapters.isWorking()) {
-						delay = Adapters.getDelay(spawner);
-						MyUtilities.debugMsg(2, "Adapter working.  Delay = "+ delay);
-					} 
-
-					if (delay == -Integer.MAX_VALUE){
-						spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
-						Optional<Short> optDelay = spawnerTag.getShort("Delay");
-						delay = optDelay.orElse((short) 0); // provide a default if missing
-						tagSaved = true;
-						MyUtilities.debugMsg(2, "Adapter failed.  Delay = "+ delay);
-					}
-
-					if (last_delay < delay) 
-						MyUtilities.debugMsg(1, "Post Spawn Delay = "+ delay);
-						
-					last_delay=delay;
+					if ( spawner == null )
+						continue;
 					
-					if (delay == 1) {
-						if (!tagSaved) {
-							spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
-							tagSaved = true;
+					SpawnerPositionManager.recordSpawnerPos(sbe);
+					CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+
+					if (!spawnerTag.isEmpty()) {
+						String entityId = SpawnerStatsAdapter.extractEntityId(spawnerTag);
+						if (entityId == null) continue;
+						if (entityId.isEmpty() || entityId.isBlank()) continue;
+
+						int delay = getSpawnerDelay(sbe, spawner, spawnerTag);
+						if (delay == ABOUT_TO_SPAWN) {
+							// this is not "hot".  only once every 200-800 ticks.
+							processSpawnerIfReady(serverLevel, sbe, spawner, spawnerTag); 
+
 						}
-						MyUtilities.debugMsg(2, sbe.getBlockPos(), "Delay: " + delay);
-						doProcessSpawner(serverLevel, sbe, spawner, spawnerTag);
 					}
 				}
 			}
 		}
+	}
+
+	private static boolean shouldSkipChunk(int dx, int dz, boolean skipWest, boolean skipEast, boolean skipNorth,
+			boolean skipSouth) {
+		if (dx < -1 && skipWest)
+			return true;
+		if (dx > 1 && skipEast)
+			return true;
+		if (dz < -1 && skipNorth)
+			return true;
+		if (dz > 1 && skipSouth)
+			return true;
+		return false;
+	}
+
+	// this gets the private spawnDelay counter in BaseSpawner via reflection.
+	public static int getSpawnerDelay(SpawnerBlockEntity sbe, BaseSpawner spawner, CompoundTag tag) {
+		int delay = -Integer.MAX_VALUE;
+		boolean tagSaved = false;
+
+		if (Adapters.isWorking()) {
+			delay = Adapters.getDelay(spawner);
+		}
+
+		if (delay == -Integer.MAX_VALUE) {
+			tag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+			delay = tag.getShort("Delay").orElse((short) 0);
+			tagSaved = true;
+		}
+
+		if (tagSaved) {
+			if (MyConfig.isDebug())
+				MyUtilities.debugMsg(2, sbe.getBlockPos(), "Delay fallback applied: " + delay);
+		}
+
+		return delay;
 	}
 
 	/**
@@ -211,61 +148,80 @@ public class ProcessSpawners {
 		return dz > maxDistance;
 	}
 
-	public static void doProcessSpawner(ServerLevel serverLevel, SpawnerBlockEntity sbe, BaseSpawner spawner,
+	public static void processSpawnerIfReady(ServerLevel serverLevel, SpawnerBlockEntity sbe, BaseSpawner spawner,
 			CompoundTag spawnerTag) {
 		if (sbe == null || spawner == null || serverLevel == null)
 			return;
 
-		SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
 
-		// Handle stunned spawner logic (reset delays, etc.)
-		boolean changed = SpawnerStunLogic.doSpawnerRecoverFromStun(sbe, spawnerTag, statsWrapper);
-		if (changed)
+		SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
+		if (statsWrapper == null) // null if spawner lacks an entityId
+			return; // can't process a spawner with no stats
+
+		SpawnerPositionManager.recordSpawnerPos(sbe);
+		
+		boolean recovered = SpawnerStunLogic.doSpawnerRecoverFromStun(sbe, spawnerTag, statsWrapper);
+		if ((MyConfig.isDebug()) && (recovered)) {
 			MyUtilities.debugMsg(1, "Spawner recovered from stun.");
+		}
 
-		// If this is a monster spawner, destroy nearby lights, and check failure
-		if (ProcessSpawners.isMonsterSpawner(sbe, spawnerTag)) {
-			
-			// Re-apply custom light rules ONLY right before the spawn attempt since other mods are removing them.
-	        reapplyCustomLightRules(sbe, spawnerTag);
-	        
-			SharedUtilityMethods.doDestroyLightingNearSpawner(sbe);
+		statsWrapper.decrementLifespan();
+//		SharedUtilityMethods.logSpawnerState(1, "handleSpawnerLifespanEnd.pre", sbe, statsWrapper);
+
+		if (handleSpawnerLifespanEnd(serverLevel, sbe, statsWrapper, spawnerTag)) {
+			return; // Spawner was destroyed or exploded
+		}
+
+		// --- Additional "monster only"spawner effects ---
+		if (SharedUtilityMethods.isMonsterSpawner(sbe, spawnerTag)) {
+			reapplyCustomLightRules(sbe, spawnerTag, statsWrapper);
+			SharedUtilityMethods.destroyLightingNearSpawner(sbe);
 			SpecialEffects.doSpawnerExpiringSoonEffects(sbe);
-			ProcessSpawners.doSpawnerExpires(serverLevel, sbe);
+
 		}
 	}
 
 	// TODO: Test this every release.
-	// cap is confirmed valid before this method is called.
-	// If a spawner has reached or exceeded its lifespan, it expires. // if they are
-	// expired, handle the expiration by poofing or exploding
-	// this routine cleans up and then either poofs the spawner or explodes the
-	// spawner.
+	/**
+	 * Handles final cleanup when a spawner's lifespan is exhausted. Removes
+	 * extralifespan Displays and destroys the spawner block then Skips explosions
+	 * for silverfish spawners to protect End Portals. otherwise checks chance for
+	 * explosion.
+	 * 
+	 * @return true if the spawner expired and was destroyed (with optional
+	 *         explosion), false if the spawner is still active.
+	 */
 
-	public static void doSpawnerExpires(ServerLevel serverLevel, SpawnerBlockEntity sbe) {
+	public static boolean handleSpawnerLifespanEnd(ServerLevel serverLevel, SpawnerBlockEntity sbe,
+			SpawnerStatsWrapper statsWrapper, CompoundTag spawnerTag) {
 
-		// Wrap the stats
-		SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
+		if (serverLevel == null || sbe == null || statsWrapper == null)
+			return false;
 
-		if (statsWrapper == null) // empty spawncage lacking entity
-			return;
+		boolean spawnerIsExpired = statsWrapper.isExpired();
+		// spawnerIsExpired = true; // TODO: debugging statement.
+		if (!(spawnerIsExpired)) // spawner within lifespan still
+			return false;
 
-		boolean spawnerHasExpired = statsWrapper.hasExpired();
-		// spawnerHasExpired = true; // TODO: debugging statement.
-		if (!(spawnerHasExpired)) // spawner within lifespan still
-			return;
+		Enum<EndOfLifespanAction> action = MyConfig.getEndOfLifespanAction();
+		if (action == MyConfig.EndOfLifespanAction.LINGER) {
+			// stun lingering spawner for 25 minutes.
+			SpawnerStunLogic.lingerStunSpawner(serverLevel, sbe, statsWrapper, spawnerTag);
+			return false;
+		}
 
-		// Remove repair display items near the spawner
-		TimeExtensionItemDisplays.removeDisplay(serverLevel, sbe);
+		// Remove extraLifespan display items near the spawner
+		ExtraLifetimeItemDisplays.removeDisplay(serverLevel, sbe);
 
 		// Destroy the spawner block
 		BlockPos pos = sbe.getBlockPos();
-		serverLevel.destroyBlock(pos, false);
+		SpawnerPositionManager.forgetSpawner(serverLevel, pos);
+		serverLevel.destroyBlock(pos, true); // drops loot table drops, not spawner blocks even with silk touch.
 
 		// Avoid Exploding SilverFish Spawners to protect End Portals.
-		Optional<String> optEntityId = getEntityId(statsWrapper);
-		if (optEntityId.isPresent() && optEntityId.get().equals("minecraft:silverfish")) {
-		    return;
+		String entityId = statsWrapper.getOriginalEntityId();
+		if ("minecraft:silverfish".equals(entityId)) { // implied null entityId protection.
+			return true;
 		}
 
 		// Random chance for explosion
@@ -280,42 +236,48 @@ public class ProcessSpawners {
 					true, // causes block damage
 					ExplosionInteraction.BLOCK);
 		}
+		return true;
+
 	}
-	
-	
+
 	/**
-	 * Returns the entity ID string from a spawner's original tag, if present.
+	 * Reapplies configured spawn light-level rules to a spawner. Used defensively
+	 * in case other mods modify SpawnData light limits. Rebuilds SpawnData via
+	 * codec to preserve entity and equipment data. Reloads the updated tag into
+	 * BaseSpawner immediately before spawn. No-op if SpawnData or entity data is
+	 * missing.
 	 */
-	public static Optional<String> getEntityId(SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper) {
-	    return statsWrapper.getOriginalTag()
-	        .getCompound("SpawnData")
-	        .flatMap(spawnData -> spawnData.getCompound("entity"))
-	        .flatMap(entityData -> entityData.getString("id"));
-	}
-	
-	
-	public static void reapplyCustomLightRules(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
+	public static void reapplyCustomLightRules(SpawnerBlockEntity sbe, CompoundTag spawnerTag,
+			SpawnerStatsWrapper statsWrapper) {
+
 		Optional<CompoundTag> optTag = spawnerTag.getCompound("SpawnData");
-		if (optTag.isEmpty())
+		if (optTag.isEmpty())  // overly defensive code. if we are here, it's not empty.
 			return;
-	    CompoundTag spawnDataTag = optTag.get();
-	    if (spawnDataTag.isEmpty()) 
-	    	return;
+		CompoundTag spawnDataTag = optTag.get();
+		if (spawnDataTag.isEmpty()) // overly defensive code. if we are here, it's not empty.
+			return;
 
-	    // Use your existing codec-based method to build the new tag
-	    Optional<Tag> workSpawnData = ProcessSpawners.buildCustomLightLevelSpawnData(spawnDataTag);
-	    if (workSpawnData == null)
-	    	return;
-	    if (workSpawnData.isPresent()) {
-	        spawnerTag.put("SpawnData", workSpawnData.get());
-	        // Crucial: Load the modified tag back into the internal BaseSpawner logic
+		// Use your existing codec-based method to build the new tag
+		Optional<Tag> workSpawnData = buildCustomLightLevelSpawnData(spawnDataTag);
+		if (workSpawnData == null)
+			return;
+		if (workSpawnData.isPresent()) {
+			spawnerTag.put("SpawnData", workSpawnData.get());
+			// Load the modified tag back into the internal BaseSpawner logic
 			SharedUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
-			
+
 			sbe.setChanged();
-	        MyUtilities.debugMsg(2, "JIT: Light levels reapplied to " + sbe.getBlockPos().toShortString());
-	    }
+			MyUtilities.debugMsg(2, "JIT: Light levels reapplied to " + sbe.getBlockPos().toShortString());
+		}
+
 	}
 
+	/**
+	 * Rebuilds SpawnData with custom light-level spawn rules applied. Preserves
+	 * existing entity data and equipment. Uses config-defined hostile spawner light
+	 * level. Returns encoded SpawnData tag if entity data exists. Returns
+	 * empty/absent result if SpawnData is invalid or missing entity.
+	 */
 	public static Optional<Tag> buildCustomLightLevelSpawnData(CompoundTag spawnDataTag) {
 
 		SpawnData spawndata = SpawnData.CODEC.parse(NbtOps.INSTANCE, spawnDataTag)
@@ -337,49 +299,6 @@ public class ProcessSpawners {
 
 		return SpawnData.CODEC.encodeStart(NbtOps.INSTANCE, s).result();
 
-	}
-
-	public static boolean isMonsterSpawner(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
-
-		
-	    if (spawnerTag == null) {
-	        return false;
-	    }
-	    // --- OLD STYLE ---
-	    /*
-	    Optional<CompoundTag> optSpawnData = spawnerTag.getCompound("SpawnData");
-	    if (optSpawnData.isEmpty()) 
-	        return false;
-	    CompoundTag spawnDataTag = optSpawnData.get();
-	    Optional<CompoundTag> optEntityData = spawnDataTag.getCompound("entity");
-	    if (optEntityData.isEmpty())
-	        return false;
-	    Optional<String> optIdString = optEntityData.get().getString("id");
-	    if (optIdString.isEmpty())
-	        return false;		
-	    Optional<EntityType<?>> eType = EntityType.byString(optIdString.get());
-	    if (eType.isEmpty())
-	        return false;
-
-	    if (eType.get().getCategory() == MobCategory.MONSTER)
-	        return true;
-	    */
-
-	    // --- MODERN STYLE (with old style return for easier debugging)  ---
-	    /**
-	     * flatMap takes a value inside an Optional and applies a function that also returns an Optional.
-	     * If the original Optional is empty, it does nothing and returns empty.
-	     * It lets you chain multiple Optional-returning operations safely without nested Optionals.
-	     */
-	    
-	    boolean returnVal = spawnerTag.getCompound("SpawnData")
-	        .flatMap(spawnData -> spawnData.getCompound("entity"))
-	        .flatMap(entityData -> entityData.getString("id"))
-	        .flatMap(EntityType::byString)
-	        .map(eType -> eType.getCategory() == MobCategory.MONSTER)
-	        .orElse(false);
-	    
-	    return returnVal;
 	}
 
 }

@@ -24,9 +24,9 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 public class SpawnerExpiration {
 
-	public static final Component TIP = Component.translatable("text.harderspawners.add_durability").withStyle(ChatFormatting.LIGHT_PURPLE);
-	private static String cachedTimeExtensionConfiguredValue = null;
-	private static Item cachedTimeExtensionItem = null;
+	public static final Component TIP = Component.translatable("text.harderspawners.add_lifespan").withStyle(ChatFormatting.LIGHT_PURPLE);
+	private static String cachedExtraLifespanConfiguredValue = null;
+	private static Item cachedExtraLifespanItem = null;
 
 	/**
 	 * Handles repairing a spawner when a player right-clicks it with a valid repair item.
@@ -40,28 +40,48 @@ public class SpawnerExpiration {
 
 	    BlockPos pos = event.getPos();
 	    if (!sLevel.getBlockState(pos).is(Blocks.SPAWNER)) return;
-
 	    if (!(sLevel.getBlockEntity(pos) instanceof SpawnerBlockEntity sbe)) return;
 
 	    // Use the wrapper to access spawner stats
 	    SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper = SpawnerStatsHelper.getOrCreateStats(sbe);
 	    if (statsWrapper == null) return;
 
-	    if (!isTimeExtensionItem(heldItem, sLevel)) return;
+	    if (!isExtraLifespanItem(heldItem, sLevel)) return;
 
 	    // Stop further NeoForge / vanilla processing
 	    event.setCanceled(true);
 	    event.setCancellationResult(InteractionResult.SUCCESS);
 
-	    // calculate the number of extra spawns times the average time per spawn.
-	    long extraTime = statsWrapper.getAverageTimePerSpawn() * MyConfig.getSpawnsAmount();
-		statsWrapper.setSpawnerExpirationTime(statsWrapper.getSpawnerExpirationTime()+ extraTime) ;
+	    // --- Handle expired or zero lifespans ---
+	    long currentLifespan = statsWrapper.getLifespan();
+	    long extraAmount = MyConfig.getExtraLifespanAmount() * statsWrapper.averageSpawnDelay();
+	    long newLifespan;
 
-		TimeExtensionItemDisplays.removeDisplay(sLevel, sbe);
+	    if (currentLifespan <= 0) {
+	        // Expired or zero: reset to addLifespanAmount
+	        newLifespan = extraAmount;
+	    } else {
+	        // Otherwise, extend by addLifespanAmount
+	        newLifespan = currentLifespan + extraAmount;
+	    }
+
+	    MyUtilities.debugMsg(
+	    	    1,
+	    	    sbe.getBlockPos(),
+	    	    "Lifespan extend: Beginning=" + currentLifespan +
+	    	    ", extra=" + extraAmount +
+	    	    ", new=" + newLifespan
+	    	);
+	    
+	    statsWrapper.setLifespan(newLifespan);
+
+	    // Visual / special effects
+	    ExtraLifetimeItemDisplays.removeDisplay(sLevel, sbe);
 	    SpecialEffects.doSpawnerTimeExtensionEffects(sLevel, pos);
 
+	    // Consume the item
 	    heldItem.shrink(1);
-	    MyUtilities.debugMsg(1, "Spawns Left Increased to: " + statsWrapper.getDurability());
+	    MyUtilities.debugMsg(1, "Spawns Left Increased to: " + statsWrapper.getEstimatedSpawns());
 
 	    // Mark dirty and sync
 	    sbe.setChanged();
@@ -70,20 +90,20 @@ public class SpawnerExpiration {
 
 	
 	
-    private static boolean isTimeExtensionItem(ItemStack stack, ServerLevel sLevel) {
-        return stack.getItem() == getTimeExtensionItemAsItem(sLevel);
+    private static boolean isExtraLifespanItem(ItemStack stack, ServerLevel sLevel) {
+        return stack.getItem() == getExtraLifespanItemAsItem(sLevel);
     }
 	
     /** Checks whether the held item is the configured spawner time extension item. */
-    private static Item getTimeExtensionItemAsItem(ServerLevel sLevel) {
+    private static Item getExtraLifespanItemAsItem(ServerLevel sLevel) {
     	
-    	String configTimeExtensionItem = MyConfig.getTimeExtensionItem();
-    	if (configTimeExtensionItem.equals(cachedTimeExtensionConfiguredValue)) {
-    		if (cachedTimeExtensionItem != null) 
-    			return cachedTimeExtensionItem;
+    	String configExtraLifespanItem = MyConfig.getAddLifespanItem();
+    	if (configExtraLifespanItem.equals(cachedExtraLifespanConfiguredValue)) {
+    		if (cachedExtraLifespanItem != null) 
+    			return cachedExtraLifespanItem;
     	}
 
-    	ResourceLocation itemLocation = ResourceLocation.tryParse(configTimeExtensionItem);
+    	ResourceLocation itemLocation = ResourceLocation.tryParse(configExtraLifespanItem);
         if (itemLocation == null) {
             return Items.IRON_BLOCK;
         }
@@ -92,13 +112,13 @@ public class SpawnerExpiration {
 
         Optional<Item> optItem = itemRegistry.getOptional(itemLocation);
         if (optItem.isEmpty()) {
-        	MyUtilities.debugMsg(0, "ERROR: Configured Time extension item " + configTimeExtensionItem + " is not registered.  Using Items.IRON_BLOCK");
+        	MyUtilities.debugMsg(0, "ERROR: Configured Time extension item " + configExtraLifespanItem + " is not registered.  Using Items.IRON_BLOCK");
         	return Items.IRON_BLOCK;
         }
 
         Item timeExtensionItem = optItem.get();
-        cachedTimeExtensionConfiguredValue = configTimeExtensionItem;
-        cachedTimeExtensionItem = timeExtensionItem;
+        cachedExtraLifespanConfiguredValue = configExtraLifespanItem;
+        cachedExtraLifespanItem = timeExtensionItem;
 
         return timeExtensionItem;
         

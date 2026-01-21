@@ -3,22 +3,17 @@ package com.mactso.harderspawners.modloader.events;
 import java.util.List;
 import java.util.ListIterator;
 
-import com.mactso.harderspawners.common.logic.SpawnerRegistry;
 import com.mactso.harderspawners.common.logic.SpawnerRevenge;
 import com.mactso.harderspawners.common.logic.SpawnerStunLogic;
+import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.modloader.config.MyConfig;
-import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerAttachments;
-import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsStorage;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.BaseSpawner;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -32,9 +27,22 @@ import net.neoforged.neoforge.event.level.BlockEvent.BreakEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
 
 public class SpawnerBreakHandler {
+	
+	
 	static int spamLimiter = 0;
-
 	public static long nextActionTime = 0;
+	
+	/**
+	 * Protects spawner blocks from explosions.
+	 * 
+	 * Removes any SpawnerBlockEntity positions from the explosion's affected
+	 * blocks list, so spawners are not destroyed.
+	 * 
+	 * Runs only on the server side; client-side events are ignored.
+	 * Iterates the affected blocks in reverse to safely remove elements.
+	 *
+	 * @param event the explosion event being processed
+	 */
 	@SubscribeEvent
 	public void onExplosionDetonate(ExplosionEvent.Detonate event) {
 		Level level = event.getLevel();
@@ -51,52 +59,30 @@ public class SpawnerBreakHandler {
 		}
 	}
 
-	// this *only* runs when a block breaks.
+	// this *only* runs when a block is about to breaks.
 	@SubscribeEvent
 	public void onBreakBlock(BreakEvent event) {
-		if (!(event.getPlayer() instanceof ServerPlayer sp)) {
-			return;
-		}
+	    if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
 
-		BlockPos pos = event.getPos();
-		
-		ServerLevel serverLevel = (ServerLevel) sp.level();
-		SpawnerRegistry.forgetSpawner(serverLevel, pos);
-		BlockEntity be = serverLevel.getBlockEntity(pos);
-		Block targetBlock = serverLevel.getBlockState(pos).getBlock();
-		
-		if (sp.isCreative()) 
-			return; // let it break
+	    BlockPos pos = event.getPos();
+	    ServerLevel serverLevel = (ServerLevel) sp.level();
+	    BlockEntity be = serverLevel.getBlockEntity(pos);
+	    if (!(be instanceof SpawnerBlockEntity sbe))
+	    	return;
+	    Block targetBlock = serverLevel.getBlockState(pos).getBlock();
 
-		if (MyConfig.getSpawnerMinutesStunned() == 0)   // stun feature turned off.
-			return; // let it break
+	    // If the block will actually break, remove from registry
+	    if (sp.isCreative() || MyConfig.getSpawnerMinutesStunned() == 0 || targetBlock != Blocks.SPAWNER) {
+	        SpawnerPositionManager.forgetSpawner(serverLevel, pos);
+	        return; // allow break
+	    }
 
-		if (targetBlock != Blocks.SPAWNER) 
-			return; // let it break
-
-		if (!(be instanceof SpawnerBlockEntity sbe)) 
-			return; // let it break
-
-		// null if entity id is blank (SpawnerPotentials is blank)
-		SpawnerStatsStorage stats = sbe.getData(SpawnerAttachments.SPAWNER_STATS.get());
-		if (stats == null) {
-			return; // let it break
-		}
-
-		// Already stunned; this should be impossible.
-		if (stats.isStunned()) {
-			serverLevel.playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
-			event.setCanceled(true);  // cancel break
-			return;
-		}
-
-		BaseSpawner spawner = sbe.getSpawner();
-		SpawnerStunLogic.stunSpawner(serverLevel, sbe, spawner, stats, pos);
-
-		event.setCanceled(true); 
+	    // Otherwise, handle stun logic
+	    if (SpawnerStunLogic.processSpawnerStun(sp, serverLevel, sbe)) {
+	        event.setCanceled(true);
+	    }
 	}
-
-
+	
 	@SubscribeEvent
 	// this runs almost every tick as a block breaks.
 	public void blockBreakSpeed(PlayerEvent.BreakSpeed event) {
@@ -107,7 +93,7 @@ public class SpawnerBreakHandler {
 
 		BlockState state = event.getState();
 		BlockPos pos = event.getPosition().orElse(null);
-		if (!isValidSpawnerBreak(state, pos))
+		if (!isValidSpawner(state, pos))
 			return;
 		// this optionally runs on both sides.
 		// On the server, change the real digging speed.
@@ -118,7 +104,7 @@ public class SpawnerBreakHandler {
 		doBreakSpeedAdjustment(player, event );
 	}
 
-	private boolean isValidSpawnerBreak(BlockState state, BlockPos pos) {
+	private boolean isValidSpawner(BlockState state, BlockPos pos) {
 
 		if (state == null || pos == null)
 			return false;
