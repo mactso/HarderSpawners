@@ -54,22 +54,28 @@ public class MyCommands {
         	                    ctx -> commandInfo(
         	                        ctx.getSource().getPlayerOrException()
         	                    )
-        	                ) // executes(info)
+        	                ) // executes
         	        ) // then(info)
+        	        .then(
+        	        	    Commands.literal("showspawnertag")
+        	        	        .executes(ctx -> commandShowSpawnerTag(
+        	        	            ctx.getSource().getPlayerOrException()
+        	        	        )) // executes
+        	        	) //(showspawnertag)
         	        .then(
             	            Commands.literal("shownearbyspawners")
             	                .executes(
             	                    ctx -> commandShowNearbyRegisteredSpawners(
             	                        ctx.getSource().getPlayerOrException()
-            	                    )
-            	                ) // executes(info)
-            	        ) // then(info)
+            	                    ) //
+            	                ) // executes
+            	        ) // then(shownearbyspawners)
         	        .then(
         	                Commands.literal("setinfinitelifespan")
         	                    .executes(ctx -> commandSetInfiniteLifespan(
         	                            ctx.getSource().getPlayerOrException()
-        	                    ))
-        	            ) // setinfinitelifespan
+        	                    )) // executes
+        	            ) // // then(setinfinitelifespan)
         	        .then(
         	        	    Commands.literal("setlifespan")
         	        	        .then(
@@ -77,8 +83,8 @@ public class MyCommands {
         	        	                .executes(ctx -> commandSetLifespan(
         	        	                        ctx.getSource().getPlayerOrException(),
         	        	                        LongArgumentType.getLong(ctx, "ticks")
-        	        	                ))
-        	        	        ) // ticks
+        	        	                )) // executes
+        	        	        ) // then(setlifespan)
         	        	)
         	); // register(harderspawners)
         	
@@ -101,6 +107,7 @@ public class MyCommands {
        + "setlifespan <ticks> - Set the spawner lifespan to specified ticks (20 to " + Long.MAX_VALUE + "). Example: /harderspawners setlifespan 3000\n"
        + "setinfinitelifespan - Set the spawner to infinite lifespan\n"
        + "shownearbyspawners - List up to 21 nearby spawners within 64 blocks of the operator.\n"
+       + "showspawnertag - show the minecraft spawner values\n"
        + "help - Show this help message",
          ChatFormatting.GREEN
      );
@@ -177,7 +184,38 @@ public class MyCommands {
 
         return CommandResult.SUCCESS;
     }
-    
+ // -------------------------
+ // Command: showSpawnerTag
+ // -------------------------
+ private static int commandShowSpawnerTag(ServerPlayer player) {
+     if (player == null) return CommandResult.NONE;
+
+     SpawnerBlockEntity sbe = getLookedAtSpawner(player, MAX_LOOK_DISTANCE);
+     if (sbe == null) {
+         MyUtilities.sendChat(player, "You see no spawner.", ChatFormatting.YELLOW);
+         return CommandResult.NONE;
+     }
+
+     // Standard header
+     MyUtilities.sendBoldChat(
+         player,
+         "\n\n" + Main.MODID + " " + Main.MOD_VERSION + "\n",
+         ChatFormatting.DARK_GREEN
+     );
+
+     // Generate report
+     String report = SharedUtilityMethods.makeSpawnerCompoundTagReport(sbe);
+
+     if (report == null || report.isBlank()) {
+         MyUtilities.sendChat(player, "Spawner tag is empty.", ChatFormatting.YELLOW);
+         return CommandResult.NONE;
+     }
+
+     // Display report (no logging)
+     MyUtilities.sendChat(player, report, ChatFormatting.GREEN);
+
+     return CommandResult.SUCCESS;
+ }    
     // -------------------------
     // Command: setinfinitelifespan
     // -------------------------

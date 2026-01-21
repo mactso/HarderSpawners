@@ -388,6 +388,36 @@ public class SharedUtilityMethods {
 
 	    MyUtilities.debugMsg(0, pos, context + " Spawner CompoundTag: " + sb.toString());
 	}
+	
+	public static String makeSpawnerCompoundTagReport(SpawnerBlockEntity sbe) {
+	    if (sbe == null) return "<null spawner>";
+
+	    CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
+	    BlockPos pos = sbe.getBlockPos();
+
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("Spawner @ ").append(pos).append("\n");
+	    sb.append("{\n");
+
+	    for (Map.Entry<String, Tag> entry : spawnerTag.entrySet()) {
+	        String key = entry.getKey();
+
+	        // ---- formatting rules ----
+	        if ("entity".equals(key)
+	         || "custom_spawn_rules".equals(key)) {
+	            sb.append("\n");
+	        }
+
+	        sb.append("  ")
+	          .append(key)
+	          .append(" = ")
+	          .append(entry.getValue())
+	          .append("\n");
+	    }
+
+	    sb.append("}");
+	    return sb.toString();
+	}
 
 
 }

@@ -174,7 +174,7 @@ public class ProcessSpawners {
 
 		// --- Additional "monster only"spawner effects ---
 		if (SharedUtilityMethods.isMonsterSpawner(sbe, spawnerTag)) {
-//	TODO:		reapplyCustomLightRules(sbe, spawnerTag, statsWrapper);
+			reapplyCustomLightRules(sbe, spawnerTag, statsWrapper);
 			SharedUtilityMethods.destroyLightingNearSpawner(sbe);
 			SpecialEffects.doSpawnerExpiringSoonEffects(sbe);
 
