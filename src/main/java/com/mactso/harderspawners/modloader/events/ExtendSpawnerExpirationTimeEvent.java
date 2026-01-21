@@ -46,7 +46,7 @@ public class ExtendSpawnerExpirationTimeEvent {
         if (!(event.getLevel() instanceof ServerLevel sLevel))
             return;
 
-        if (!MyConfig.isTimeExtensionEnabled())
+        if (!MyConfig.isAddLifespanEnabled())
             return;
 
         ItemStack heldItem = event.getEntity().getItemInHand(InteractionHand.MAIN_HAND);

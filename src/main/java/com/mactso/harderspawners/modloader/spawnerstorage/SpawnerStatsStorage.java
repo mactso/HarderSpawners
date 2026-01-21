@@ -1,11 +1,9 @@
 package com.mactso.harderspawners.modloader.spawnerstorage;
 
-import java.util.Optional;
+import com.mactso.harderspawners.common.utility.MyUtilities;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.chunk.ChunkAccess;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 /**
@@ -15,122 +13,155 @@ import net.neoforged.neoforge.common.util.INBTSerializable;
  */
 public class SpawnerStatsStorage implements INBTSerializable<CompoundTag> {
 
+	// --- Versioning ---
+    private static final int CURRENT_DATA_VERSION = 2; // bumped version for entity ID support
+    private int dataVersion = 0; // old spawners will deserialize as 0
+
     // --- Core Fields ---
-    private int durability = -1;
-    private boolean stunned = false;
-    private boolean infinite = false;
-    private boolean initialized = false;
+	private long lifeSpanInTicks = -1;
+	private boolean stunned;
+	private boolean infinite;
+	private boolean initialized;
 
-    // --- Timing Fields ---
-    private long spawnerExpirationTime = -1L;   // when the spawner should "fail"
+	// --- Cached original spawn delays ---
+	private int originalMinSpawnDelay = 200;
+	private int originalMaxSpawnDelay = 800;
 
-    // Backup of the original spawner NBT for resets
-    private CompoundTag originalTag = null;
+	// --- Original entity ID ---
+	private String originalEntityId = "";
 
     // --- Accessors ---
-    public int getDurability() { return durability; }
-    public void setDurability(int durability) { this.durability = durability; }
+	public long getLifespan() {
+		return lifeSpanInTicks;
+	}
 
-    public boolean isStunned() { return stunned; }
-    public void setStunned(boolean stunned) { this.stunned = stunned; }
+	public void setLifespan(long lifeSpan) {
+		this.lifeSpanInTicks = lifeSpan;
+	}
 
-    public boolean isInfinite() { return infinite; }
-    public void setInfinite(boolean infinite) { this.infinite = infinite; }
-
-    public boolean isInitialized() { return initialized; }
-    public void setInitialized() { this.initialized = true; }
-
-    public long getSpawnerExpirationTime() { return spawnerExpirationTime; }
-    public void setSpawnerExpirationTime(long time) { this.spawnerExpirationTime = time; }
-    
-    public boolean hasExpired(SpawnerBlockEntity sbe) {
-        if (infinite) return false; // Infinite spawners never fail
-        if (sbe == null || sbe.getLevel() == null) return false;
-
-        ChunkAccess chunk = sbe.getLevel().getChunk(sbe.getBlockPos());
-        return chunk.getInhabitedTime() > spawnerExpirationTime;
+	public boolean isStunned() {
+		return stunned;
     }
 
-    /**
-     * Returns the average time per spawn based on the spawner's saved original tag.
-     * Uses (MinSpawnDelay + MaxSpawnDelay) / 2.
-     * Returns 0 if originalTag is null or missing delay values.
-     */
-    public long getAverageTimePerSpawn() {
-        if (originalTag == null) {
-            return 0L;
+	public void setStunned(boolean stunned) {
+		this.stunned = stunned;
         }
 
-        // Use OptionalInt to handle missing fields safely
-        int minDelay = originalTag.getInt("MinSpawnDelay").orElse(200);
-        int maxDelay = originalTag.getInt("MaxSpawnDelay").orElse(800);
-
-        return ((long) minDelay + (long) maxDelay) / 2L;
+	public boolean isInfinite() {
+		return infinite;
     }
 
-    /**
-     * Calculates the spawner failure time based on durability and average spawn duration.
-     * 
-     * @param chunkInhabitedTime The current inhabited time of the chunk in ticks
-     * @return The calculated failure time in ticks, or Long.MAX_VALUE if infinite
-     */
-    public long getInitialFailureTime(long chunkInhabitedTime) {
-        if (infinite) {
-            return Long.MAX_VALUE;
+    public void setInfinite(boolean infinite) {
+        this.infinite = infinite;
+        if (infinite)
+            lifeSpanInTicks = Long.MAX_VALUE;
+    }
+
+	public boolean isInitialized() {
+		return initialized;
         }
-        long avgTime = getAverageTimePerSpawn();
-        return chunkInhabitedTime + ((long) durability * avgTime);
+
+	public void setInitialized() {
+		this.initialized = true;
+        this.dataVersion = CURRENT_DATA_VERSION;
     }
     
-    public CompoundTag getOriginalTag() { return originalTag; }
+	public int getOriginalMinSpawnDelay() {
+		return originalMinSpawnDelay;
+	}
 
-    /**
-     * Backup the spawner's original NBT if not already done.
-     */
-    public void backupOriginalSpawner(SpawnerBlockEntity sbe) {
-        if (originalTag == null) {
-            CompoundTag tag = new CompoundTag();
-            sbe.getSpawner().save(tag);
-            originalTag = tag;
+	public void setOriginalMinSpawnDelay(int minDelay) {
+		this.originalMinSpawnDelay = minDelay;
+	}
+
+	public int getOriginalMaxSpawnDelay() {
+		return originalMaxSpawnDelay;
+	}
+
+	public void setOriginalMaxSpawnDelay(int maxDelay) {
+		this.originalMaxSpawnDelay = maxDelay;
         }
+
+	public String getOriginalEntityId() {
+		return originalEntityId;
+	}
+
+	public void setOriginalEntityId(String entityId) {
+		this.originalEntityId = entityId != null ? entityId : "";
     }
 
+	public int getDataVersion() {
+		return dataVersion;
+	}
 
-
-    // --- NBT serialization ---
+	public void setDataVersion(int version) {
+		this.dataVersion = version;
+	}
+	
+	    // --- Logic ---
+    public boolean hasExpired() {
+        return !infinite && lifeSpanInTicks <= 0;
+    }
+    
+    public void decrementLifespan(long ticks) {
+        if (!infinite && lifeSpanInTicks > 0) {
+            lifeSpanInTicks -= ticks;
+			if (lifeSpanInTicks < 0)
+				lifeSpanInTicks = 0;
+        }
+    }
+    
+    // --- Store
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
-        tag.putInt("Durability", durability);
-        tag.putBoolean("Stunned", stunned);
-        tag.putBoolean("Infinite", infinite);
+
+        tag.putInt("DataVersion", dataVersion);
         tag.putBoolean("Initialized", initialized);
-        tag.putLong("FailureGameTime", spawnerExpirationTime);
-        if (originalTag != null) tag.put("OriginalTag", originalTag.copy());
+        tag.putString("OriginalEntityId", originalEntityId);
+        tag.putBoolean("Stunned", stunned);
+        tag.putLong("Lifespan", lifeSpanInTicks);
+        tag.putBoolean("Infinite", infinite);
+        tag.putInt("OriginalMinSpawnDelay", originalMinSpawnDelay);
+        tag.putInt("OriginalMaxSpawnDelay", originalMaxSpawnDelay);
+
         return tag;
     }
 
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-    	Optional<Boolean> optStunned = nbt.getBoolean("Stunned");
-    	stunned = optStunned.orElse(false);
+        dataVersion = nbt.getInt("DataVersion").orElse(0);
 
-    	Optional<Boolean> optInfinite = nbt.getBoolean("Infinite");
-    	infinite = optInfinite.orElse(false);
+        initialized = nbt.getBoolean("Initialized").orElse(true);
+        originalEntityId = nbt.getString("OriginalEntityId").orElse("");
+        stunned = nbt.getBoolean("Stunned").orElse(false);
+        originalMinSpawnDelay = nbt.getInt("OriginalMinSpawnDelay").orElse(200);
+        originalMaxSpawnDelay = nbt.getInt("OriginalMaxSpawnDelay").orElse(800);
 
-    	Optional<Boolean> optInitialized = nbt.getBoolean("Initialized");
-    	initialized = optInitialized.orElse(false);
+		// --- Migration for old spawners ---  Extra legacy data cleanup and initialization.
+        if (dataVersion < CURRENT_DATA_VERSION) {
+            dataVersion = CURRENT_DATA_VERSION;
+            lifeSpanInTicks = nbt.getLong("Lifespan").orElse(-1L);
+            infinite = nbt.getBoolean("Infinite").orElse(false);
+            if (infinite) {
+                lifeSpanInTicks = Long.MAX_VALUE;
+            }
 
-    	Optional<Long> optSpawnerExpirationTime = nbt.getLong("FailureGameTime");
-    	spawnerExpirationTime = optSpawnerExpirationTime.orElse(0L);
-    	
-    	Optional<CompoundTag> optOriginalTag = nbt.getCompound("OriginalTag");
-    	if (optOriginalTag.isEmpty()) {
-    	    // original tag missing, skip initialization or handle error
-    	    return; // or throw an exception, depending on context
-    	}
+            if (lifeSpanInTicks == -1) {
+				lifeSpanInTicks = 600L * ((originalMinSpawnDelay + originalMaxSpawnDelay) / 2L); // default 600 spawns
+            }
+        } else {
+            lifeSpanInTicks = nbt.getLong("Lifespan").orElse(0L);
+            infinite = nbt.getBoolean("Infinite").orElse(false);
+        }
 
-    	// Copy the tag safely
-    	originalTag = optOriginalTag.get().copy();
+	    // --- Invariant enforcement ---
+	    if (originalEntityId == null || originalEntityId.isBlank()) {
+            initialized = false;
+            stunned = false;
+            infinite = false;
+            lifeSpanInTicks = 0;
+	        MyUtilities.debugMsg(  0,  "(Warn) SpawnerStatsStorage: Loaded spawner and it had no Entity Id.");
+        }
     }
 }
