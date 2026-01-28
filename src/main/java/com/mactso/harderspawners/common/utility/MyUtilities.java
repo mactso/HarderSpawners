@@ -1,5 +1,7 @@
 package com.mactso.harderspawners.common.utility;
 
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,12 +32,7 @@ public class MyUtilities {
 	private static final Logger LOGGER = LogManager.getLogger();
 	
 
-	// -------------------------------
-	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
-	// -------------------------------
-		public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
-	    return access.registry(key).orElse(null);  // 1.21.1 pattern
-	}
+
 
 	
 	public static void drawParticleBeam(BlockPos pos, ServerLevel sLevel, 
@@ -116,5 +113,13 @@ public class MyUtilities {
 		return serverLevel.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, pos) == pos;
 	}
 	
-
+	// -------------------------------
+	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
+	// -------------------------------
+		public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
+			Optional<Registry<T>> optRegistry = access.lookup(key);
+			if (optRegistry.isEmpty())
+				return null;
+	    return optRegistry.get();  // 1.21.4 to 1.21.5 pattern
+	}
 }

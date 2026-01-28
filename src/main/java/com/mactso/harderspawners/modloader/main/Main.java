@@ -1,7 +1,6 @@
 package com.mactso.harderspawners.modloader.main;
 
 import com.mactso.harderspawners.common.commands.MyCommands;
-import com.mactso.harderspawners.common.logic.SpawnerLightLogic;
 import com.mactso.harderspawners.common.sounds.ModSounds;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.events.AddSpawnerLifespanEvent;

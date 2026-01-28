@@ -25,7 +25,7 @@ public class Adapters {
     
     private static Field findSpawnDelayField() {
 
-        int debugX = 0;
+
         // Try deobfuscated name first
         try {
             Field f = BaseSpawner.class.getDeclaredField("spawnDelay");

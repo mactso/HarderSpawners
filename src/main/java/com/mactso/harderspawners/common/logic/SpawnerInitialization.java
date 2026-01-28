@@ -34,58 +34,34 @@ public class SpawnerInitialization {
 
 	public static void applyConfigToMonsterSpawners(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
 
-		// Local debug level for testing
-		int testingDebugLevel = 0;
-//		// TODO this is disabled temporarily.
-//		if (testingDebugLevel == 0) return;
-
-		MyUtilities.debugMsg(testingDebugLevel,
-				"Entering doApplyConfigToMonsterSpawners for spawner at " + sbe.getBlockPos());
+		if (MyConfig.isDebug())
+			MyUtilities.debugMsg(1,
+					"Entering doApplyConfigToMonsterSpawners for spawner at " + sbe.getBlockPos());
 
 		// Nested SpawnData inside the spawner
 		CompoundTag spawnDataTag = spawnerTag.getCompound("SpawnData");
-		if (spawnDataTag.isEmpty()) {
-			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag is empty, aborting.");
+		if (spawnDataTag.isEmpty()) 
 			return;
-		}
 
 		// Only apply to monster spawners
-		if (!SpawnerUtilityMethods.isMonsterSpawner(sbe, spawnerTag)) {
-			MyUtilities.debugMsg(testingDebugLevel, "Spawner is not a monster spawner, skipping.");
+		if (!SpawnerUtilityMethods.isMonsterSpawner(sbe, spawnerTag)) 
 			return;
-		}
-
-		MyUtilities.debugMsg(testingDebugLevel, "Applying configuration overrides to spawner.");
 
 		// Apply configuration overrides directly to the spawner tag
 		SpawnerUtilityMethods.putIntIfDifferent(spawnerTag, "MaxNearbyEntities", MyConfig.getMaxNearbyEntities());
-		MyUtilities.debugMsg(testingDebugLevel, "MaxNearbyEntities set to " + MyConfig.getMaxNearbyEntities());
-
 		SpawnerUtilityMethods.putIntIfDifferent(spawnerTag, "RequiredPlayerRange", MyConfig.getRequiredPlayerRange());
-		MyUtilities.debugMsg(testingDebugLevel, "RequiredPlayerRange set to " + MyConfig.getRequiredPlayerRange());
-
 		SpawnerUtilityMethods.putIntIfDifferent(spawnerTag, "SpawnRange", MyConfig.getSpawnRange());
-		MyUtilities.debugMsg(testingDebugLevel, "SpawnRange set to " + MyConfig.getSpawnRange());
-
 		SpawnerInitialization.maybeOverrideSpawnDelays(spawnerTag);
-		MyUtilities.debugMsg(testingDebugLevel, "Spawn delays processed with maybeOverrideSpawnDelays.");
 
 		// Optionally rebuild SpawnData with custom light levels
 		MyUtilities.debugMsg(0, "spawnerdatatag" + spawnerTag.getAsString());
 		Optional<Tag> workSpawnData = SpawnerLightLogic.buildCustomLightLevelSpawnData(spawnDataTag);
 		if (workSpawnData.isPresent() && !spawnDataTag.equals(workSpawnData.get())) {
 			spawnerTag.put("SpawnData", workSpawnData.get());
-			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag updated with custom light level spawn data.");
 		} else {
-			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag unchanged after custom light level processing.");
 		}
-		// ensureDefaultSpawnPotentials(spawnerTag);
-
-		MyUtilities.debugMsg(0, "spawnerdatatag" + spawnerTag.getAsString());
-
 		// Save back to spawner
 		SpawnerUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
-		MyUtilities.debugMsg(testingDebugLevel, "Spawner NBT loaded back into spawner block entity.");
 	}
 
 	public static void maybeOverrideSpawnDelays(CompoundTag tag) {

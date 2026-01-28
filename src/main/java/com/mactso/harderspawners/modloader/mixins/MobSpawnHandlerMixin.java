@@ -8,8 +8,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.mactso.harderspawners.common.logic.SpawnerMobBuffs;
 
 import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
+
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.level.ServerLevelAccessor;
 
@@ -19,7 +20,7 @@ public abstract class MobSpawnHandlerMixin {
 	@Inject(method = "finalizeSpawn", at = @At("TAIL"))
 	
 	private void harderSpawners$onFinalizeSpawn(ServerLevelAccessor levelAccessor, DifficultyInstance difficulty,
-			MobSpawnType spawnReason, SpawnGroupData spawnData, CallbackInfoReturnable<SpawnGroupData> cir) {
+			EntitySpawnReason spawnReason, SpawnGroupData spawnData, CallbackInfoReturnable<SpawnGroupData> cir) {
 		Mob mob = (Mob) (Object) this;
 		SpawnerMobBuffs.applyUndeadSunResistance(mob, spawnReason);
 	}

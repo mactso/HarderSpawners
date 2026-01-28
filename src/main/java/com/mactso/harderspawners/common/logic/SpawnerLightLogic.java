@@ -169,12 +169,12 @@ public class SpawnerLightLogic {
 		
 		// 4 lower but not outside the world.
 		int fYmin = (int) pos.getY() - 4; 
-		if (fYmin < serverLevel.getMinBuildHeight())
-			fYmin = serverLevel.getMinBuildHeight();
+		if (fYmin < serverLevel.getMinY())
+			fYmin = serverLevel.getMinY();
 		// 8 higher but not outside the world
 		int fYmax = (int) pos.getY() + 8;
-		if (fYmax > serverLevel.getMaxBuildHeight())
-			fYmax = serverLevel.getMaxBuildHeight();
+		if (fYmax > serverLevel.getMaxY())
+			fYmax = serverLevel.getMaxY();
 		
 		int scanSize = MyConfig.getDestroyLightRange();
 		int lavaScanBoost = 0;

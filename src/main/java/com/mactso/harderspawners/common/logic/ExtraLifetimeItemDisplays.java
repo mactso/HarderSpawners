@@ -12,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display.ItemDisplay;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
@@ -37,7 +38,7 @@ public class ExtraLifetimeItemDisplays {
 	public static void buildDisplay(ServerLevel sLevel, BlockEntity sbe) {
 	
 		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
-		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel);
+		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel,EntitySpawnReason.COMMAND);
 		
 		itemDisplay.setCustomName(SpawnerLifespan.TIP);
 		itemDisplay.setCustomNameVisible(true);
