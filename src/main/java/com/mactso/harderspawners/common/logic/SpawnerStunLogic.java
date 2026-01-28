@@ -2,7 +2,7 @@ package com.mactso.harderspawners.common.logic;
 
 import com.mactso.harderspawners.common.sounds.ModSounds;
 import com.mactso.harderspawners.common.utility.MyUtilities;
-import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
+import com.mactso.harderspawners.common.utility.SpawnerUtilityMethods;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter.SpawnerStatsWrapper;
@@ -15,64 +15,67 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Holds spawner stunning logic. Marks spawner as stunned and extends spawn
- * delays plays special effects, Marks spawner as not stunned and restores spawn
- * delays plays special effects,
+ * Implements spawner "stun" behavior by converting spawner destruction into
+ * temporary reuse delays.
+ *
+ * In HarderSpawners, a stunned spawner is not broken. Instead, its spawn timing
+ * values are overridden to defer the next spawn for a configurable duration.
+ * Once the stun expires, the original spawn delays are restored and the spawner
+ * resumes normal operation.
+ *
+ * This logic supports multiple stun sources (e.g., player break attempts and
+ * lifespan exhaustion) while sharing the same recovery mechanism.
  */
 
 public class SpawnerStunLogic {
+	// Use SKIP_DELAY_UPDATE to indicate that Delay should not be set (currently: in linger case).
+	private static final int SKIP_DELAY_UPDATE = Integer.MIN_VALUE;
+	private static final int LINGER_STUN_TICKS = 25 * 60 * 20; // 25 minutes in ticks
 
 	/**
-	 * Stuns a spawner: updates delays, plays sound, and extends expiration.
-	 * Expensive: reloads spawner NBT.
+	 * Stuns a spawner when an entity with a tool "break-stuns" a spawner.
+	 * Spawner is stunned for the configured 1 to 27 minutes.
+	 * Expensive but infrequent activity: reloads spawner NBT.
 	 */
-	public static void stunSpawner(ServerLevel serverLevel, SpawnerBlockEntity sbe, SpawnerStatsWrapper wrapper) {
+	public static void stunSpawnerWithTool(ServerLevel serverLevel, SpawnerBlockEntity sbe, SpawnerStatsWrapper wrapper,
+			CompoundTag spawnerTag) {
 
-		BlockPos pos = sbe.getBlockPos();
-		MyUtilities.debugMsg(1, pos, "Stunning Spawner");
-		wrapper.setStunned(true);
-
-		// Play stun sound
-		serverLevel.playSound(null, pos, SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 1.0f, 1.0f);
-
-		// load current spawner state into tag
-		CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
-
-		MyUtilities.debugMsg(2, pos, "Stunned Spawner saved values: (min):" + wrapper.getOriginalMinSpawnDelay()
-				+ " (max):" + wrapper.getOriginalMaxSpawnDelay());
-
-		// Apply new "stunned" min and max delays
+		MyUtilities.debugMsg(1, sbe.getBlockPos(), "Player with Tool Break-Stuns Spawner");
 		int stunnedTicks = MyConfig.getSpawnerTicksStunned();
-		spawnerTag.putInt("MinSpawnDelay", stunnedTicks);
-		spawnerTag.putInt("MaxSpawnDelay", stunnedTicks + 10);
-		spawnerTag.putInt("Delay", stunnedTicks + 5);
-		if (MyConfig.isDebug())
-			MyUtilities.debugMsg(1, pos, "Stunned Spawner stunned values: (min):" + spawnerTag.getInt("MinSpawnDelay")
-					+ " (max):" + spawnerTag.getInt("MaxSpawnDelay"));
-
-		// Apply modified spawner tag
-		SharedUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
-		sbe.setChanged();
+		stunCoreLogic(serverLevel, sbe, wrapper, spawnerTag, stunnedTicks, stunnedTicks + 10, stunnedTicks + 5);
 
 	}
 
-	public static void lingerStunSpawner(ServerLevel serverLevel, SpawnerBlockEntity sbe, SpawnerStatsWrapper wrapper, CompoundTag spawnerTag) {
+	/*
+	 * Stuns a spawner when it reaches it's end of life and the configured EndOfLife action is "Linger". 
+	 * Spawner is stunned for 25 minutes.
+	 */ 
 
-		final int STUN_TICKS = 25 * 60 * 20; // 25 minutes in ticks
+	public static void stunSpawnerWithLinger(ServerLevel serverLevel, SpawnerBlockEntity sbe,
+			SpawnerStatsWrapper wrapper, CompoundTag spawnerTag) {
 
-		BlockPos pos = sbe.getBlockPos();
-		MyUtilities.debugMsg(1, pos, "Stunning Spawner (linger)");
+		MyUtilities.debugMsg(1, sbe.getBlockPos(), "Spawner end of life and (linger = true) stuns Spawner");
+		int stunnedTicks = LINGER_STUN_TICKS;
+		stunCoreLogic(serverLevel, sbe, wrapper, spawnerTag, stunnedTicks, stunnedTicks + 10, SKIP_DELAY_UPDATE);
 
-		// Mark as stunned
+	}
+
+	/*
+	 * Core logic for setting a spawner stunned
+	 */
+	private static void stunCoreLogic(ServerLevel serverLevel, SpawnerBlockEntity sbe, SpawnerStatsWrapper wrapper,
+			CompoundTag spawnerTag, int newMinDelay, int newMaxDelay, int newDelay) {
 		wrapper.setStunned(true);
-		serverLevel.playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f); 		// Play linger stun sound
-		// Apply "stunned" delays
-		spawnerTag.putInt("MinSpawnDelay", STUN_TICKS);
-		spawnerTag.putInt("MaxSpawnDelay", STUN_TICKS + 10);
-		// Load modified tag back into spawner
-		SharedUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
+		serverLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ALLAY_DEATH, SoundSource.AMBIENT, 1.0f, 1.0f);
+		spawnerTag.putInt("MinSpawnDelay", newMinDelay);
+		spawnerTag.putInt("MaxSpawnDelay", newMaxDelay);
+		// Ensure Delay is strictly greater than MinSpawnDelay to avoid logic glitches
+		if ((newDelay != SKIP_DELAY_UPDATE) && (newDelay > newMinDelay))
+			spawnerTag.putInt("Delay", newDelay);
+		SpawnerUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
 		sbe.setChanged();
 
 	}
@@ -95,39 +98,7 @@ public class SpawnerStunLogic {
 				+ tag.getInt("MaxSpawnDelay"));
 		MyUtilities.debugMsg(2, pos, "Restoring Spawner original values: (min):" + savedMin + " (max):" + savedMax);
 	}
-
-	/**
-	 * Restores spawner from stunned state: resets min and max spawndelays and
-	 * resets 'stunned' flag. this is called just before a stunned spawner spawns
-	 * again.
-	 */
-	public static boolean doSpawnerRecoverFromStun(SpawnerBlockEntity sbe, CompoundTag spawnerTag,
-			SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper) {
-
-	    MyUtilities.debugMsg(1, "running doSpawnerRecoverFromStun\n");
-		if (!statsWrapper.isStunned())
-			return false;
-
-		doStunDebugMsg(sbe, spawnerTag, statsWrapper);
-
-		// Restore original min/max spawn delays from wrapper cache
-		int originalMin = statsWrapper.getOriginalMinSpawnDelay();
-		int originalMax = statsWrapper.getOriginalMaxSpawnDelay();
-
-		spawnerTag.putInt("MinSpawnDelay", originalMin);
-		spawnerTag.putInt("MaxSpawnDelay", originalMax);
-
-		// Load the restored tag into the spawner
-		SharedUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
-
-		sbe.getLevel().playSound(null, sbe.getBlockPos(), ModSounds.SPAWNER_RECOVERS.value(), SoundSource.BLOCKS, 1.0f,
-				1.0f);
-
-		statsWrapper.setStunned(false);
-
-		return true;
-	}
-
+	
 	/**
 	 * Core logic for handling spawner break attempts by non-creative players. Stuns
 	 * spawners if the feature is enabled or plays failure sound if already stunned.
@@ -145,15 +116,100 @@ public class SpawnerStunLogic {
 		if (wrapper == null)
 			return false;
 
+		BlockPos pos = sbe.getBlockPos();
 		if (wrapper.isStunned()) {
-			BlockPos pos = sbe.getBlockPos();
 			serverLevel.playSound(null, pos, SoundEvents.DISPENSER_FAIL, SoundSource.AMBIENT, 1.0f, 1.0f);
 			return true;
 		}
+		MyUtilities.debugMsg(1, pos, "About to stun spawner");
+		CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
+		stunSpawnerWithTool(serverLevel, sbe, wrapper, spawnerTag);
 
-		stunSpawner(serverLevel, sbe, wrapper);
+		MyUtilities.debugMsg(1, pos, "set changed and send block updated");
+
+		sbe.setChanged();
+		// Get the block state at the spawner's position
+		BlockState state = serverLevel.getBlockState(sbe.getBlockPos());
+		// Notify the client that the block and its block entity changed
+		serverLevel.sendBlockUpdated(sbe.getBlockPos(), state, state, 3);
 
 		return true;
+	}
+	/**
+	 * Restores spawner from stunned state: resets min and max spawndelays and
+	 * resets 'stunned' flag. this is called just before a stunned spawner spawns
+	 * again.
+	 */
+	public static boolean doSpawnerRecoverFromStun(SpawnerBlockEntity sbe, CompoundTag spawnerTag,
+			SpawnerStatsAdapter.SpawnerStatsWrapper statsWrapper) {
+
+		MyUtilities.debugMsg(1, "running doSpawnerRecoverFromStun\n");
+		if (!(sbe.getLevel() instanceof ServerLevel serverLevel))
+			return false;
+
+		if (!statsWrapper.isStunned())
+			return false;
+		
+		doStunDebugMsg(sbe, spawnerTag, statsWrapper);
+
+		// Restore original min/max spawn delays from wrapper cache
+		int originalMin = statsWrapper.getOriginalMinSpawnDelay();
+		int originalMax = statsWrapper.getOriginalMaxSpawnDelay();
+
+		spawnerTag.putInt("MinSpawnDelay", originalMin);
+		spawnerTag.putInt("MaxSpawnDelay", originalMax);
+
+		// Load the restored tag into the spawner
+		SpawnerUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
+		sbe.setChanged();
+		serverLevel.sendBlockUpdated(
+			    sbe.getBlockPos(),
+			    sbe.getBlockState(),
+			    sbe.getBlockState(),
+			    3 // flags: 3 = send to clients + render update
+			);
+		sbe.getLevel().playSound(null, sbe.getBlockPos(), ModSounds.SPAWNER_RECOVERS, SoundSource.BLOCKS, 1.0f, 1.0f);
+
+		statsWrapper.setStunned(false);
+
+		return true;
+	}
+
+
+	/*
+	 * If passed a stunned spawner, this Restores baseline spawner values and calculates a new spawn delay
+	 * this is called when a stunner is repaired.
+	 */
+	public static void restoreStunnedSpawner(ServerLevel serverLevel, SpawnerBlockEntity sbe,
+			SpawnerStatsWrapper statsWrapper) {
+	
+		if (!statsWrapper.isStunned())
+			return;
+	
+		int minSpawnDelay = statsWrapper.getOriginalMinSpawnDelay();
+		int maxSpawnDelay = statsWrapper.getOriginalMaxSpawnDelay();
+		int newDelay = serverLevel.random.nextInt(maxSpawnDelay - minSpawnDelay + 1) + minSpawnDelay;
+	
+		CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
+		
+		// Restore baseline spawn timing fields
+		spawnerTag.putInt("MinSpawnDelay", minSpawnDelay);
+		spawnerTag.putInt("MaxSpawnDelay", maxSpawnDelay);
+		spawnerTag.putInt("Delay", newDelay);
+	
+		SpawnerUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
+		sbe.setChanged();
+		serverLevel.sendBlockUpdated(
+			    sbe.getBlockPos(),
+			    sbe.getBlockState(),
+			    sbe.getBlockState(),
+			    3 // flags: 3 = send to clients + render update
+			);
+	
+		if (MyConfig.isDebug()) {
+			MyUtilities.debugMsg(1, sbe.getBlockPos(),
+					"Spawner restored: min=" + minSpawnDelay + ", max=" + maxSpawnDelay + ", delay=" + newDelay);
+		}
 	}
 
 }

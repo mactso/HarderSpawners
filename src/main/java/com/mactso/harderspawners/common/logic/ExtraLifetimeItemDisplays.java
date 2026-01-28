@@ -17,16 +17,29 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-
+/**
+ * Handles creation, display, and removal of floating ItemDisplay entities
+ * above spawners to visually indicate extra lifespan items.
+ * Builds custom NBT for item transformation, scale, and display settings.
+ * Ensures only one ItemDisplay per spawner exists at any time.
+ * Provides server-side feedback with sound when displaying items.
+ * Methods are fully static and operate on ServerLevel instances.
+ * Designed for use with HarderSpawners mod lifespan visualization.
+ */
 public class ExtraLifetimeItemDisplays {
 	
-
+	/**
+	 * Adds an ItemDisplay entity indicating low lifespan.
+	 * The item displayed is the item that adds lifespan
+	 * Sets the displays custom name to the localized translated word "Repair" 
+	 * Plays a sound effect to indicate display creation.
+	 */
 	public static void buildDisplay(ServerLevel sLevel, BlockEntity sbe) {
 	
 		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
 		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel);
 		
-		itemDisplay.setCustomName(SpawnerExpiration.TIP);
+		itemDisplay.setCustomName(SpawnerLifespan.TIP);
 		itemDisplay.setCustomNameVisible(true);
 		
 		CompoundTag temptag = buildItemDisplayNBT(itemDisplay);
@@ -41,6 +54,7 @@ public class ExtraLifetimeItemDisplays {
 	}
 	
 
+	
 	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
 		
 		CompoundTag tag = new CompoundTag();
@@ -63,7 +77,7 @@ public class ExtraLifetimeItemDisplays {
 		List<ItemDisplay> displaysList = sLevel.getEntitiesOfClass(ItemDisplay.class, box);
 	
 		for (ItemDisplay item : displaysList) {
-			if (item.hasCustomName() && SpawnerExpiration.TIP.getString().equals(item.getCustomName().getString())) {
+			if (item.hasCustomName() && SpawnerLifespan.TIP.getString().equals(item.getCustomName().getString())) {
 				return; // Already present
 			}
 		}
@@ -72,6 +86,13 @@ public class ExtraLifetimeItemDisplays {
 		buildDisplay(sLevel, sbe);
 	}
 
+	/**
+	 * Constructs the transformation NBT for an ItemDisplay.
+	 * Includes translation, left and right rotations, and scaling.
+	 * Translation is set to zero and scale to 0.5.
+	 * Rotations are defaulted to no rotation (identity quaternion).
+	 * Returns a CompoundTag to be attached to the display entity.
+	 */
 	public static CompoundTag buildTransformationTag() {
 		CompoundTag transformationTag = new CompoundTag();
 		ListTag translist = new ListTag();
@@ -112,27 +133,20 @@ public class ExtraLifetimeItemDisplays {
 		return itemTag;
 	}
 
-//	public static void removeDisplayOnExpiration(ServerLevel sLevel, BlockEntity sbe) {
-//		// Build an AABB around the spawner's block position, inflated by 4 blocks
-//		AABB box = new AABB(sbe.getBlockPos()).inflate(4.0);
-//	
-//		List<ItemDisplay> displaysList = sLevel.getEntitiesOfClass(ItemDisplay.class, box);
-//	
-//		for (ItemDisplay item : displaysList) {
-//			if (item.hasCustomName() && SpawnerExpiration.tip.getString().equals(item.getCustomName().getString())) {
-//				item.remove(RemovalReason.DISCARDED);
-//				return;
-//			}
-//		}
-//	}
 	
-	/** Removes the floating item display above the spawner. */
-	static void removeDisplay(ServerLevel sLevel, SpawnerBlockEntity sbe) {
+	/**
+	 * Removes the floating ItemDisplay associated with a given spawner.
+	 * Builds an axis-aligned bounding box 2 blocks around the spawner.
+	 * Searches for an ItemDisplay with the correct custom name (TIP).
+	 * Discards the entity if found to remove it from the world.
+	 * Ensures that only one display per spawner is present at any time.
+	 */
+	public static void removeDisplay(ServerLevel sLevel, SpawnerBlockEntity sbe) {
 	    AABB box = new AABB(sbe.getBlockPos().above()).inflate(2); // 2-block radius
 	    List<ItemDisplay> displays = sLevel.getEntitiesOfClass(ItemDisplay.class, box);
 	
 	    for (ItemDisplay item : displays) {
-	        if (item.getCustomName().getString().equals(SpawnerExpiration.TIP.getString())) {
+	        if (item.getCustomName().getString().equals(SpawnerLifespan.TIP.getString())) {
 	            item.discard();
 	            break;
 	        }

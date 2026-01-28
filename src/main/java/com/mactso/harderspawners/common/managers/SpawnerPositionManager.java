@@ -6,6 +6,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.mactso.harderspawners.common.commands.MyCommands.CommandResult;
+import com.mactso.harderspawners.common.utility.MyUtilities;
+import com.mactso.harderspawners.common.utility.SpawnerUtilityMethods;
+
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
@@ -35,9 +40,14 @@ public class SpawnerPositionManager {
 	}
 	
 	public static void recordSpawnerPos(SpawnerBlockEntity sbe) {
-	    if (sbe == null) {
+
+		if (sbe == null) {
 	        return;
 	    }
+        if (SpawnerUtilityMethods.isTrialSpawner(sbe)) {
+           	return;
+        }
+
 	
 	    Level level = sbe.getLevel();
 	    if (level == null) {

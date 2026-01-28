@@ -1,120 +1,113 @@
 package com.mactso.harderspawners.modloader.spawnerstorage;
 
-import com.mactso.harderspawners.common.utility.MyUtilities;
 import net.minecraft.nbt.CompoundTag;
 
-/**
- * Storage for per-spawner stats: lifespan, stun state, infinite state,
- * cached spawn delays, and original entity ID.
- * 
- * This is now used in Fabric via a Mixin into SpawnerBlockEntity.
- */
 public class SpawnerStatsStorage {
 
-    // --- Versioning ---
-    private static final int CURRENT_DATA_VERSION = 2; // bumped version for entity ID support
-    private int dataVersion = 0; // old spawners will deserialize as 0
+	// --- Versioning ---
+	private static final int CURRENT_DATA_VERSION = 2; // bumped version for entity ID support
+	private int dataVersion = 0; // old spawners will deserialize as 0
 
-    // --- Core Fields ---
-    private long lifeSpanInTicks = -1;
-    private boolean stunned;
-    private boolean infinite;
-    private boolean initialized;
+	// --- Original entity ID ---
+	private String originalEntityId = "";
 
-    // --- Cached original spawn delays ---
-    private int originalMinSpawnDelay = 200;
-    private int originalMaxSpawnDelay = 800;
+	// --- Cached original spawn delays ---
+	private int originalMinSpawnDelay = 200;
+	private int originalMaxSpawnDelay = 800;
 
-    // --- Original entity ID ---
-    private String originalEntityId = "";
+	public String getOriginalEntityId() {
+		return originalEntityId;
+	}
 
-    // --- Accessors ---
-    public long getLifespan() { return lifeSpanInTicks; }
-    public void setLifespan(long lifeSpan) { this.lifeSpanInTicks = lifeSpan; }
+	public void setOriginalEntityId(String originalEntityId) {
+		this.originalEntityId = originalEntityId;
+	}
 
-    public boolean isStunned() { return stunned; }
-    public void setStunned(boolean stunned) { this.stunned = stunned; }
+	public int getOriginalMinSpawnDelay() {
+		return originalMinSpawnDelay;
+	}
 
-    public boolean isInfinite() { return infinite; }
-    public void setInfinite(boolean infinite) {
-        this.infinite = infinite;
-        if (infinite) lifeSpanInTicks = Long.MAX_VALUE;
-    }
+	public void setOriginalMinSpawnDelay(int originalMinSpawnDelay) {
+		this.originalMinSpawnDelay = originalMinSpawnDelay;
+	}
 
-    public boolean isInitialized() { return initialized; }
-    public void setInitialized() {
-        this.initialized = true;
-        this.dataVersion = CURRENT_DATA_VERSION;
-    }
+	public int getOriginalMaxSpawnDelay() {
+		return originalMaxSpawnDelay;
+	}
 
-    public int getOriginalMinSpawnDelay() { return originalMinSpawnDelay; }
-    public void setOriginalMinSpawnDelay(int minDelay) { this.originalMinSpawnDelay = minDelay; }
+	public void setOriginalMaxSpawnDelay(int originalMaxSpawnDelay) {
+		this.originalMaxSpawnDelay = originalMaxSpawnDelay;
+	}
 
-    public int getOriginalMaxSpawnDelay() { return originalMaxSpawnDelay; }
-    public void setOriginalMaxSpawnDelay(int maxDelay) { this.originalMaxSpawnDelay = maxDelay; }
+	public long getLifeSpan() {
+		return lifeSpanInTicks;
+	}
 
-    public String getOriginalEntityId() { return originalEntityId; }
-    public void setOriginalEntityId(String entityId) { this.originalEntityId = entityId != null ? entityId : ""; }
+	public void setLifeSpan(long lifeSpanInTicks) {
+		this.lifeSpanInTicks = lifeSpanInTicks;
+	}
 
-    public int getDataVersion() { return dataVersion; }
-    public void setDataVersion(int version) { this.dataVersion = version; }
+	public boolean isInitialized() {
+		return initialized;
+	}
 
-    // --- Logic ---
-    public boolean hasExpired() { return !infinite && lifeSpanInTicks <= 0; }
+	public void setInitialized() {
+		this.initialized = true;
+	}
 
-    public void decrementLifespan(long ticks) {
-        if (!infinite && lifeSpanInTicks > 0) {
-            lifeSpanInTicks -= ticks;
-            if (lifeSpanInTicks < 0) lifeSpanInTicks = 0;
-        }
-    }
+	// --- Core Fields ---
+	private long lifeSpanInTicks = -1;
+	private boolean infinite = false;
+	private boolean stunned;
+	private boolean initialized;
 
-    // --- Serialization / Deserialization ---
-    public CompoundTag serializeNBT() {
-        CompoundTag tag = new CompoundTag();
-        tag.putInt("DataVersion", dataVersion);
-        tag.putBoolean("Initialized", initialized);
-        tag.putString("OriginalEntityId", originalEntityId);
-        tag.putBoolean("Stunned", stunned);
-        tag.putLong("Lifespan", lifeSpanInTicks);
-        tag.putBoolean("Infinite", infinite);
-        tag.putInt("OriginalMinSpawnDelay", originalMinSpawnDelay);
-        tag.putInt("OriginalMaxSpawnDelay", originalMaxSpawnDelay);
-        return tag;
-    }
+	// --- Accessors ---
 
-    public void deserializeNBT(CompoundTag nbt) {
-        // --- Version ---
-        dataVersion = nbt.contains("DataVersion") ? nbt.getInt("DataVersion") : 0;
+	public boolean isStunned() {
+		return stunned;
+	}
 
-        // --- Core fields with defaults ---
-        initialized = !nbt.contains("Initialized") || nbt.getBoolean("Initialized");
-        originalEntityId = nbt.contains("OriginalEntityId") ? nbt.getString("OriginalEntityId") : "";
-        stunned = nbt.contains("Stunned") && nbt.getBoolean("Stunned");
-        originalMinSpawnDelay = nbt.contains("OriginalMinSpawnDelay") ? nbt.getInt("OriginalMinSpawnDelay") : 200;
-        originalMaxSpawnDelay = nbt.contains("OriginalMaxSpawnDelay") ? nbt.getInt("OriginalMaxSpawnDelay") : 800;
+	public void setStunned(boolean stunned) {
+		this.stunned = stunned;
+	}
 
-        // --- Migration for old spawners ---
-        if (dataVersion < CURRENT_DATA_VERSION) {
-            dataVersion = CURRENT_DATA_VERSION;
-            lifeSpanInTicks = nbt.contains("Lifespan") ? nbt.getLong("Lifespan") : -1L;
-            infinite = nbt.contains("Infinite") && nbt.getBoolean("Infinite");
+	public boolean isInfinite() {
+		return infinite;
+	}
 
-            if (infinite) lifeSpanInTicks = Long.MAX_VALUE;
-            if (lifeSpanInTicks == -1)
-                lifeSpanInTicks = 600L * ((originalMinSpawnDelay + originalMaxSpawnDelay) / 2L);
-        } else {
-            lifeSpanInTicks = nbt.contains("Lifespan") ? nbt.getLong("Lifespan") : 0L;
-            infinite = nbt.contains("Infinite") && nbt.getBoolean("Infinite");
-        }
+	public void setInfinite(boolean infinite) {
+		this.infinite = infinite;
+		if (infinite)
+			lifeSpanInTicks = Long.MAX_VALUE;
+	}
 
-        // --- Invariant enforcement (legacy-only failure) ---
-        if (originalEntityId.isBlank()) {
-            initialized = false;
-            stunned = false;
-            infinite = false;
-            lifeSpanInTicks = 0;
-            MyUtilities.debugMsg(0, "(Warn) SpawnerStatsStorage: Loaded spawner and it had no Entity Id.");
-        }
-    }
+	// --- Serialization ---
+	public CompoundTag serializeNBT() {
+		CompoundTag tag = new CompoundTag();
+		tag.putInt("DataVersion", dataVersion);
+		tag.putBoolean("Initialized", initialized);
+		tag.putString("OriginalEntityId", originalEntityId);
+		tag.putBoolean("Stunned", stunned);
+		tag.putLong("Lifespan", lifeSpanInTicks);
+		tag.putBoolean("Infinite", infinite);
+		tag.putInt("OriginalMinSpawnDelay", originalMinSpawnDelay);
+		tag.putInt("OriginalMaxSpawnDelay", originalMaxSpawnDelay);
+		return tag;
+	}
+
+	// --- Deserialization ---
+	public void deserializeNBT(CompoundTag tag) {
+
+	    this.dataVersion = tag.contains("DataVersion") ? tag.getInt("DataVersion") : 0;		
+		this.infinite = tag.contains("Infinite") ? tag.getBoolean("Infinite") : false;
+		this.stunned = tag.contains("Stunned") ? tag.getBoolean("Stunned") : false;
+		this.lifeSpanInTicks = tag.contains("Lifespan") ? tag.getLong("Lifespan") : 20L * 60L * 500L;
+		this.originalMinSpawnDelay = tag.contains("OriginalMinSpawnDelay") ? tag.getInt("OriginalMinSpawnDelay") : 200;
+		this.originalMaxSpawnDelay = tag.contains("OriginalMaxSpawnDelay") ? tag.getInt("OriginalMaxSpawnDelay") : 800;
+		this.originalEntityId = tag.contains("OriginalEntityId") ? tag.getString("OriginalEntityId") : "";
+		this.initialized = true; // class exists and read
+
+	}
+
 }
+

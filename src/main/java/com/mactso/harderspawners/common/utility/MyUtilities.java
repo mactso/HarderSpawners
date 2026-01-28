@@ -94,16 +94,16 @@ public class MyUtilities {
 			e.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 2, amplifier, true, true));
 		}
 		
-		MobEffectInstance ei = e.getEffect(mobEffect);
+		MobEffectInstance existingEffect = e.getEffect(mobEffect);
 
-		if (ei != null) {
-			if (amplifier > ei.getAmplifier()) {
+		if (existingEffect != null) {
+			if (amplifier > existingEffect.getAmplifier()) {
 				e.removeEffect(mobEffect);
 			} 
-			if (amplifier == ei.getAmplifier() && ei.getDuration() > 10) {
+			if (amplifier == existingEffect.getAmplifier() && existingEffect.getDuration() > 10) {
 				return;
 			}
-			if (ei.getDuration() > 10) {
+			if (existingEffect.getDuration() > 10) {
 				return;
 			}
 			e.removeEffect(mobEffect);			

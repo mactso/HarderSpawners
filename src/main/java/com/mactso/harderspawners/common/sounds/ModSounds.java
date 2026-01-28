@@ -2,25 +2,26 @@ package com.mactso.harderspawners.common.sounds;
 
 import com.mactso.harderspawners.modloader.main.Main;
 
-import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraft.core.Registry;
 
 /**
- * Registers custom SoundEvents for Harder Spawners mod.
+ * Registers custom SoundEvents for Harder Spawners mod (Fabric 1.21.1, official mappings)
  */
 public class ModSounds {
-	
-    public static final DeferredRegister<SoundEvent> SOUND_EVENTS =
-            DeferredRegister.create(BuiltInRegistries.SOUND_EVENT, Main.MODID);
 
+    public static final SoundEvent SPAWNER_RECOVERS = registerSoundEvent("spawner_recovers");
 
-    // All vanilla sounds use variable range events.
-    public static final Holder<SoundEvent> SPAWNER_RECOVERS = SOUND_EVENTS.register(
-            "spawner_recovers",
-            // Takes in the registry name
-            SoundEvent::createVariableRangeEvent
-    );
+    private static SoundEvent registerSoundEvent(String name) {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(Main.MODID, name);
+        SoundEvent event = SoundEvent.createVariableRangeEvent(id);
+        return Registry.register(BuiltInRegistries.SOUND_EVENT, id, event);
+    }
 
+    /** Forces class load and static registration */
+    public static void register() {
+        // Nothing needed here; static fields already register the sounds
+    }
 }

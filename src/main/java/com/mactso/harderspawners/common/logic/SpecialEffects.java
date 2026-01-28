@@ -1,7 +1,9 @@
 package com.mactso.harderspawners.common.logic;
 
+import java.util.Random;
+
 import com.mactso.harderspawners.common.utility.MyUtilities;
-import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
+import com.mactso.harderspawners.common.utility.SpawnerUtilityMethods;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter;
 
@@ -24,6 +26,34 @@ import net.minecraft.world.phys.Vec3;
  */
 public class SpecialEffects {
 
+    private static final Random random = new Random();
+    /**
+     * Sends spawner-like flame and smoke particles at the given spawner position.
+     * Server-side only. Automatically sent to nearby players.
+     *
+     * @param level  the server level
+     * @param spawnerPos  the position of the spawner block
+     */
+    public static void sendSpawnerParticles(ServerLevel level, BlockPos spawnerPos) {
+        Vec3 center = Vec3.atCenterOf(spawnerPos); // center of the block
+
+        // 4 particles per call, similar to vanilla spawner
+        for (int i = 0; i < 4; i++) {
+            double offsetX = random.nextDouble() * 0.6 - 0.3;
+            double offsetY = random.nextDouble() * 0.6 - 0.4;
+            double offsetZ = random.nextDouble() * 0.6 - 0.3;
+
+            double x = center.x + offsetX;
+            double y = center.y + 0.5 + offsetY; // slightly above center
+            double z = center.z + offsetZ;
+
+            // Flame particle
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 1, 0, 0, 0, 0);
+
+            // Smoke particle
+            level.sendParticles(ParticleTypes.SMOKE, x, y, z, 1, 0, 0, 0, 0);
+        }
+    }
     /**
      * Displays effects when a spawner is nearing its expiration time.
      * This method checks the spawner's expiration relative to the chunk age and triggers appropriate
@@ -48,7 +78,6 @@ public class SpecialEffects {
 		MyUtilities.debugMsg(2, sbe.getBlockPos(), "Spawner time until failure: " + lifeSpan);
 
 		// Threshold for "near failure" special effects (25 spawns * 500 ticks per spawn)
-		// TODO: test this with a stunned spawner.
 		// note avgTimePerSpawn is normally 200t+800t = 1000t / 2 = 500t = 25 seconds.
 		// you can force debugging by setting avgTimePerSpawn to 20.
 		long avgTimePerSpawn = statsWrapper.averageSpawnDelay();
@@ -144,7 +173,7 @@ public class SpecialEffects {
 		double vz = 0.06 * rand.nextDouble() - 0.03d;
 		Vec3 rfv = new Vec3(vx, 0.05, vz);
 
-		if (SharedUtilityMethods.isSpawnerStunned(sbe)) {
+		if (SpawnerUtilityMethods.isSpawnerStunned(sbe)) {
 			smokeIntensity = 2;
 			volume = 0.01f;
 			defaultParticle = ParticleTypes.WHITE_SMOKE;

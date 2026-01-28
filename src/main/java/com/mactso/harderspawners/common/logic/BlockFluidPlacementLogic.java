@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
-import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 
 import net.minecraft.core.BlockPos;
@@ -20,10 +19,16 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluid;
+
+/**
+ * Handles player bucket placement near a spawner. Cancels lava bucket placement
+ * if too close to a spawner. Plays sound and smoke particles to indicate
+ * blocked action. Returns true if the placement should be canceled. Ensures
+ * server-side execution and correct spawner proximity checks.
+ */
 
 public class BlockFluidPlacementLogic {
 
@@ -42,9 +47,8 @@ public class BlockFluidPlacementLogic {
 		if (stack == null || !(stack.getItem() instanceof BucketItem bucket))
 			return false;
 
-		Fluid fluid = bucket.content;
-		if (fluid == null || fluid.getFluidType() == null || fluid.getFluidType().getLightLevel() == 0) {
-			return false; // skip non-bright fluids
+		if (stack.getItem() == Items.LAVA_BUCKET) {
+			return false;
 		}
 
 		ProcessSpawners.findAndProcessNearbySpawners(sp);
@@ -54,7 +58,8 @@ public class BlockFluidPlacementLogic {
 		if (!SpawnerPositionManager.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
 			return false;
 
-		// Play sound and particles
+		// Play sound and smoke particles at the given position to indicate failed lava
+		// placement.
 		sLevel.playSound(null, placedPos, SoundEvents.LAVA_EXTINGUISH, SoundSource.AMBIENT, 0.9f, 0.25f);
 		doLavaPlacementFailParticles(sLevel, placedPos, face);
 
@@ -80,8 +85,9 @@ public class BlockFluidPlacementLogic {
 	}
 
 	/**
-	 * Handles block placement logic near a spawner. Returns true if the block
-	 * should be destroyed.
+	 * Handles block placement logic near a spawner. Randomly destroys blocks that
+	 * emit light near spawners to prevent spawner abuse. Returns true if the block
+	 * was destroyed, false otherwise.
 	 */
 	public static boolean handleBlockPlacement(ServerPlayer sp, BlockState placedBlockState, BlockPos placedPos) {
 		if (placedBlockState == null || placedPos == null)
@@ -94,10 +100,8 @@ public class BlockFluidPlacementLogic {
 		if (sLevel.getRandom().nextInt(100) > MyConfig.getDestroyLightPercentage())
 			return false;
 
-		Block placedBlock = placedBlockState.getBlock();
-
 		// Skip if the block produces no light
-		if (SharedUtilityMethods.checkAdjustedBlockBrightness(sLevel, placedBlockState, placedBlock, placedPos) == 0)
+		if (SpawnerLightLogic.getAdjustedBlockStateLightEmission(placedBlockState) == 0)
 			return false;
 
 		// Skip if maximum local brightness is 15
@@ -132,15 +136,17 @@ public class BlockFluidPlacementLogic {
 	 * @param sp The server player whose level will be processed.
 	 */
 	public static void clearPendingLava(ServerPlayer sp) {
-	
+
 		ServerLevel serverLevel = (ServerLevel) sp.level();
 		// Get the pending lava set for this level
 		Set<BlockPos> pending = pendingLavaBlocks.get(serverLevel);
 		if (pending == null || pending.isEmpty()) {
 			return; // Nothing to do
 		}
-	
-		MyUtilities.debugMsg(1, "Clearing Lava");
+		
+		if (MyConfig.isDebug())
+			MyUtilities.debugMsg(1, "Clearing Lava");
+		
 		for (BlockPos pos : pending) {
 			BlockState state = serverLevel.getBlockState(pos);
 			if (state.getBlock() == Blocks.LAVA) {
@@ -148,7 +154,7 @@ public class BlockFluidPlacementLogic {
 				serverLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 			}
 		}
-	
+
 		// Clear the set so we don't process the same blocks again
 		pending.clear();
 	}

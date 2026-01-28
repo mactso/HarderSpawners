@@ -1,57 +1,58 @@
 package com.mactso.harderspawners.modloader.main;
 
+import com.mactso.harderspawners.common.commands.MyCommands;
+import com.mactso.harderspawners.common.logic.SpawnerLightLogic;
 import com.mactso.harderspawners.common.sounds.ModSounds;
 import com.mactso.harderspawners.modloader.config.MyConfig;
-import com.mactso.harderspawners.modloader.events.ExtendSpawnerExpirationTimeEvent;
-import com.mactso.harderspawners.modloader.events.MobSpawnHandler;
-import com.mactso.harderspawners.modloader.events.MyCommandsRegisterEvent;
-import com.mactso.harderspawners.modloader.events.MyEntityPlaceEvent;
+import com.mactso.harderspawners.modloader.events.AddSpawnerLifespanEvent;
+import com.mactso.harderspawners.modloader.events.BlockGlowingFluidEvent;
 import com.mactso.harderspawners.modloader.events.ServerEvents;
-import com.mactso.harderspawners.modloader.events.SpawnerBreakHandler;
-import com.mactso.harderspawners.modloader.events.SpawnerLightOnTopEvent;
-import com.mactso.harderspawners.modloader.events.SpawnerSpawnEvent;
-import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerAttachments;
+import com.mactso.harderspawners.modloader.events.ServerPlayerTickPreMixinEvent;
+import com.mactso.harderspawners.modloader.events.SpawnerBreakEvent;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 /**
- * Main entry point for the Harder Spawners mod under Fabric.
- * Handles mod setup, config registration, and event subscriptions.
+ * Main entry point for the Harder Spawners mod under Fabric. Handles mod setup,
+ * config registration, and event subscriptions.
  */
 public class Main implements ModInitializer {
 
-    public static final String MODID = "harderspawners";
-    public static final String MOD_VERSION = "v30.6 1.21.3";
+	public static final String MODID = "harderspawners";
+	public static final String MOD_VERSION = "v31.0 1.21.1";
 
-    @Override
-    public void onInitialize() {
+	@Override
+	public void onInitialize() {
 
-        // --- Config ---
-        MyConfig.register();
+		registerEvents();
+		// --- Config ---
+		MyConfig.registerConfigs();
+		
+	}
 
-        // --- Sounds ---
-        ModSounds.register();
+	/** Register Fabric event callbacks */
+	private void registerEvents() {
+		
+		ModSounds.register();
 
-        // --- Event registration ---
-        ExtendSpawnerExpirationTimeEvent.register();
-        MobSpawnHandler.register();
-        SpawnerBreakHandler.register();
-        SpawnerSpawnEvent.register();
-        SpawnerLightOnTopEvent.register();
-        MyEntityPlaceEvent.register();
-        ServerEvents.register();
+		// --- Event registration ---
+		AddSpawnerLifespanEvent.register();
+		// MobSpawnHandler.register(); replaced by MobSpawnHandlerMixin
+		SpawnerBreakEvent.register();
+		ServerPlayerTickPreMixinEvent.register();
+		// SpawnerLightOnTopEvent.register();  replaced by call to SpawnerLightLogic.removeLightSourcesAboveASpawner in ProcessSpawners
+		BlockGlowingFluidEvent.register();
+		ServerEvents.register();
 
-        // --- Commands ---
+		// --- Commands ---
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            MyCommandsRegisterEvent.register(dispatcher);
+            MyCommands.register(dispatcher);
         });
 
-        // --- Spawner attachments ---
-        SpawnerAttachments.register();
 
-    }
+	}
+
+	// --- Sounds ---
+
 }

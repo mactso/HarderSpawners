@@ -101,18 +101,26 @@ public class MobSpawnerManager {
 		}
 
 		public int initLifespanValue() {
-
-			if (minLifespan == 0)
-				return 0;
-			if (maxLifespan == 0)
-				return 0;
-			if (maxLifespan <= minLifespan)
-				return 0;
-
+			
+			int workMin = MyConfig.getMinSpawnDelayOverride();
+			int workMax = MyConfig.getMaxSpawnDelayOverride();
+			
+			if (workMin > workMax) {
+				workMin = 200;
+				workMax = 800;
+			}
+			
+			if (minLifespan != 0)
+				workMin = minLifespan;
+			if (maxLifespan != 0)
+				workMax = maxLifespan;
+			if (workMax <= workMin)
+				return 450;
 			Random r = new Random();
-			int range = maxLifespan - minLifespan;
-
-			return r.nextInt(range) + minLifespan;
+			int range = workMax - workMin;
+			if (range <=1)
+				range = 600;
+			return r.nextInt(range) + workMin;
 
 		}
 

@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
-import com.mactso.harderspawners.common.utility.SharedUtilityMethods;
+import com.mactso.harderspawners.common.utility.SpawnerUtilityMethods;
 import com.mactso.harderspawners.modloader.adapter.Adapters;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.main.Main;
@@ -25,6 +25,17 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+
+/**
+ * Registers and executes all commands for the Harder Spawners mod.
+ * Provides operator-level utilities for querying and modifying spawner state.
+ * Commands include info, help, lifespan manipulation, and spawner reporting.
+ * Ensures server-side execution and player authorization for safety.
+ * Supports both infinite and finite spawner lifespan adjustments.
+ * Uses helper utilities for chat feedback and spawner stats access.
+ * All commands operate on the spawner the player is currently looking at or nearby.
+ */
+
 
 public class MyCommands {
 
@@ -138,6 +149,10 @@ public class MyCommands {
             return CommandResult.NONE;
         }
 
+        if (SpawnerUtilityMethods.isTrialSpawner(sbe)) {
+           	MyUtilities.sendChat (player, "The Spawner is a Trial Spawner.", ChatFormatting.AQUA);
+            return CommandResult.NONE;
+        }
         // Get the stats wrapper
         SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
         if (statsWrapper == null) {
@@ -151,11 +166,20 @@ public class MyCommands {
 
     	// Show spawner stats
         StringBuilder msg = new StringBuilder();
-        
-     // Show original entity id (first line of report)
+        CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
+        //
+        String spawnerKind = "Peaceful";
+        if (SpawnerUtilityMethods.isMonsterSpawner(sbe, spawnerTag))
+        	spawnerKind = "Hostile";
+        //
         msg.append("Original EntityId: ")
            .append(statsWrapper.getOriginalEntityId())
+           .append(" ("+spawnerKind+")")
            .append("\n");
+        //
+        msg.append("Spawns up to light level: ")
+        .append(MyConfig.getHostileSpawnerLightLevel())
+        .append("\n");
         
         msg.append("Estimated Spawns Left: ")
         .append(statsWrapper.isInfinite() ? "infinite" : statsWrapper.getEstimatedSpawns())
@@ -163,9 +187,9 @@ public class MyCommands {
         msg.append("Stunned: ").append(statsWrapper.isStunned()).append("\n");
  
         // Show configured spawn delays
-        CompoundTag spawnerTag = SharedUtilityMethods.saveSpawnerToTag(sbe);
-        int minDelay = SharedUtilityMethods.getIntOrDefault(spawnerTag, "MinSpawnDelay", -1);
-        int maxDelay = SharedUtilityMethods.getIntOrDefault(spawnerTag, "MaxSpawnDelay", -1);
+
+        int minDelay = SpawnerUtilityMethods.getIntOrDefault(spawnerTag, "MinSpawnDelay", -1);
+        int maxDelay = SpawnerUtilityMethods.getIntOrDefault(spawnerTag, "MaxSpawnDelay", -1);
 
         if (minDelay >= 0 && maxDelay >= 0) {
             msg.append("Spawn Delay Range: ")
@@ -176,13 +200,17 @@ public class MyCommands {
         } else {
             msg.append("Spawn Delay Range: <unknown>\n");
         }
-
-    	String hms = "Never.\n";
+        // Lifespan left: 
+    	String hms = "infinite.\n";
         if (!statsWrapper.isInfinite()) {
-        	hms = getLifespanHMS(statsWrapper) + "from now.\n";
+        	hms = getLifespanHMS(statsWrapper) + ".";
         } 
-
-        msg.append("Lifespan ends: ").append(hms);
+        if (statsWrapper.isStunned()) {
+        	hms = hms + " (stunned)";
+        }
+        
+        msg.append("Lifespan left: ").append(hms+"\n");
+        
         String nextSpawnHMS = getNextSpawnHMS(sbe);
         msg.append("Next spawn in: ").append(nextSpawnHMS).append(" from now.\n");
         // Optional light-level check
@@ -216,7 +244,7 @@ public class MyCommands {
      );
 
      // Generate report
-     String report = SharedUtilityMethods.makeSpawnerCompoundTagReport(sbe);
+     String report = SpawnerUtilityMethods.makeSpawnerCompoundTagReport(sbe);
 
      if (report == null || report.isBlank()) {
          MyUtilities.sendChat(player, "Spawner tag is empty.", ChatFormatting.YELLOW);
@@ -236,6 +264,10 @@ public class MyCommands {
         SpawnerBlockEntity sbe = getLookedAtSpawner(player, MAX_LOOK_DISTANCE);
         if (sbe == null) {
             MyUtilities.sendChat(player, "You see no spawner.", ChatFormatting.YELLOW);
+            return CommandResult.NONE;
+        }
+        if (SpawnerUtilityMethods.isTrialSpawner(sbe)) {
+           	MyUtilities.sendChat (player, "The Spawner is a Trial Spawner.  Skipped.", ChatFormatting.AQUA);
             return CommandResult.NONE;
         }
 
@@ -270,6 +302,10 @@ public class MyCommands {
         SpawnerBlockEntity sbe = getLookedAtSpawner(player, MAX_LOOK_DISTANCE);
         if (sbe == null) {
             MyUtilities.sendChat(player, "You see no spawner.", ChatFormatting.YELLOW);
+            return CommandResult.NONE;
+        }
+        if (SpawnerUtilityMethods.isTrialSpawner(sbe)) {
+           	MyUtilities.sendChat (player, "The Spawner is a Trial Spawner.  Skipped.", ChatFormatting.AQUA);
             return CommandResult.NONE;
         }
 
@@ -332,7 +368,7 @@ public class MyCommands {
     }
     
     public static String getNextSpawnHMS(SpawnerBlockEntity sbe) {
-        int spawnDelayTicks = Adapters.getDelay(sbe.getSpawner());
+        int spawnDelayTicks = Adapters.getSpawnDelay(sbe.getSpawner());
         long spawnDelaySeconds = Math.max(spawnDelayTicks / 20L, 0); // convert ticks to seconds, avoid negative
         String hms = formatSecondsToHMS(spawnDelaySeconds);
         return hms;
