@@ -1,6 +1,6 @@
 package com.mactso.harderspawners.modloader.events;
 
-import com.mactso.harderspawners.common.logic.BlockFluidPlacementLogic;
+import com.mactso.harderspawners.common.logic.BlockAndFluidPlacement;
 import com.mactso.harderspawners.common.logic.ProcessSpawners;
 
 import net.minecraft.server.level.ServerPlayer;
@@ -12,7 +12,8 @@ public class ServerPlayerTickPreMixinEvent {
 	}
 	
 	public static void handleEvent (ServerPlayer sp){
-        BlockFluidPlacementLogic.clearPendingLava(sp);
+        BlockAndFluidPlacement.removePendingBrightFluid(sp);
+        BlockAndFluidPlacement.clearPendingBrightBlocks(sp);
         ProcessSpawners.findAndProcessNearbySpawners(sp);
     }
 }

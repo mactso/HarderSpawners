@@ -11,8 +11,18 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 
+/*
+* Handles initialization and configuration of monster spawners.
+* Ensures default spawn potentials, applies mod config, and overrides delays.
+* Intended for hostile mob spawners in HarderSpawners.
+*/
 public class SpawnerInitialization {
 
+    /*
+    * Ensures SpawnPotentials exists if SpawnData is defined.
+    * Converts single SpawnData to a weighted list for vanilla compliance.
+    * @Deprecated Written to try to fix a bug. didn't work.  may use in future.
+    */
 	public static void ensureDefaultSpawnPotentials(CompoundTag spawnerTag) {
 		if (spawnerTag.contains("SpawnPotentials", Tag.TAG_LIST)
 				&& spawnerTag.getList("SpawnPotentials", Tag.TAG_COMPOUND).isEmpty()) {
@@ -32,6 +42,11 @@ public class SpawnerInitialization {
 
 	}
 
+    /*
+    * Applies mod configuration to monster spawners only.
+    * Overrides nearby entity count, player range, spawn range, and optionally delays.
+    * Rebuilds SpawnData with custom light levels if required.
+    */
 	public static void applyConfigToMonsterSpawners(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
 
 		if (MyConfig.isDebug())
@@ -64,6 +79,11 @@ public class SpawnerInitialization {
 		SpawnerUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
 	}
 
+    /*
+    * Optionally overrides vanilla spawner delays if allowed by config.
+    * Preserves non-vanilla timings if configured.
+    * Sets MinSpawnDelay and MaxSpawnDelay from config otherwise.
+    */
 	public static void maybeOverrideSpawnDelays(CompoundTag tag) {
 
 		int testingDebugLevel = 0;
@@ -86,7 +106,11 @@ public class SpawnerInitialization {
 		MyUtilities.debugMsg(testingDebugLevel, "MaxSpawnDelay overridden to " + MyConfig.getMaxSpawnDelayOverride());
 
 	}
-
+	
+    /*
+    * Checks if the spawner’s Min/Max delays match vanilla values (200-800).
+    * Returns true if delays are vanilla, false otherwise.
+    */
 	public static boolean isSpawnerDelayVanilla(CompoundTag tag) {
 		if (!tag.contains("MinSpawnDelay") || !tag.contains("MaxSpawnDelay")) {
 			return false;

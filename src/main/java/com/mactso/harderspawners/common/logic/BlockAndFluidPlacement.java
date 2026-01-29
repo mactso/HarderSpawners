@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.modloader.config.MyConfig;
+import com.mactso.harderspawners.modloader.events.BlockGlowingFluidEvent;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -17,11 +18,16 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 
 /**
  * Handles player bucket placement near a spawner. Cancels lava bucket placement
@@ -30,7 +36,50 @@ import net.minecraft.world.level.block.state.BlockState;
  * server-side execution and correct spawner proximity checks.
  */
 
-public class BlockFluidPlacementLogic {
+public class BlockAndFluidPlacement {
+	
+    /**
+     * Breaks light emitting blocks placed near the spawner by players.
+     * and if a spawner is nearby. Queues blocks for later destruction if necessary.
+     * Returns an InteractionResult that the UseBlockCallback can return directly.
+     */
+    public static InteractionResult breakLightEmittingBlocksEvent(Player player, Level world, 
+                                                     net.minecraft.world.InteractionHand hand, 
+                                                     BlockHitResult hitResult) {
+        // Only process on server
+        if (!(world instanceof ServerLevel serverLevel)) return InteractionResult.PASS;
+
+        // Only process for players
+        if (!(player instanceof net.minecraft.server.level.ServerPlayer sp)) return InteractionResult.PASS;
+
+        // Check the item in hand
+        ItemStack handStack = sp.getItemInHand(hand);
+        if (!(handStack.getItem() instanceof BlockItem blockItem)) return InteractionResult.PASS;
+
+        // Determine block placement position
+        BlockPos clickedPos = hitResult.getBlockPos();
+        Direction face = hitResult.getDirection();
+        BlockPos placedPos = clickedPos.relative(face);
+        // Skip if no spawner is nearby
+        if (!SpawnerPositionManager.isSpawnerNearby(serverLevel, placedPos, MyConfig.getDestroyLightRange() ))
+            return InteractionResult.PASS;
+
+        // Get the block state that would be placed
+        BlockState placedState = blockItem.getBlock().defaultBlockState();
+
+        // If the block emits light, queue it for destruction
+        // In Fabric, we cannot break it immediately. Fabric is inconsistent about 
+        // respecting PASS and FAIL results.
+        if (SpawnerLightLogic.getAdjustedBlockStateLightEmission(placedState) > 0) {
+            queuePendingBrightBlocks(serverLevel, placedPos);
+            return InteractionResult.PASS; // Cancel placement for bright blocks
+        }
+
+        // Allow vanilla placement
+        return InteractionResult.PASS;
+    }
+
+
 
 	/**
 	 * Handles placement of a bucket fluid near a spawner. Returns true if the event
@@ -47,19 +96,19 @@ public class BlockFluidPlacementLogic {
 		if (stack == null || !(stack.getItem() instanceof BucketItem bucket))
 			return false;
 
-		if (stack.getItem() == Items.LAVA_BUCKET) {
+		if (!(BlockGlowingFluidEvent.isBrightFluid(bucket))) {
 			return false;
 		}
 
-		ProcessSpawners.findAndProcessNearbySpawners(sp);
-
-		BlockPos placedPos = clickedPos.relative(face);
-
-		if (!SpawnerPositionManager.isSpawnerNearby(sLevel, placedPos, MyConfig.getDestroyLightRange()))
+		
+		if (!SpawnerPositionManager.isSpawnerNearby(sLevel, clickedPos, MyConfig.getDestroyLightRange()))
 			return false;
+		
+		ProcessSpawners.findAndProcessNearbySpawners(sp); // TODO this may be redundant to serverplayertick
 
 		// Play sound and smoke particles at the given position to indicate failed lava
 		// placement.
+		BlockPos placedPos = clickedPos.relative(face);
 		sLevel.playSound(null, placedPos, SoundEvents.LAVA_EXTINGUISH, SoundSource.AMBIENT, 0.9f, 0.25f);
 		doLavaPlacementFailParticles(sLevel, placedPos, face);
 
@@ -84,6 +133,36 @@ public class BlockFluidPlacementLogic {
 		}
 	}
 
+	static final Map<ServerLevel, Set<BlockPos>> pendingBrightBlocks = new ConcurrentHashMap<>();
+	
+	public static void queuePendingBrightBlocks(ServerLevel level, BlockPos pos) {
+		pendingBrightBlocks.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet()).add(pos);
+
+	}
+	
+	public static void clearPendingBrightBlocks(ServerPlayer sp) {
+
+		ServerLevel serverLevel = (ServerLevel) sp.level();
+		// Get the pending lava set for this level
+		Set<BlockPos> pending = pendingBrightBlocks.get(serverLevel);
+		if (pending == null || pending.isEmpty()) {
+			return; // Nothing to do
+		}
+
+		if (MyConfig.isDebug())
+			MyUtilities.debugMsg(1, "Clearing Lava");
+
+		for (BlockPos pos : pending) {
+			// Remove the bright fluid block (flash was displayed)
+            // Destroy the block immediately, dropping items
+            serverLevel.destroyBlock(pos, true); // true = drop items
+
+		}
+
+		// Clear the set so we don't process the same blocks again
+		pending.clear();
+	}
+	
 	/**
 	 * Handles block placement logic near a spawner. Randomly destroys blocks that
 	 * emit light near spawners to prevent spawner abuse. Returns true if the block
@@ -119,14 +198,15 @@ public class BlockFluidPlacementLogic {
 		return true; // bright block should be destroyed
 	}
 
-	static final Map<ServerLevel, Set<BlockPos>> pendingLavaBlocks = new ConcurrentHashMap<>();
+	static final Map<ServerLevel, Set<BlockPos>> pendingBrightFluid = new ConcurrentHashMap<>();
 
 	/**
 	 * Adds a lava block to the pending queue to be processed on the next player
 	 * tick.
 	 */
-	public static void queuePendingLava(ServerLevel level, BlockPos pos) {
-		pendingLavaBlocks.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet()).add(pos);
+	public static void queuePendingBrightFluid(ServerLevel level, BlockPos pos) {
+		pendingBrightFluid.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet()).add(pos);
+
 	}
 
 	/**
@@ -135,26 +215,23 @@ public class BlockFluidPlacementLogic {
 	 *
 	 * @param sp The server player whose level will be processed.
 	 */
-	public static void clearPendingLava(ServerPlayer sp) {
+	public static void removePendingBrightFluid(ServerPlayer sp) {
 
 		ServerLevel serverLevel = (ServerLevel) sp.level();
 		// Get the pending lava set for this level
-		Set<BlockPos> pending = pendingLavaBlocks.get(serverLevel);
+		Set<BlockPos> pending = pendingBrightFluid.get(serverLevel);
 		if (pending == null || pending.isEmpty()) {
 			return; // Nothing to do
 		}
-		
+
 		if (MyConfig.isDebug())
 			MyUtilities.debugMsg(1, "Clearing Lava");
-		
-		for (BlockPos pos : pending) {
-			BlockState state = serverLevel.getBlockState(pos);
-			if (state.getBlock() == Blocks.LAVA) {
-				// Remove the lava block (flash was displayed)
-				serverLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
-			}
-		}
 
+		for (BlockPos pos : pending) {
+			// Remove the bright fluid block (flash was displayed)
+			serverLevel.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+
+		}
 		// Clear the set so we don't process the same blocks again
 		pending.clear();
 	}
