@@ -34,7 +34,6 @@ public class MyUtilities {
 
 
 
-	
 	public static void drawParticleBeam(BlockPos pos, ServerLevel sLevel, 
 			ParticleOptions particleType) {
 		Vec3 bV3d = new Vec3(pos.getX()+0.5d, pos.getY()+0.5d, pos.getZ()+0.5d);

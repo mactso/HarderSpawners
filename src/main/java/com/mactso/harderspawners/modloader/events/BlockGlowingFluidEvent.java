@@ -16,7 +16,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 
@@ -50,14 +49,17 @@ public class BlockGlowingFluidEvent {
 			if (!(isBrightFluid(bucketItem))) {
 				return InteractionResult.PASS;
 			}
-			int debug = 3;
+
 			BlockPos clickedPos = hitResult.getBlockPos();
 			Direction clickedFace = hitResult.getDirection();
 			BlockPos placedPos = clickedPos.relative(clickedFace);
-			boolean shouldCancel = BlockAndFluidPlacement.handleBucketPlacement(serverPlayer, handStack, clickedPos, clickedFace);
+			boolean shouldCancel = BlockAndFluidPlacement.handleBucketPlacement(serverPlayer, handStack, clickedPos,
+					clickedFace);
+			if (shouldCancel) {
 			BlockAndFluidPlacement.queuePendingBrightFluid(serverLevel, placedPos);
-			// return InteractionResult.CONSUME;  // but this is ignored by Minecraft and the lava places anyway.
-			
+				// return InteractionResult.FAIL; // but this is ignored by Fabric Minecraft and the
+				// lava places anyway.
+			}
 			// Allow vanilla placement
 			return InteractionResult.PASS;
 		});

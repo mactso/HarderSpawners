@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 import java.lang.reflect.Field;
 
 /**
- * Adapter to read BaseSpawner.spawnDelay reflectively across Fabric 1.21.1 →
+ * Adapter to read BaseSpawner.spawnDelay reflectively across Fabric 1.21.1 to
  * 1.21.11.
  * <p>
  * Tries multiple intermediary names (production) first, then falls back to
@@ -20,8 +20,6 @@ public class Adapters {
 
 	/** Cached reflective Field */
 	private static final Field SPAWN_DELAY_FIELD = findSpawnDelayField();
-
-	/** List of known intermediary field names across 1.21.1 → 1.21.11 */
 
 	private static Field findSpawnDelayField() {
 		MappingResolver resolver = FabricLoader.getInstance().getMappingResolver();

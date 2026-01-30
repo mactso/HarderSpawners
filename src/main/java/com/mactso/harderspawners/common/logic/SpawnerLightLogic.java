@@ -286,7 +286,7 @@ public class SpawnerLightLogic {
         int maxBlockLight = MyConfig.getHostileSpawnerLightLevel();
 
         if (blockLight > maxBlockLight) {
-            MyUtilities.debugMsg(0, "[SpawnerLightLogic] Spawn blocked. Blocklight [" + blockLight + "] > " + maxBlockLight);
+            MyUtilities.debugMsg(1, "[SpawnerLightLogic] Spawn blocked. Blocklight [" + blockLight + "] > " + maxBlockLight);
             return false;
         }
 
@@ -294,11 +294,11 @@ public class SpawnerLightLogic {
         int maxSunlight = MyConfig.getHostileSpawnerLightLevel();
 
         if (effectiveSunlight > maxSunlight) {
-            MyUtilities.debugMsg(0, "[SpawnerLightLogic] Spawn blocked. Effective sunlight [" + effectiveSunlight + "] > " + maxSunlight);
+            MyUtilities.debugMsg(1, "[SpawnerLightLogic] Spawn blocked. Effective sunlight [" + effectiveSunlight + "] > " + maxSunlight);
             return false;
         }
 
-        MyUtilities.debugMsg(0, "[SpawnerLightLogic] Spawn allowed. Blocklight [" + blockLight + "] <= " + maxBlockLight
+        MyUtilities.debugMsg(1, "[SpawnerLightLogic] Spawn allowed. Blocklight [" + blockLight + "] <= " + maxBlockLight
                 + ", Effective sunlight [" + effectiveSunlight + "] <= " + maxSunlight);
         return true;
     }

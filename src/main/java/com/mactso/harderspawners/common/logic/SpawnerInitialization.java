@@ -51,7 +51,7 @@ public class SpawnerInitialization {
 
 		if (MyConfig.isDebug())
 			MyUtilities.debugMsg(1,
-					"Entering doApplyConfigToMonsterSpawners for spawner at " + sbe.getBlockPos());
+				"Entering doApplyConfigToMonsterSpawners for spawner at " + sbe.getBlockPos());
 
 		// Nested SpawnData inside the spawner
 		CompoundTag spawnDataTag = spawnerTag.getCompound("SpawnData");
@@ -106,9 +106,9 @@ public class SpawnerInitialization {
 		MyUtilities.debugMsg(testingDebugLevel, "MaxSpawnDelay overridden to " + MyConfig.getMaxSpawnDelayOverride());
 
 	}
-	
+
     /*
-    * Checks if the spawnerâ€™s Min/Max delays match vanilla values (200-800).
+    * Checks if the spawner’s Min/Max delays match vanilla values (200-800).
     * Returns true if delays are vanilla, false otherwise.
     */
 	public static boolean isSpawnerDelayVanilla(CompoundTag tag) {
