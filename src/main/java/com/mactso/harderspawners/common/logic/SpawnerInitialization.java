@@ -11,8 +11,18 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 
+/*
+* Handles initialization and configuration of monster spawners.
+* Ensures default spawn potentials, applies mod config, and overrides delays.
+* Intended for hostile mob spawners in HarderSpawners.
+*/
 public class SpawnerInitialization {
 
+    /*
+    * Ensures SpawnPotentials exists if SpawnData is defined.
+    * Converts single SpawnData to a weighted list for vanilla compliance.
+    * @Deprecated Written to try to fix a bug. didn't work.  may use in future.
+    */
 	public static void ensureDefaultSpawnPotentials(CompoundTag spawnerTag) {
 		if (spawnerTag.contains("SpawnPotentials", Tag.TAG_LIST)
 				&& spawnerTag.getList("SpawnPotentials", Tag.TAG_COMPOUND).isEmpty()) {
@@ -32,62 +42,48 @@ public class SpawnerInitialization {
 
 	}
 
+    /*
+    * Applies mod configuration to monster spawners only.
+    * Overrides nearby entity count, player range, spawn range, and optionally delays.
+    * Rebuilds SpawnData with custom light levels if required.
+    */
 	public static void applyConfigToMonsterSpawners(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
 
-		// Local debug level for testing
-		int testingDebugLevel = 0;
-//		// TODO this is disabled temporarily.
-//		if (testingDebugLevel == 0) return;
-
-		MyUtilities.debugMsg(testingDebugLevel,
+		if (MyConfig.isDebug())
+			MyUtilities.debugMsg(1,
 				"Entering doApplyConfigToMonsterSpawners for spawner at " + sbe.getBlockPos());
 
 		// Nested SpawnData inside the spawner
 		CompoundTag spawnDataTag = spawnerTag.getCompound("SpawnData");
-		if (spawnDataTag.isEmpty()) {
-			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag is empty, aborting.");
+		if (spawnDataTag.isEmpty()) 
 			return;
-		}
 
 		// Only apply to monster spawners
-		if (!SpawnerUtilityMethods.isMonsterSpawner(sbe, spawnerTag)) {
-			MyUtilities.debugMsg(testingDebugLevel, "Spawner is not a monster spawner, skipping.");
+		if (!SpawnerUtilityMethods.isMonsterSpawner(sbe, spawnerTag)) 
 			return;
-		}
-
-		MyUtilities.debugMsg(testingDebugLevel, "Applying configuration overrides to spawner.");
 
 		// Apply configuration overrides directly to the spawner tag
 		SpawnerUtilityMethods.putIntIfDifferent(spawnerTag, "MaxNearbyEntities", MyConfig.getMaxNearbyEntities());
-		MyUtilities.debugMsg(testingDebugLevel, "MaxNearbyEntities set to " + MyConfig.getMaxNearbyEntities());
-
 		SpawnerUtilityMethods.putIntIfDifferent(spawnerTag, "RequiredPlayerRange", MyConfig.getRequiredPlayerRange());
-		MyUtilities.debugMsg(testingDebugLevel, "RequiredPlayerRange set to " + MyConfig.getRequiredPlayerRange());
-
 		SpawnerUtilityMethods.putIntIfDifferent(spawnerTag, "SpawnRange", MyConfig.getSpawnRange());
-		MyUtilities.debugMsg(testingDebugLevel, "SpawnRange set to " + MyConfig.getSpawnRange());
-
 		SpawnerInitialization.maybeOverrideSpawnDelays(spawnerTag);
-		MyUtilities.debugMsg(testingDebugLevel, "Spawn delays processed with maybeOverrideSpawnDelays.");
 
 		// Optionally rebuild SpawnData with custom light levels
 		MyUtilities.debugMsg(0, "spawnerdatatag" + spawnerTag.getAsString());
 		Optional<Tag> workSpawnData = SpawnerLightLogic.buildCustomLightLevelSpawnData(spawnDataTag);
 		if (workSpawnData.isPresent() && !spawnDataTag.equals(workSpawnData.get())) {
 			spawnerTag.put("SpawnData", workSpawnData.get());
-			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag updated with custom light level spawn data.");
 		} else {
-			MyUtilities.debugMsg(testingDebugLevel, "SpawnData tag unchanged after custom light level processing.");
 		}
-		// ensureDefaultSpawnPotentials(spawnerTag);
-
-		MyUtilities.debugMsg(0, "spawnerdatatag" + spawnerTag.getAsString());
-
 		// Save back to spawner
 		SpawnerUtilityMethods.loadSpawnerFromTag(sbe, spawnerTag);
-		MyUtilities.debugMsg(testingDebugLevel, "Spawner NBT loaded back into spawner block entity.");
 	}
 
+    /*
+    * Optionally overrides vanilla spawner delays if allowed by config.
+    * Preserves non-vanilla timings if configured.
+    * Sets MinSpawnDelay and MaxSpawnDelay from config otherwise.
+    */
 	public static void maybeOverrideSpawnDelays(CompoundTag tag) {
 
 		int testingDebugLevel = 0;
@@ -111,6 +107,10 @@ public class SpawnerInitialization {
 
 	}
 
+    /*
+    * Checks if the spawner’s Min/Max delays match vanilla values (200-800).
+    * Returns true if delays are vanilla, false otherwise.
+    */
 	public static boolean isSpawnerDelayVanilla(CompoundTag tag) {
 		if (!tag.contains("MinSpawnDelay") || !tag.contains("MaxSpawnDelay")) {
 			return false;

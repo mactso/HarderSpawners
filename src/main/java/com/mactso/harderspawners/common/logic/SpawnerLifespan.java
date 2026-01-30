@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
-import com.mactso.harderspawners.common.utility.SpawnerUtilityMethods;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.config.MyConfig.EndOfLifespanAction;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter;
@@ -20,7 +19,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;

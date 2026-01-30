@@ -73,6 +73,8 @@ public class MyConfig {
 
 	private static void createConfigs() {
 
+		configs.addComment("Harder Spawners Configuration.");
+
 		// ===== Debug =====
 		configs.addComment("Debug settings");
 		configs.addKeyValuePair(new Pair<>("debugLevel", 0), "int", "0-2; 0 off, 1 some detail, 2 high detail.");
@@ -126,10 +128,11 @@ public class MyConfig {
 		configs.addComment("List of default, and mobs default (min to max) number of spawns.");
 		configs.addKeyValuePair(new Pair<>("mobSpawnerDurabilityRangesString", defaultMobSpawnerRanges), "String",
 				"format: modid:name,min,max; ...");
-		configs.addKeyValuePair(new Pair<>("endOfLifespanAction", "DESTROYED"), "String",
-				"DESTROYED/LINGER; action at end of lifespan");
 		configs.addComment("DESTROYED: Spawner breaks or explodes.");
 		configs.addComment("LINGER: does not break but only spawns every 25 minutes until repaired.");
+		configs.addKeyValuePair(new Pair<>("endOfLifespanAction", "DESTROYED"), "String",
+				"DESTROYED/LINGER; action at end of lifespan");
+		configs.addComment("End of Harder Spawners Configuration.");
 		
 	}
 

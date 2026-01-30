@@ -44,17 +44,16 @@ public class SpawnerLightLogic {
 	PoweredBlock.class, RedStoneWireBlock.class, LeverBlock.class, RepeaterBlock.class, ComparatorBlock.class);
 
 	/**
-	 * Checks all light above a spawner in the given level for blocks above them that may
-	 * interfere with mob spawning (light or fluids) and handles them.
+	 * Checks all light above a spawner in the given level for blocks above them
+	 * that may interfere with mob spawning (light or fluids) and handles them.
 	 */
 	public static void removeLightSourcesAboveASpawner(ServerLevel serverLevel, SpawnerBlockEntity sbe) {
 		
-		if (sbe.isRemoved()) return;
+		if (sbe.isRemoved())
+			return;
 		BlockPos spawnerPos = sbe.getBlockPos();
-		int monsterSpawnBlockLightLimit =
-		        serverLevel.dimensionType().monsterSpawnBlockLightLimit();
-		int blockLightAtSpawner =
-		        serverLevel.getBrightness(LightLayer.BLOCK, spawnerPos);
+		int monsterSpawnBlockLightLimit = serverLevel.dimensionType().monsterSpawnBlockLightLimit();
+		int blockLightAtSpawner = serverLevel.getBrightness(LightLayer.BLOCK, spawnerPos);
 
 		if (blockLightAtSpawner < monsterSpawnBlockLightLimit) {
 		    return;
@@ -111,7 +110,7 @@ public class SpawnerLightLogic {
 	 * @param placedPos the position of the block
 	 * @return the effective light emission of the block
 	 */
-	public static int getAdjustedBlockStateLightEmission( BlockState testBlockState ) {
+	public static int getAdjustedBlockStateLightEmission(BlockState testBlockState) {
 	
 		if (SpawnerLightLogic.ALWAYS_MAX_LIGHT.contains(testBlockState.getBlock().getClass()))
 			return 15;
@@ -166,7 +165,7 @@ public class SpawnerLightLogic {
 			return false;
 	
 		RandomSource rand = serverLevel.getRandom();
-		
+
 		// 4 lower but not outside the world.
 		int fYmin = (int) pos.getY() - 4; 
 		if (fYmin < serverLevel.getMinBuildHeight())
@@ -199,7 +198,7 @@ public class SpawnerLightLogic {
 					// Debugging Code
 					// SimpleParticleType particles = ParticleTypes.END_ROD;
 					// slevel.sendParticles(particles, dx, dy, dz, 3, 0, 0, 0, -0.04D);
-					int blockLightLevel = getAdjustedBlockStateLightEmission( bs);
+					int blockLightLevel = getAdjustedBlockStateLightEmission(bs);
 	
 					if (blockLightLevel > customLightLevel) {
 						if (b != Blocks.END_PORTAL) {
@@ -231,7 +230,7 @@ public class SpawnerLightLogic {
 	
 		int lightLevel = MyConfig.getHostileSpawnerLightLevel();
 		int blocklight = lightLevel;  // The light level
-		int skylight = 14; // open sky straight above (not above a nearby block)
+		int skylight = 15; // open sky straight above (not above a nearby block)
 		CustomSpawnRules c = new SpawnData.CustomSpawnRules(new InclusiveRange<Integer>(0, blocklight),
 				new InclusiveRange<Integer>(0, skylight));
 	
@@ -274,5 +273,68 @@ public class SpawnerLightLogic {
 	
 	}
 
+    /**
+     * Checks if a hostile mob may spawn at the given position.
+     * Considers both block light and effective sunlight (time of day, weather, moon phase).
+     *
+     * @param level the server level
+     * @param pos   the block position
+     * @return true if spawning is allowed, false otherwise
+     */
+    public static boolean canSpawnAt(ServerLevel level, BlockPos pos) {
+        int blockLight = level.getBrightness(LightLayer.BLOCK, pos);
+        int maxBlockLight = MyConfig.getHostileSpawnerLightLevel();
+
+        if (blockLight > maxBlockLight) {
+            MyUtilities.debugMsg(1, "[SpawnerLightLogic] Spawn blocked. Blocklight [" + blockLight + "] > " + maxBlockLight);
+            return false;
+        }
+
+        int effectiveSunlight = getEffectiveSunlight(level, pos);
+        int maxSunlight = MyConfig.getHostileSpawnerLightLevel();
+
+        if (effectiveSunlight > maxSunlight) {
+            MyUtilities.debugMsg(1, "[SpawnerLightLogic] Spawn blocked. Effective sunlight [" + effectiveSunlight + "] > " + maxSunlight);
+            return false;
+        }
+
+        MyUtilities.debugMsg(1, "[SpawnerLightLogic] Spawn allowed. Blocklight [" + blockLight + "] <= " + maxBlockLight
+                + ", Effective sunlight [" + effectiveSunlight + "] <= " + maxSunlight);
+        return true;
+    }
+
+	/**
+	 * Returns the effective sunlight at a block, adjusted for time of day and
+	 * weather. This mimics the vanilla mob spawning check.
+	 *
+	 * @param level the server level
+	 * @param pos   the block position
+	 * @return skylight 0-15 after weather/time adjustment
+	 */
+	public static int getEffectiveSunlight(ServerLevel level, BlockPos pos) {
+		// Raw skylight (0-15)
+		int skyLight = level.getBrightness(LightLayer.SKY, pos);
+		int skyDarken = level.getSkyDarken(); // 0-15
+		skyLight = skyLight - skyDarken;
+		// Apply weather adjustments
+		if (level.isThundering()) {
+			skyLight -= 7; // thunder reduces sky light for spawn checks
+		} else if (level.isRaining()) {
+			skyLight -= 3; // rain reduces sky light for spawn checks
+		}
+
+		if (!level.isDay()) {
+			int moonPhase = level.getMoonPhase();
+			int moonDarken = 4 - Math.abs(4 - moonPhase);
+			skyLight -= moonDarken;
+		}
+		// Clamp to 0-15
+		if (skyLight < 0)
+			skyLight = 0;
+		if (skyLight > 15)
+			skyLight = 15;
+
+		return skyLight;
+	}
 
 }

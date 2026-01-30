@@ -6,11 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.mactso.harderspawners.common.commands.MyCommands.CommandResult;
-import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.common.utility.SpawnerUtilityMethods;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
@@ -18,18 +15,19 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 
 public class SpawnerPositionManager {
 
-	static final Map<ResourceKey<Level>, Set<BlockPos>> spawnerLocations =
-	new ConcurrentHashMap<>();
+	static final Map<ResourceKey<Level>, Set<BlockPos>> spawnerLocations = new ConcurrentHashMap<>();
 
 	public static void clearSpawnerLocations() {
 	    spawnerLocations.clear();
 	}
 
 	public static void forgetSpawner(Level level, BlockPos pos) {
-	    if (level == null || pos == null) return;
+		if (level == null || pos == null)
+			return;
 
 	    Set<BlockPos> locations = spawnerLocations.get(level.dimension());
-	    if (locations == null) return;
+		if (locations == null)
+			return;
 
 	    locations.remove(pos);
 
@@ -48,7 +46,6 @@ public class SpawnerPositionManager {
            	return;
         }
 
-	
 	    Level level = sbe.getLevel();
 	    if (level == null) {
 	        return;
@@ -57,9 +54,7 @@ public class SpawnerPositionManager {
 	    ResourceKey<Level> dimension = level.dimension();
 	    BlockPos pos = sbe.getBlockPos();
 	
-	    spawnerLocations
-	            .computeIfAbsent(dimension, k -> ConcurrentHashMap.newKeySet())
-	            .add(pos);
+		spawnerLocations.computeIfAbsent(dimension, k -> ConcurrentHashMap.newKeySet()).add(pos);
 	}
 
 	public static boolean isSpawnerNearby(Level level, BlockPos pos, int range) {
@@ -83,14 +78,23 @@ public class SpawnerPositionManager {
 	}
 	
     private static boolean isWithinRange(BlockPos a, BlockPos b, int range) {
-        return Math.abs(a.getX() - b.getX()) <= range
-            && Math.abs(a.getY() - b.getY()) <= range
-            && Math.abs(a.getZ() - b.getZ()) <= range;
+		int dx = Math.abs(a.getX() - b.getX());
+		int dy = Math.abs(a.getY() - b.getY());
+		int dz = Math.abs(a.getZ() - b.getZ());
+
+		if (dx > range)
+			return false;
+		if (dy > range)
+			return false;
+		if (dz > range)
+			return false;
+
+		return true;
     }
     
     /**
-     * Returns up to 'maxCount' tracked spawner positions within a certain range
-     * of a reference position in the given level.
+	 * Returns up to 'maxCount' tracked spawner positions within a certain range of
+	 * a reference position in the given level.
      *
      * @param level the level/dimension to query
      * @param referencePos the position to measure distance from
@@ -117,7 +121,8 @@ public class SpawnerPositionManager {
                     && Math.abs(pos.getZ() - referencePos.getZ()) <= range) {
                 nearby.add(pos);
                 count++;
-                if (count >= maxCount) break;
+				if (count >= maxCount)
+					break;
             }
         }
 

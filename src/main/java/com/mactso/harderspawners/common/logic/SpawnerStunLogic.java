@@ -59,7 +59,7 @@ public class SpawnerStunLogic {
 
 		MyUtilities.debugMsg(1, sbe.getBlockPos(), "Spawner end of life and (linger = true) stuns Spawner");
 		int stunnedTicks = LINGER_STUN_TICKS;
-		stunCoreLogic(serverLevel, sbe, wrapper, spawnerTag, stunnedTicks, stunnedTicks + 10, SKIP_DELAY_UPDATE);
+		stunCoreLogic(serverLevel, sbe, wrapper, spawnerTag, stunnedTicks, stunnedTicks + 10, stunnedTicks + 5);
 
 	}
 
