@@ -35,7 +35,7 @@ public class SpawnerLifespan {
 
 	public static void handleSpawnerEndOfLife(ServerLevel serverLevel, SpawnerBlockEntity sbe,
 			SpawnerStatsWrapper statsWrapper, CompoundTag spawnerTag) {
-
+		// Fabric_1.21.4 CC was empty in github.
 		// SharedUtilityMethods.logSpawnerState(1, "handleSpawnerLifespanEnd.pre", sbe,
 		// statsWrapper);
 		if (sbe.isRemoved()) return;
