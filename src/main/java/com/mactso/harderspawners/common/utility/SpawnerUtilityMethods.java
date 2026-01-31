@@ -156,7 +156,8 @@ public class SpawnerUtilityMethods {
 	}
 	
 	public static String makeSpawnerCompoundTagReport(SpawnerBlockEntity sbe) {
-	    if (sbe == null) return "<null spawner>";
+		if (sbe == null)
+			return "<null spawner>";
 
 	    CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
 	    BlockPos pos = sbe.getBlockPos();

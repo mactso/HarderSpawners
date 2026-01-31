@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.mactso.harderspawners.common.logic.BlockAndFluidPlacement;
+import com.mactso.harderspawners.common.utility.MyUtilities;
 
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.loader.api.FabricLoader;
@@ -122,8 +123,7 @@ public class BlockGlowingFluidEvent {
 				if (obfName != null) {
 					BUCKET_CONTENT_FIELD = BucketItem.class.getDeclaredField(obfName);
 					BUCKET_CONTENT_FIELD.setAccessible(true);
-					System.out.println(
-							"[BucketReflectionHelper] Found BucketItem.content via MappingResolver: " + obfName);
+                    MyUtilities.debugMsg(1, "[BucketReflectionHelper] Found BucketItem.content via MappingResolver: " + obfName);
 				}
 			} catch (Exception ignored) {
 				// fall through to dev.
@@ -134,10 +134,10 @@ public class BlockGlowingFluidEvent {
 				try {
 					BUCKET_CONTENT_FIELD = BucketItem.class.getDeclaredField("content");
 					BUCKET_CONTENT_FIELD.setAccessible(true);
-					System.out.println("[BucketReflectionHelper] Found BucketItem.content via deobfuscated name.");
+                    MyUtilities.debugMsg(1, "[BucketReflectionHelper] Found BucketItem.content via deobfuscated name.");
 				} catch (NoSuchFieldException e) {
 					reflectionFailed = true;
-					System.err.println("[BucketReflectionHelper] WARNING: Could not access BucketItem.content field.");
+                    MyUtilities.debugMsg(1, "[BucketReflectionHelper] WARNING: Could not access BucketItem.content.");
 					return null;
 				}
 			}
@@ -148,7 +148,7 @@ public class BlockGlowingFluidEvent {
 			return (Fluid) BUCKET_CONTENT_FIELD.get(bucket);
 		} catch (IllegalAccessException e) {
 			reflectionFailed = true;
-			System.err.println("[BucketReflectionHelper] WARNING: Failed to read BucketItem.content field.");
+            MyUtilities.debugMsg(0, "[BucketReflectionHelper] ERROR: Failed to read BucketItem.content field.");
 			e.printStackTrace();
 			return null;
 		}

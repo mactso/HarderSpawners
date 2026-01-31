@@ -69,7 +69,7 @@ public class SpawnerInitialization {
 		SpawnerInitialization.maybeOverrideSpawnDelays(spawnerTag);
 
 		// Optionally rebuild SpawnData with custom light levels
-		MyUtilities.debugMsg(0, "spawnerdatatag" + spawnerTag.getAsString());
+		MyUtilities.debugMsg(1, "spawnerdatatag" + spawnerTag.getAsString());
 		Optional<Tag> workSpawnData = SpawnerLightLogic.buildCustomLightLevelSpawnData(spawnDataTag);
 		if (workSpawnData.isPresent() && !spawnDataTag.equals(workSpawnData.get())) {
 			spawnerTag.put("SpawnData", workSpawnData.get());

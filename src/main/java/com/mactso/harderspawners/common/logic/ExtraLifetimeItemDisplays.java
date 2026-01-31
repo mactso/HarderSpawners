@@ -39,6 +39,9 @@ public class ExtraLifetimeItemDisplays {
 	
 		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
 		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel,EntitySpawnReason.COMMAND);
+		if (itemDisplay == null) {
+			return;
+		}
 		
 		itemDisplay.setCustomName(SpawnerLifespan.TIP);
 		itemDisplay.setCustomNameVisible(true);

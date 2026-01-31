@@ -78,15 +78,17 @@ public class SpawnerPositionManager {
 	}
 
 	private static boolean isWithinRange(BlockPos a, BlockPos b, int range) {
-		int dx = Math.abs(a.getX() - b.getX());
-		int dy = Math.abs(a.getY() - b.getY());
-		int dz = Math.abs(a.getZ() - b.getZ());
 
+		int dx = Math.abs(a.getX() - b.getX());
 		if (dx > range)
 			return false;
-		if (dy > range)
-			return false;
+
+		int dz = Math.abs(a.getZ() - b.getZ());
 		if (dz > range)
+			return false;
+
+		int dy = Math.abs(a.getY() - b.getY());			
+		if (dy > range)
 			return false;
 
 		return true;
