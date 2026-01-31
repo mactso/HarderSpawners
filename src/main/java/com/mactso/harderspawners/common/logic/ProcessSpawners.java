@@ -79,7 +79,7 @@ public class ProcessSpawners {
 
 					CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
 					if (MyConfig.isDebug())
-						MyUtilities.debugMsg(2, spawnerTag.getAsString());
+						MyUtilities.debugMsg(2, spawnerTag.toString());
 
 					if (SpawnerUtilityMethods.isTrialSpawner(sbe))
 						continue; // skip trial spawners
@@ -143,7 +143,7 @@ public class ProcessSpawners {
 
 		if (delay == -Integer.MAX_VALUE) {
 			tag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
-			delay = tag.contains("Delay") ? tag.getShort("Delay") : (short) 0;
+			delay = tag.getInt("Delay").orElse( 0 );
 			tagSaved = true;
 		}
 

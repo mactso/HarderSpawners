@@ -1,21 +1,23 @@
 package com.mactso.harderspawners.common.utility;
 
-import java.util.Optional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import com.mactso.harderspawners.modloader.config.MyConfig;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
@@ -23,6 +25,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.phys.Vec3;
 
@@ -34,7 +37,6 @@ public class MyUtilities {
 
 
 
-	
 	public static void drawParticleBeam(BlockPos pos, ServerLevel sLevel, 
 			ParticleOptions particleType) {
 		Vec3 bV3d = new Vec3(pos.getX()+0.5d, pos.getY()+0.5d, pos.getZ()+0.5d);
@@ -113,13 +115,26 @@ public class MyUtilities {
 		return serverLevel.getHeightmapPos(Types.MOTION_BLOCKING_NO_LEAVES, pos) == pos;
 	}
 	
+
 	// -------------------------------
 	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
 	// -------------------------------
-		public static <T> Registry<T> getRegistrySafe(RegistryAccess access, ResourceKey<Registry<T>> key) {
-			Optional<Registry<T>> optRegistry = access.lookup(key);
-			if (optRegistry.isEmpty())
-				return null;
-	    return optRegistry.get();  // 1.21.4 to 1.21.5 pattern
+	
+    public static Item getItem(ServerLevel level, ResourceLocation id) {
+        RegistryAccess access = level.registryAccess();
+        HolderLookup.RegistryLookup<Item> lookup = access.lookup(Registries.ITEM).orElse(null);
+        if (lookup == null) return null;
+
+        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
+        return lookup.get(key).map(holder -> holder.value()).orElse(null);
+    }
+    
+
+	@Nullable
+	public static <T> HolderLookup.RegistryLookup<T> getRegistrySafe(
+	        RegistryAccess access,
+	        ResourceKey<Registry<T>> key
+	) {
+	    return access.lookup(key).orElse(null);
 	}
 }

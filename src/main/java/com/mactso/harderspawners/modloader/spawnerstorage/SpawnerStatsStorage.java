@@ -1,5 +1,7 @@
 package com.mactso.harderspawners.modloader.spawnerstorage;
 
+import java.util.Optional;
+
 import net.minecraft.nbt.CompoundTag;
 
 public class SpawnerStatsStorage {
@@ -96,17 +98,43 @@ public class SpawnerStatsStorage {
 	}
 
 	// --- Deserialization ---
-	public void deserializeNBT(CompoundTag tag) {
+	public void deserializeNBT(Optional<CompoundTag> optTag) {
+	    if (optTag.isEmpty()) {
+	        // No data present; use defaults
+	        dataVersion = 0;
+	        infinite = false;
+	        stunned = false;
+	        lifeSpanInTicks = 20L * 60L * 500L;
+	        originalMinSpawnDelay = 200;
+	        originalMaxSpawnDelay = 800;
+	        originalEntityId = "";
+	        initialized = false;
+	        return;
+	    }
 
-	    this.dataVersion = tag.contains("DataVersion") ? tag.getInt("DataVersion") : 0;		
-		this.infinite = tag.contains("Infinite") ? tag.getBoolean("Infinite") : false;
-		this.stunned = tag.contains("Stunned") ? tag.getBoolean("Stunned") : false;
-		this.lifeSpanInTicks = tag.contains("Lifespan") ? tag.getLong("Lifespan") : 20L * 60L * 500L;
-		this.originalMinSpawnDelay = tag.contains("OriginalMinSpawnDelay") ? tag.getInt("OriginalMinSpawnDelay") : 200;
-		this.originalMaxSpawnDelay = tag.contains("OriginalMaxSpawnDelay") ? tag.getInt("OriginalMaxSpawnDelay") : 800;
-		this.originalEntityId = tag.contains("OriginalEntityId") ? tag.getString("OriginalEntityId") : "";
-		this.initialized = true; // class exists and read
+	    CompoundTag tag = optTag.get();
+	    Optional<Integer> optDataVersion = tag.getInt("DataVersion");
+	    dataVersion = optDataVersion.orElse(0);
 
+	    Optional<Boolean> optInfinite = tag.getBoolean("Infinite");
+	    infinite = optInfinite.orElse(false);
+
+	    Optional<Boolean> optStunned = tag.getBoolean("Stunned");
+	    stunned = optStunned.orElse(false);
+
+	    Optional<Long> optLifeSpan = tag.getLong("Lifespan");
+	    lifeSpanInTicks = optLifeSpan.orElse(20L * 60L * 500L);
+
+	    Optional<Integer> optOriginalMinSpawnDelay = tag.getInt("OriginalMinSpawnDelay");
+	    originalMinSpawnDelay = optOriginalMinSpawnDelay.orElse(200);
+
+	    Optional<Integer> optOriginalMaxSpawnDelay = tag.getInt("OriginalMaxSpawnDelay");
+	    originalMaxSpawnDelay = optOriginalMaxSpawnDelay.orElse(800);
+
+	    Optional<String> optOriginalEntityId = tag.getString("OriginalEntityId");
+	    originalEntityId = optOriginalEntityId.orElse("").trim();
+
+	    initialized = true; // class exists and read
 	}
 
 }

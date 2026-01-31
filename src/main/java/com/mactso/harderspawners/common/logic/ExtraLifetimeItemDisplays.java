@@ -28,7 +28,7 @@ import net.minecraft.world.phys.Vec3;
  * Designed for use with HarderSpawners mod lifespan visualization.
  */
 public class ExtraLifetimeItemDisplays {
-	
+
 	/**
 	 * Adds an ItemDisplay entity indicating low lifespan.
 	 * The item displayed is the item that adds lifespan
@@ -36,63 +36,65 @@ public class ExtraLifetimeItemDisplays {
 	 * Plays a sound effect to indicate display creation.
 	 */
 	public static void buildDisplay(ServerLevel sLevel, BlockEntity sbe) {
-	
+
 		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
-		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel,EntitySpawnReason.COMMAND);
+		BlockPos pos = sbe.getBlockPos();
 		
+		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel, null, // no Consumer
+				pos, EntitySpawnReason.COMMAND, false, false);
+
+		if (itemDisplay == null) {
+			return;
+		}
+
 		itemDisplay.setCustomName(SpawnerLifespan.TIP);
 		itemDisplay.setCustomNameVisible(true);
-		
-		CompoundTag temptag = buildItemDisplayNBT(itemDisplay);
-		itemDisplay.load(temptag);
-		
-		// Position the display above the spawner
-		Vec3 vWork = sbe.getBlockPos().getBottomCenter();
-		itemDisplay.setPos(vWork.x, vWork.y + 1.5, vWork.z);
-		itemDisplay.setDeltaMovement(0.0f, 0.0f, 0.0f);
-		sLevel.addFreshEntity(itemDisplay);
-	
-	}
-	
 
-	
+		CompoundTag tag = buildItemDisplayNBT(itemDisplay);
+		itemDisplay.load(tag);
+
+		Vec3 v = pos.getBottomCenter();
+		itemDisplay.setPos(v.x, v.y + 1.5, v.z);
+		itemDisplay.setDeltaMovement(0.0, 0.0, 0.0);
+
+		sLevel.addFreshEntity(itemDisplay);
+	}
+
 	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
-		
+
 		CompoundTag tag = new CompoundTag();
 		i.save(tag);
 		tag.put("transformation", buildTransformationTag());
 		tag.put("item", buildItemTag());
 		tag.putString("billboard", "center");
 		return tag;
-		
-	}
 
+	}
 
 	public static void showDisplay(ServerLevel sLevel, BlockEntity sbe) {
 		// Build an AABB centered on the spawner's block position, 2 blocks in each
 		// direction
 		BlockPos pos = sbe.getBlockPos();
 		AABB box = new AABB(pos).inflate(2.0);
-	
+
 		// Check for existing ItemDisplay in that area
 		List<ItemDisplay> displaysList = sLevel.getEntitiesOfClass(ItemDisplay.class, box);
-	
+
 		for (ItemDisplay item : displaysList) {
 			if (item.hasCustomName() && SpawnerLifespan.TIP.getString().equals(item.getCustomName().getString())) {
 				return; // Already present
 			}
 		}
-	
+
 		// Add new repair item display
 		buildDisplay(sLevel, sbe);
 	}
 
 	/**
-	 * Constructs the transformation NBT for an ItemDisplay.
-	 * Includes translation, left and right rotations, and scaling.
-	 * Translation is set to zero and scale to 0.5.
-	 * Rotations are defaulted to no rotation (identity quaternion).
-	 * Returns a CompoundTag to be attached to the display entity.
+	 * Constructs the transformation NBT for an ItemDisplay. Includes translation,
+	 * left and right rotations, and scaling. Translation is set to zero and scale
+	 * to 0.5. Rotations are defaulted to no rotation (identity quaternion). Returns
+	 * a CompoundTag to be attached to the display entity.
 	 */
 	public static CompoundTag buildTransformationTag() {
 		CompoundTag transformationTag = new CompoundTag();
@@ -103,21 +105,21 @@ public class ExtraLifetimeItemDisplays {
 		translist.add(zero);
 		translist.add(zero);
 		transformationTag.put("translation", translist);
-	
+
 		ListTag lfRotlist = new ListTag();
 		lfRotlist.add(zero);
 		lfRotlist.add(zero);
 		lfRotlist.add(zero);
 		lfRotlist.add(one);
 		transformationTag.put("left_rotation", lfRotlist);
-	
+
 		FloatTag scale = FloatTag.valueOf(0.5F);
 		ListTag scalelist = new ListTag();
 		scalelist.add(scale);
 		scalelist.add(scale);
 		scalelist.add(scale);
 		transformationTag.put("scale", scalelist);
-	
+
 		ListTag rtRotlist = new ListTag();
 		rtRotlist.add(zero);
 		rtRotlist.add(zero);
@@ -134,24 +136,23 @@ public class ExtraLifetimeItemDisplays {
 		return itemTag;
 	}
 
-	
 	/**
-	 * Removes the floating ItemDisplay associated with a given spawner.
-	 * Builds an axis-aligned bounding box 2 blocks around the spawner.
-	 * Searches for an ItemDisplay with the correct custom name (TIP).
-	 * Discards the entity if found to remove it from the world.
-	 * Ensures that only one display per spawner is present at any time.
+	 * Removes the floating ItemDisplay associated with a given spawner. Builds an
+	 * axis-aligned bounding box 2 blocks around the spawner. Searches for an
+	 * ItemDisplay with the correct custom name (TIP). Discards the entity if found
+	 * to remove it from the world. Ensures that only one display per spawner is
+	 * present at any time.
 	 */
 	public static void removeDisplay(ServerLevel sLevel, SpawnerBlockEntity sbe) {
-	    AABB box = new AABB(sbe.getBlockPos().above()).inflate(2); // 2-block radius
-	    List<ItemDisplay> displays = sLevel.getEntitiesOfClass(ItemDisplay.class, box);
-	
-	    for (ItemDisplay item : displays) {
-	        if (item.getCustomName().getString().equals(SpawnerLifespan.TIP.getString())) {
-	            item.discard();
-	            break;
-	        }
-	    }
+		AABB box = new AABB(sbe.getBlockPos().above()).inflate(2); // 2-block radius
+		List<ItemDisplay> displays = sLevel.getEntitiesOfClass(ItemDisplay.class, box);
+
+		for (ItemDisplay item : displays) {
+			if (item.getCustomName().getString().equals(SpawnerLifespan.TIP.getString())) {
+				item.discard();
+				break;
+			}
+		}
 	}
 
 }

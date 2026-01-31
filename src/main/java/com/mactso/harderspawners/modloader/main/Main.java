@@ -5,6 +5,7 @@ import com.mactso.harderspawners.common.sounds.ModSounds;
 import com.mactso.harderspawners.modloader.config.MyConfig;
 import com.mactso.harderspawners.modloader.events.AddSpawnerLifespanEvent;
 import com.mactso.harderspawners.modloader.events.BlockGlowingFluidEvent;
+import com.mactso.harderspawners.modloader.events.BlockPlacedEvent;
 import com.mactso.harderspawners.modloader.events.ServerEvents;
 import com.mactso.harderspawners.modloader.events.ServerPlayerTickPreMixinEvent;
 import com.mactso.harderspawners.modloader.events.SpawnerBreakEvent;
@@ -19,7 +20,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 public class Main implements ModInitializer {
 
 	public static final String MODID = "harderspawners";
-	public static final String MOD_VERSION = "v31.0 1.21.1";
+	public static final String MOD_VERSION = "v31.2 1.21.5";
 
 	@Override
 	public void onInitialize() {
@@ -36,6 +37,7 @@ public class Main implements ModInitializer {
 		ModSounds.register();
 
 		// --- Event registration ---
+		BlockPlacedEvent.register();
 		AddSpawnerLifespanEvent.register();
 		// MobSpawnHandler.register(); replaced by MobSpawnHandlerMixin
 		SpawnerBreakEvent.register();

@@ -62,16 +62,15 @@ public final class SpawnerStatsAdapter {
 	 * Extracts the current entity ID from the spawner tag
 	 */
 	public static String extractEntityId(CompoundTag spawnerTag) {
-		if (!spawnerTag.contains("SpawnData"))
-			return null;
-		CompoundTag spawnData = spawnerTag.getCompound("SpawnData");
-		if (!spawnData.contains("entity"))
-			return null;
-		CompoundTag entityData = spawnData.getCompound("entity");
-		String id = entityData.getString("id");
-		if (id == null || id.isBlank())
-			return null;
-		return id.trim();
+        CompoundTag spawnData = spawnerTag.getCompound("SpawnData").orElse(null);
+        if (spawnData != null && !spawnData.isEmpty()) {
+            CompoundTag entityData = spawnData.getCompound("entity").orElse(null);
+            if (entityData != null && !entityData.isEmpty()) {
+                String id = entityData.getString("id").orElse("").trim();
+                if (!id.isEmpty()) return id;
+            }
+        }
+        return null;
 	}
 
 	/**
@@ -115,11 +114,9 @@ public final class SpawnerStatsAdapter {
 					.getLifespanForMob(originalEntityId);
 			stats.setInfinite(lifespanConfig.isInfiniteLifespan());
 
-			// Cache original min/max spawn delays
-			stats.setOriginalMinSpawnDelay(
-					spawnerTag.contains("MinSpawnDelay") ? spawnerTag.getInt("MinSpawnDelay") : 200);
-			stats.setOriginalMaxSpawnDelay(
-					spawnerTag.contains("MaxSpawnDelay") ? spawnerTag.getInt("MaxSpawnDelay") : 800);
+            // Cache original min/max spawn delays
+            stats.setOriginalMinSpawnDelay(spawnerTag.getIntOr("MinSpawnDelay", 200));
+            stats.setOriginalMaxSpawnDelay(spawnerTag.getIntOr("MaxSpawnDelay", 800));
 			// -------- INPUTS DUMP --------
 			if (MyConfig.isDebug())
 				MyUtilities.debugMsg(0,

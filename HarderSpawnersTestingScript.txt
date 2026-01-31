@@ -20,6 +20,7 @@ create spawner
 destroy it with pickaxe in survival mode
 confirm it is stunned.
 Confirm it recovers from stun.
+Pour a bucket of Lava near it.
 
 
 

@@ -1,7 +1,5 @@
 package com.mactso.harderspawners.common.logic;
 
-import java.util.Optional;
-
 import com.mactso.harderspawners.common.managers.SpawnerPositionManager;
 import com.mactso.harderspawners.common.utility.MyUtilities;
 import com.mactso.harderspawners.modloader.config.MyConfig;
@@ -12,8 +10,6 @@ import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsHelper;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -127,17 +123,13 @@ public class SpawnerLifespan {
 		if (itemLocation == null) {
 			return Items.IRON_BLOCK;
 		}
-
-		Registry<Item> itemRegistry = MyUtilities.getRegistrySafe(sLevel.registryAccess(), Registries.ITEM);
-
-		Optional<Item> optItem = itemRegistry.getOptional(itemLocation);
-		if (optItem.isEmpty()) {
+		Item timeExtensionItem = MyUtilities.getItem(sLevel, itemLocation);
+		if (timeExtensionItem == null) {
 			MyUtilities.debugMsg(0, "ERROR: Configured Time extension item " + configExtraLifespanItem
 					+ " is not registered. Using Items.IRON_BLOCK");
 			return Items.IRON_BLOCK;
 		}
 
-		Item timeExtensionItem = optItem.get();
 		cachedExtraLifespanConfiguredValue = configExtraLifespanItem;
 		cachedExtraLifespanItem = timeExtensionItem;
 

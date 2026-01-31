@@ -16,40 +16,35 @@ import net.minecraft.world.level.BaseSpawner;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 
 /**
-	 * Utility methods shared across the Harder Spawners mod.
-	 * 
+ * Utility methods shared across the Harder Spawners mod.
+ * 
  * <p>
  * Includes helper functions for Spawners
  * 
  * <p>
  * <strong>Important:</strong> Some methods are computationally expensive but
-	 * are safe because they are throttled:
-	 * <ul>
+ * are safe because they are throttled:
+ * <ul>
  * <li>{@link #doDestroyLightingNearSpawner(BlockPos, ServerLevel)} is only
  * called when a spawner is about to spawn (spawnDelay == 1) or when a player
  * attempts to break a spawner.</li>
-	 *   <li>This ensures that even with 3D scanning of nearby blocks, the performance
-	 *       impact is limited.</li>
-	 * </ul>
-	 * </p>
-	 */
+ * <li>This ensures that even with 3D scanning of nearby blocks, the performance
+ * impact is limited.</li>
+ * </ul>
+ * </p>
+ */
 public class SpawnerUtilityMethods {
-	
-	/*
-	 * Debugging utility.  Command showspawnertag probably deprecates this.
-	 */
-	public static void logSpawnerState(
-	        int level,
-	        String context,
-	        SpawnerBlockEntity sbe,
-	        SpawnerStatsWrapper wrapper
-	) {
-	    if (sbe == null)
-	        return;
 
-	    BaseSpawner spawner = sbe.getSpawner();
-	    CompoundTag spawnerTag = saveSpawnerToTag(sbe);
-	    int delay = ProcessSpawners.getSpawnerDelay(sbe, spawner, spawnerTag);
+	/*
+	 * Debugging utility. Command showspawnertag probably deprecates this.
+	 */
+	public static void logSpawnerState(int level, String context, SpawnerBlockEntity sbe, SpawnerStatsWrapper wrapper) {
+		if (sbe == null)
+			return;
+
+		BaseSpawner spawner = sbe.getSpawner();
+		CompoundTag spawnerTag = saveSpawnerToTag(sbe);
+		int delay = ProcessSpawners.getSpawnerDelay(sbe, spawner, spawnerTag);
 
 	    MyUtilities.debugMsg(
 	        level,
@@ -75,119 +70,123 @@ public class SpawnerUtilityMethods {
 	    );
 	}
 
-	/** 
-	 * Serializes a SpawnerBlockEntity into a CompoundTag. 
-	 * @param sbe the spawner block entity 
-	 * @return serialized NBT representing the spawner 
+	/**
+	 * Serializes a SpawnerBlockEntity into a CompoundTag.
+	 * @param sbe the spawner block entity
+	 * @return serialized NBT representing the spawner
 	 */
-    public static CompoundTag saveSpawnerToTag(SpawnerBlockEntity sbe) {
-        CompoundTag tag = new CompoundTag();
-        sbe.getSpawner().save(tag);
-        return tag;
-    }
-	
-	/** 
-	 * Loads spawner data from a CompoundTag into a SpawnerBlockEntity. 
-	 * @param sbe target spawner 
-	 * @param tag NBT to load 
+	public static CompoundTag saveSpawnerToTag(SpawnerBlockEntity sbe) {
+		CompoundTag tag = new CompoundTag();
+		sbe.getSpawner().save(tag);
+		return tag;
+	}
+
+	/**
+	 * Loads spawner data from a CompoundTag into a SpawnerBlockEntity.
+	 * @param sbe target spawner
+	 * @param tag NBT to load
 	 */
-    public static void loadSpawnerFromTag(SpawnerBlockEntity sbe, CompoundTag tag) {
+	public static void loadSpawnerFromTag(SpawnerBlockEntity sbe, CompoundTag tag) {
         sbe.getSpawner().load(
             sbe.getLevel(),
             sbe.getBlockPos(),
             tag
         );
-    }
-	/** 
-	 * Returns true if the given spawner is stunned according to its SpawnerStats. 
+	}
+	/**
+	 * Returns true if the given spawner is stunned according to its SpawnerStats.
 	 */
-    public static boolean isSpawnerStunned(SpawnerBlockEntity sbe) {
-        SpawnerStatsAdapter.SpawnerStatsWrapper wrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
-        return wrapper != null && wrapper.isStunned();
-    }
-
-    public static int getIntOrDefault(CompoundTag tag, String key, int defaultValue) {
-	    if (tag.contains(key)) {
-	        return tag.getInt(key);
-	    }
-	    return defaultValue;
+	public static boolean isSpawnerStunned(SpawnerBlockEntity sbe) {
+		SpawnerStatsAdapter.SpawnerStatsWrapper wrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
+		return wrapper != null && wrapper.isStunned();
 	}
 
-	
+	public static int getIntOrDefault(CompoundTag tag, String key, int defaultValue) {
+		return tag.getInt(key).orElse(defaultValue);
+	}
+
 	public static void putIntIfDifferent(CompoundTag tag, String key, int value) {
-	    if (!tag.contains(key) || tag.getInt(key) != value) {
-	        tag.putInt(key, value);
-	    }
+		int current = tag.getInt(key).orElse(Integer.MIN_VALUE);
+		if (current != value) {
+			tag.putInt(key, value);
+		}
 	}
 
-	
-	
 	/**
 	 * Returns true if the spawner contains a monster-type entity.
 	 */
 	public static boolean isMonsterSpawner(SpawnerBlockEntity sbe, CompoundTag spawnerTag) {
 
-	    if (spawnerTag == null) {
-	        return false;
-	    }
+		if (spawnerTag == null) {
+			return false;
+		}
 
-	    CompoundTag spawnData = spawnerTag.getCompound("SpawnData");
-	    if (spawnData == null || spawnData.isEmpty()) {
-	        return false;
-	    }
+		Optional<CompoundTag> optSpawnData = spawnerTag.getCompound("SpawnData");
+		if (optSpawnData.isEmpty() || optSpawnData.get().isEmpty()) {
+			return false;
+		}
+		CompoundTag spawnData = optSpawnData.get();
 
-	    CompoundTag entityData = spawnData.getCompound("entity");
-	    if (entityData == null || entityData.isEmpty()) {
-	        return false;
-	    }
+		Optional<CompoundTag> optEntityData = spawnData.getCompound("entity");
+		if (optEntityData.isEmpty() || optEntityData.get().isEmpty()) {
+			return false;
+		}
+		CompoundTag entityData = optEntityData.get();
 
-	    String id = entityData.getString("id");
-	    if (id == null || id.isBlank()) {
-	        return false;
-	    }
+		Optional<String> optId = entityData.getString("id");
+		if (optId.isEmpty() || optId.get().isBlank()) {
+			return false;
+		}
+		String id = optId.get();
 
-	    Optional<EntityType<?>> entityTypeOpt = EntityType.byString(id);
-	    if (entityTypeOpt.isEmpty()) {
-	        return false;
-	    }
+		Optional<EntityType<?>> entityTypeOpt = EntityType.byString(id);
+		if (entityTypeOpt.isEmpty()) {
+			return false;
+		}
 
-	    EntityType<?> entityType = entityTypeOpt.get();
-	    return entityType.getCategory() == MobCategory.MONSTER;
+		EntityType<?> entityType = entityTypeOpt.get();
+		return entityType.getCategory() == MobCategory.MONSTER;
 	}
-	
+
 	public static String makeSpawnerCompoundTagReport(SpawnerBlockEntity sbe) {
-	    if (sbe == null) return "<null spawner>";
+		if (sbe == null)
+			return "<null spawner>";
 
-	    CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
-	    BlockPos pos = sbe.getBlockPos();
+		CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
+		BlockPos pos = sbe.getBlockPos();
 
-	    StringBuilder sb = new StringBuilder();
-	    sb.append("Spawner @ ").append(pos).append("\n");
-	    sb.append("{\n");
+		StringBuilder sb = new StringBuilder();
+		sb.append("Spawner @ ").append(pos).append("\n");
+		sb.append("{\n");
 
-	    for (String key : spawnerTag.getAllKeys()) {
-	        Tag value = spawnerTag.get(key);
+		for (String key : spawnerTag.keySet()) { // <-- use keySet() instead of getAllKeys()
+			Tag value = spawnerTag.get(key);
 
-	        // ---- formatting rules ----
-	        if ("entity".equals(key) || "custom_spawn_rules".equals(key)) {
-	            sb.append("\n");
-	        }
+			// ---- formatting rules ----
+			if ("entity".equals(key) || "custom_spawn_rules".equals(key)) {
+				sb.append("\n");
+			}
 
-	        sb.append("  ")
-	          .append(key)
-	          .append(" = ")
-	          .append(value)
-	          .append("\n");
-	    }
+			sb.append("  ").append(key).append(" = ").append(value).append("\n");
+		}
 
-	    sb.append("}");
-	    return sb.toString();
+		sb.append("}");
+		return sb.toString();
 	}
 
 	public static boolean isTrialSpawner(SpawnerBlockEntity sbe) {
 		CompoundTag tag = saveSpawnerToTag(sbe);
-		return tag.contains("TrialRoomID") || tag.getString("id").startsWith("trialmod:");
+
+		if (tag.contains("TrialRoomID")) {
+			return true;
+		}
+
+		Optional<String> optId = tag.getString("id");
+		if (optId.isPresent() && optId.get().startsWith("trialmod:")) {
+			return true;
+		}
+
+		return false;
 	}
-	
 
 }

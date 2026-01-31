@@ -9,78 +9,66 @@ import org.apache.logging.log4j.Logger;
 import java.lang.reflect.Field;
 
 /**
- * Adapter to read BaseSpawner.spawnDelay in Fabric 1.21.1 using reflection only.
+ * Adapter to read BaseSpawner.spawnDelay reflectively across Fabric 1.21.1 →
+ * 1.21.11.
+ * <p>
+ * Tries multiple intermediary names (production) first, then falls back to
+ * deobfuscated name ("spawnDelay") for development.
  */
 public class Adapters {
-    private static final Logger LOGGER = LogManager.getLogger();
+	private static final Logger LOGGER = LogManager.getLogger();
 
-    // Cached reflective field
-    private static Field SPAWN_DELAY_FIELD;
+	/** Cached reflective Field */
+	private static final Field SPAWN_DELAY_FIELD = findSpawnDelayField();
 
-    static {
-        SPAWN_DELAY_FIELD = findSpawnDelayField();
-    }
+	private static Field findSpawnDelayField() {
+		MappingResolver resolver = FabricLoader.getInstance().getMappingResolver();
 
-    
-    
-    private static Field findSpawnDelayField() {
+		// --- 1️⃣ Try to map to production intermediary name
+		try {
+			String obfName = resolver.mapFieldName("intermediary", "net.minecraft.class_1917", // BaseSpawner
+					"field_9154", "I");
+			Field f = BaseSpawner.class.getDeclaredField(obfName);
+			f.setAccessible(true);
+			return f;
+		} catch (Exception Exception) {
+			// Fall through to the Dev reflection
+		}
 
+		// --- 2️⃣ Fallback: get the Dev  ---
+		try
+		{
+			Field f = BaseSpawner.class.getDeclaredField("spawnDelay");
+			f.setAccessible(true);
+			return f;
+		} catch (Exception ignored) {
+			// Fall through to hard failure.
+		}
 
-        // Try deobfuscated name first
-        try {
-            Field f = BaseSpawner.class.getDeclaredField("spawnDelay");
-            f.setAccessible(true);
-            LOGGER.debug("HarderSpawners: Found BaseSpawner.spawnDelay via direct name.");
-            return f;
-        } catch (NoSuchFieldException ignored) {}
+		// --- 3️⃣ Hard fail ---
+		throw new IllegalStateException("Unable to reflect BaseSpawner.spawnDelay. "
+				+ "Critical for mod functionality — environment/version mismatch likely.");
+	}
 
-        // Fallback: use Fabric MappingResolver to find obfuscated field
-        try {
-            MappingResolver resolver = FabricLoader.getInstance().getMappingResolver();
+	/**
+	 * Get the spawnDelay value from a BaseSpawner instance.
+	 *
+	 * @param spawner the BaseSpawner instance
+	 * @return the spawnDelay value, or Integer.MIN_VALUE if reflection fails
+	 */
+	public static int getSpawnDelay(BaseSpawner spawner) {
+		if (spawner == null || SPAWN_DELAY_FIELD == null)
+			return Integer.MIN_VALUE;
+		try {
+			return SPAWN_DELAY_FIELD.getInt(spawner);
+		} catch (IllegalAccessException e) {
+			LOGGER.warn("Failed to read BaseSpawner.spawnDelay reflectively.", e);
+			return Integer.MIN_VALUE;
+		}
+	}
 
-            // Intermediary names for 1.21.1
-            String obfName = resolver.mapFieldName(
-                    "intermediary",
-                    "net.minecraft.class_1917", // BaseSpawner
-                    "field_9154",               // spawnDelay
-                    "I"
-            );
-
-            if (obfName != null) {
-                Field f = BaseSpawner.class.getDeclaredField(obfName);
-                f.setAccessible(true);
-                LOGGER.debug("HarderSpawners: Found BaseSpawner.spawnDelay via MappingResolver: " + obfName);
-                return f;
-            }
-        } catch (Exception e) {
-            LOGGER.warn("HarderSpawners: Could not find BaseSpawner.spawnDelay with MappingResolver.", e);
-        }
-
-        // Hard fail: throw an exception to crash immediately
-        throw new IllegalStateException(
-            "HarderSpawners: Unable to reflect into critical field BaseSpawner.spawnDelay in Adapters.findSpawnDelayField. " +
-            "This is required for the mod to function and indicates a version mismatch or invalid environment."
-        );
-    }
-
-    /**
-     * Returns the spawn delay of a BaseSpawner instance using reflection.
-     * @param spawner BaseSpawner instance
-     * @return spawnDelay value or Integer.MIN_VALUE on failure
-     */
-    public static int getSpawnDelay(BaseSpawner spawner) {
-        if (spawner == null || SPAWN_DELAY_FIELD == null) return Integer.MIN_VALUE;
-
-        try {
-            return SPAWN_DELAY_FIELD.getInt(spawner);
-        } catch (IllegalAccessException e) {
-            LOGGER.warn("HarderSpawners: Failed to read spawnDelay reflectively.", e);
-            return Integer.MIN_VALUE;
-        }
-    }
-
-    /** Returns true if reflection found the spawnDelay field successfully. */
-    public static boolean isWorking() {
-        return SPAWN_DELAY_FIELD != null;
-    }
+	/** Returns true if reflection successfully found the spawnDelay field. */
+	public static boolean isWorking() {
+		return SPAWN_DELAY_FIELD != null;
+	}
 }

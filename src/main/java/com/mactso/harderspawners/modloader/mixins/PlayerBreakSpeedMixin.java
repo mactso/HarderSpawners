@@ -105,7 +105,7 @@ public abstract class PlayerBreakSpeedMixin {
 		int durationTicks = 20; // very short, refreshed while mining
 
 		// Apply or refresh the Mining Fatigue effect to slow destruction of the spawner
-		MyUtilities.updateEffect(serverPlayer, amplifier, MobEffects.DIG_SLOWDOWN, durationTicks);
+		MyUtilities.updateEffect(serverPlayer, amplifier, MobEffects.MINING_FATIGUE, durationTicks);
 		if (serverLevel.getGameTime()%17 == 0) {
 			RandomSource rand = serverLevel.getRandom();
 			SpecialEffects.doSpawnerBreakingEffects(pos, serverPlayer, serverLevel, sbe, rand);
