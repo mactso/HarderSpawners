@@ -76,7 +76,9 @@ public class ProcessSpawners {
 					BaseSpawner spawner = sbe.getSpawner();
 					if (spawner == null)
 						continue;
+					
 
+					
 					CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
 					if (MyConfig.isDebug())
 						MyUtilities.debugMsg(2, spawnerTag.toString());
@@ -93,9 +95,10 @@ public class ProcessSpawners {
 							continue;
 
 						SpawnerPositionManager.recordSpawnerPos(sbe);
-						int delay = getSpawnerDelay(sbe, spawner, spawnerTag);
 
-						if (gameTime % 20 == 0) {
+						int delay = getSpawnerDelay(sbe, spawner);
+
+						if (gameTime % 20 == 1) {
 							SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
 							if (statsWrapper.isStunned()) {
 								// this is a hack to avoid client side mixin.
@@ -103,7 +106,7 @@ public class ProcessSpawners {
 							}
 						}
 
-						if (gameTime % 200 == 1) { // check every 6 seconds.
+						if (gameTime % 200 == 1) { // check every 10 seconds.
 							SpawnerLightLogic.removeLightSourcesAboveASpawner(serverLevel, sbe);
 						}
 						if (delay == ABOUT_TO_SPAWN) {
@@ -133,23 +136,12 @@ public class ProcessSpawners {
 	}
 
 	// this gets the private spawnDelay counter in BaseSpawner via reflection.
-	public static int getSpawnerDelay(SpawnerBlockEntity sbe, BaseSpawner spawner, CompoundTag tag) {
+	public static int getSpawnerDelay(SpawnerBlockEntity sbe, BaseSpawner spawner) {
 		int delay = -Integer.MAX_VALUE;
 		boolean tagSaved = false;
 
 		if (Adapters.isWorking()) {
 			delay = Adapters.getSpawnDelay(spawner);
-		}
-
-		if (delay == -Integer.MAX_VALUE) {
-			tag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
-			delay = tag.getInt("Delay").orElse( 0 );
-			tagSaved = true;
-		}
-
-		if (tagSaved) {
-			if (MyConfig.isDebug())
-				MyUtilities.debugMsg(2, sbe.getBlockPos(), "Delay fallback applied: " + delay);
 		}
 
 		return delay;
@@ -183,8 +175,6 @@ public class ProcessSpawners {
 		SpawnerStatsWrapper statsWrapper = SpawnerStatsAdapter.getOrCreateStats(sbe);
 		if (statsWrapper == null) // null if spawner lacks an entityId
 			return; // can't process a spawner with no stats
-
-		SpawnerPositionManager.recordSpawnerPos(sbe);
 
 		boolean recovered = SpawnerStunLogic.doSpawnerRecoverFromStun(sbe, spawnerTag, statsWrapper);
 		if ((MyConfig.isDebug()) && (recovered)) {

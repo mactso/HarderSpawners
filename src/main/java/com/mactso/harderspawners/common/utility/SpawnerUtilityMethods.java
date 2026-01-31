@@ -6,14 +6,19 @@ import com.mactso.harderspawners.common.logic.ProcessSpawners;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsAdapter.SpawnerStatsWrapper;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ProblemReporter.ScopedCollector;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.BaseSpawner;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
 
 /**
  * Utility methods shared across the Harder Spawners mod.
@@ -34,6 +39,8 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
  * </p>
  */
 public class SpawnerUtilityMethods {
+	
+	private static final org.slf4j.Logger SPAWNERLOGGER = LogUtils.getLogger();
 
 	/*
 	 * Debugging utility. Command showspawnertag probably deprecates this.
@@ -44,7 +51,7 @@ public class SpawnerUtilityMethods {
 
 		BaseSpawner spawner = sbe.getSpawner();
 		CompoundTag spawnerTag = saveSpawnerToTag(sbe);
-		int delay = ProcessSpawners.getSpawnerDelay(sbe, spawner, spawnerTag);
+		int delay = ProcessSpawners.getSpawnerDelay(sbe, spawner);
 
 	    MyUtilities.debugMsg(
 	        level,
@@ -70,28 +77,27 @@ public class SpawnerUtilityMethods {
 	    );
 	}
 
-	/**
-	 * Serializes a SpawnerBlockEntity into a CompoundTag.
-	 * @param sbe the spawner block entity
-	 * @return serialized NBT representing the spawner
+	/** 
+	 * Serializes a SpawnerBlockEntity into a CompoundTag. 
+	 * @param sbe the spawner block entity 
+	 * @return serialized NBT representing the spawner 
 	 */
 	public static CompoundTag saveSpawnerToTag(SpawnerBlockEntity sbe) {
-		CompoundTag tag = new CompoundTag();
-		sbe.getSpawner().save(tag);
-		return tag;
+		ScopedCollector problemReporter = new ScopedCollector(SPAWNERLOGGER);
+	    TagValueOutput output = TagValueOutput.createWithoutContext(problemReporter);
+	    sbe.getSpawner().save(output);
+	    return output.buildResult();
 	}
-
-	/**
-	 * Loads spawner data from a CompoundTag into a SpawnerBlockEntity.
-	 * @param sbe target spawner
-	 * @param tag NBT to load
+	
+	/** 
+	 * Loads spawner data from a CompoundTag into a SpawnerBlockEntity. 
+	 * @param sbe target spawner 
+	 * @param tag NBT to load 
 	 */
 	public static void loadSpawnerFromTag(SpawnerBlockEntity sbe, CompoundTag tag) {
-        sbe.getSpawner().load(
-            sbe.getLevel(),
-            sbe.getBlockPos(),
-            tag
-        );
+		ScopedCollector collector = new ScopedCollector(SPAWNERLOGGER);
+	    ValueInput input = TagValueInput.create(collector, sbe.getLevel().registryAccess(), tag);
+	    sbe.getSpawner().load(sbe.getLevel(), sbe.getBlockPos(), input);
 	}
 	/**
 	 * Returns true if the given spawner is stunned according to its SpawnerStats.

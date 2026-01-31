@@ -11,9 +11,9 @@ public class ServerPlayerTickPreMixinEvent {
 		// this is not an event but is called by a mixin;
 	}
 	
-	public static void handleEvent (ServerPlayer sp){
+	public static void handleServerPLayerTickPreEvent (ServerPlayer sp){
         BlockAndFluidPlacement.removePendingBrightFluid(sp);
-        BlockAndFluidPlacement.clearPendingBrightBlocks(sp);
+        BlockAndFluidPlacement.removePendingBrightBlocks(sp);
         ProcessSpawners.findAndProcessNearbySpawners(sp);
     }
 }

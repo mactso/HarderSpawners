@@ -10,13 +10,14 @@ import com.mactso.harderspawners.modloader.spawnerstorage.ISpawnerStats;
 import com.mactso.harderspawners.modloader.spawnerstorage.SpawnerStatsStorage;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 @Mixin(SpawnerBlockEntity.class)
 public abstract class SpawnerBlockEntityMixin implements ISpawnerStats {
+
     @Unique
     private SpawnerStatsStorage spawnerStatsStorage;
 
@@ -30,21 +31,22 @@ public abstract class SpawnerBlockEntityMixin implements ISpawnerStats {
         this.spawnerStatsStorage = new SpawnerStatsStorage();
     }
 
+    // Inject after the ValueOutput saveAdditional method
     @Inject(method = "saveAdditional", at = @At("RETURN"))
-    private void saveSpawnerStats(CompoundTag tag, HolderLookup.Provider provider, CallbackInfo ci) {
+    private void saveSpawnerStats(ValueOutput output, CallbackInfo ci) {
         if (spawnerStatsStorage != null) {
-            tag.put("HarderSpawnerStats", spawnerStatsStorage.serializeNBT());
+            spawnerStatsStorage.serialize(output);
         }
     }
 
+    // Inject after the ValueInput loadAdditional method
     @Inject(method = "loadAdditional", at = @At("RETURN"))
-    private void loadSpawnerStats(CompoundTag tag, HolderLookup.Provider provider, CallbackInfo ci) {
-        if (tag.contains("HarderSpawnerStats")) {
-            if (spawnerStatsStorage == null) {
-                spawnerStatsStorage = new SpawnerStatsStorage();
-            }
-            spawnerStatsStorage.deserializeNBT(tag.getCompound("HarderSpawnerStats"));
+    private void loadSpawnerStats(ValueInput input, CallbackInfo ci) {
+        if (spawnerStatsStorage == null) {
+            spawnerStatsStorage = new SpawnerStatsStorage();
         }
+        spawnerStatsStorage.deserialize(input);
     }
 }
+
 

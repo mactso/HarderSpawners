@@ -17,7 +17,7 @@ public abstract class ServerPlayerTickPreMixin {
         ServerPlayer sp = (ServerPlayer) (Object) this;
 
         // Call your spawner handler
-        ServerPlayerTickPreMixinEvent.handleEvent(sp);
+        ServerPlayerTickPreMixinEvent.handleServerPLayerTickPreEvent(sp);
     }
 }
 	

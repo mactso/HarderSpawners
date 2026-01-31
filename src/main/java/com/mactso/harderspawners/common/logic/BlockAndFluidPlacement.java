@@ -37,6 +37,10 @@ import net.minecraft.world.phys.BlockHitResult;
 
 public class BlockAndFluidPlacement {
 	
+	static final Map<ServerLevel, Set<BlockPos>> pendingBrightBlocks = new ConcurrentHashMap<>();
+	static final Map<ServerLevel, Set<BlockPos>> pendingBrightFluid = new ConcurrentHashMap<>();
+
+	
     /**
      * Breaks light emitting blocks placed near the spawner by players.
      * and if a spawner is nearby. Queues blocks for later destruction if necessary.
@@ -60,6 +64,7 @@ public class BlockAndFluidPlacement {
         Direction face = hitResult.getDirection();
         BlockPos placedPos = clickedPos.relative(face);
         // Skip if no spawner is nearby
+		ProcessSpawners.findAndProcessNearbySpawners(sp); // TODO this may be redundant to serverplayertick
         if (!SpawnerPositionManager.isSpawnerNearby(serverLevel, placedPos, MyConfig.getDestroyLightRange() ))
             return InteractionResult.PASS;
 
@@ -100,10 +105,11 @@ public class BlockAndFluidPlacement {
 		}
 
 		
+		ProcessSpawners.findAndProcessNearbySpawners(sp); // TODO this may be redundant to serverplayertick
+
 		if (!SpawnerPositionManager.isSpawnerNearby(sLevel, clickedPos, MyConfig.getDestroyLightRange()))
 			return false;
 		
-		ProcessSpawners.findAndProcessNearbySpawners(sp); // TODO this may be redundant to serverplayertick
 
 		// Play sound and smoke particles at the given position to indicate failed lava
 		// placement.
@@ -132,14 +138,13 @@ public class BlockAndFluidPlacement {
 		}
 	}
 
-	static final Map<ServerLevel, Set<BlockPos>> pendingBrightBlocks = new ConcurrentHashMap<>();
 	
 	public static void queuePendingBrightBlocks(ServerLevel level, BlockPos pos) {
 		pendingBrightBlocks.computeIfAbsent(level, l -> ConcurrentHashMap.newKeySet()).add(pos);
 
 	}
 	
-	public static void clearPendingBrightBlocks(ServerPlayer sp) {
+	public static void removePendingBrightBlocks(ServerPlayer sp) {
 
 		ServerLevel serverLevel = (ServerLevel) sp.level();
 		// Get the pending lava set for this level
@@ -197,7 +202,6 @@ public class BlockAndFluidPlacement {
 		return true; // bright block should be destroyed
 	}
 
-	static final Map<ServerLevel, Set<BlockPos>> pendingBrightFluid = new ConcurrentHashMap<>();
 
 	/**
 	 * Adds a lava block to the pending queue to be processed on the next player

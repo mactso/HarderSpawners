@@ -1,69 +1,36 @@
 package com.mactso.harderspawners.modloader.spawnerstorage;
 
-import java.util.Optional;
-
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class SpawnerStatsStorage {
 
 	// --- Versioning ---
-	private static final int CURRENT_DATA_VERSION = 2; // bumped version for entity ID support
-	private int dataVersion = 0; // old spawners will deserialize as 0
+	private static final int CURRENT_DATA_VERSION = 2;
+	private int dataVersion = 0;
 
-	// --- Original entity ID ---
-	private String originalEntityId = "";
+	// --- Core Fields ---
+	private long lifeSpanInTicks = -1;
+	private boolean stunned;
+	private boolean infinite;
+	private boolean initialized;
 
 	// --- Cached original spawn delays ---
 	private int originalMinSpawnDelay = 200;
 	private int originalMaxSpawnDelay = 800;
 
-	public String getOriginalEntityId() {
-		return originalEntityId;
-	}
+	// --- Original entity ID ---
+	private String originalEntityId = "";
 
-	public void setOriginalEntityId(String originalEntityId) {
-		this.originalEntityId = originalEntityId;
-	}
+	/* ---------------- Accessors ---------------- */
 
-	public int getOriginalMinSpawnDelay() {
-		return originalMinSpawnDelay;
-	}
-
-	public void setOriginalMinSpawnDelay(int originalMinSpawnDelay) {
-		this.originalMinSpawnDelay = originalMinSpawnDelay;
-	}
-
-	public int getOriginalMaxSpawnDelay() {
-		return originalMaxSpawnDelay;
-	}
-
-	public void setOriginalMaxSpawnDelay(int originalMaxSpawnDelay) {
-		this.originalMaxSpawnDelay = originalMaxSpawnDelay;
-	}
-
-	public long getLifeSpan() {
+	public long getLifespan() {
 		return lifeSpanInTicks;
 	}
 
-	public void setLifeSpan(long lifeSpanInTicks) {
-		this.lifeSpanInTicks = lifeSpanInTicks;
+	public void setLifespan(long ticks) {
+		this.lifeSpanInTicks = ticks;
 	}
-
-	public boolean isInitialized() {
-		return initialized;
-	}
-
-	public void setInitialized() {
-		this.initialized = true;
-	}
-
-	// --- Core Fields ---
-	private long lifeSpanInTicks = -1;
-	private boolean infinite = false;
-	private boolean stunned;
-	private boolean initialized;
-
-	// --- Accessors ---
 
 	public boolean isStunned() {
 		return stunned;
@@ -79,63 +46,103 @@ public class SpawnerStatsStorage {
 
 	public void setInfinite(boolean infinite) {
 		this.infinite = infinite;
-		if (infinite)
+		if (infinite) {
 			lifeSpanInTicks = Long.MAX_VALUE;
+		}
 	}
 
-	// --- Serialization ---
-	public CompoundTag serializeNBT() {
-		CompoundTag tag = new CompoundTag();
-		tag.putInt("DataVersion", dataVersion);
-		tag.putBoolean("Initialized", initialized);
-		tag.putString("OriginalEntityId", originalEntityId);
-		tag.putBoolean("Stunned", stunned);
-		tag.putLong("Lifespan", lifeSpanInTicks);
-		tag.putBoolean("Infinite", infinite);
-		tag.putInt("OriginalMinSpawnDelay", originalMinSpawnDelay);
-		tag.putInt("OriginalMaxSpawnDelay", originalMaxSpawnDelay);
-		return tag;
+	public boolean isInitialized() {
+		return initialized;
 	}
 
-	// --- Deserialization ---
-	public void deserializeNBT(Optional<CompoundTag> optTag) {
-	    if (optTag.isEmpty()) {
-	        // No data present; use defaults
-	        dataVersion = 0;
-	        infinite = false;
-	        stunned = false;
-	        lifeSpanInTicks = 20L * 60L * 500L;
-	        originalMinSpawnDelay = 200;
-	        originalMaxSpawnDelay = 800;
-	        originalEntityId = "";
-	        initialized = false;
-	        return;
-	    }
-
-	    CompoundTag tag = optTag.get();
-	    Optional<Integer> optDataVersion = tag.getInt("DataVersion");
-	    dataVersion = optDataVersion.orElse(0);
-
-	    Optional<Boolean> optInfinite = tag.getBoolean("Infinite");
-	    infinite = optInfinite.orElse(false);
-
-	    Optional<Boolean> optStunned = tag.getBoolean("Stunned");
-	    stunned = optStunned.orElse(false);
-
-	    Optional<Long> optLifeSpan = tag.getLong("Lifespan");
-	    lifeSpanInTicks = optLifeSpan.orElse(20L * 60L * 500L);
-
-	    Optional<Integer> optOriginalMinSpawnDelay = tag.getInt("OriginalMinSpawnDelay");
-	    originalMinSpawnDelay = optOriginalMinSpawnDelay.orElse(200);
-
-	    Optional<Integer> optOriginalMaxSpawnDelay = tag.getInt("OriginalMaxSpawnDelay");
-	    originalMaxSpawnDelay = optOriginalMaxSpawnDelay.orElse(800);
-
-	    Optional<String> optOriginalEntityId = tag.getString("OriginalEntityId");
-	    originalEntityId = optOriginalEntityId.orElse("").trim();
-
-	    initialized = true; // class exists and read
+	public void setInitialized() {
+		this.initialized = true;
+		this.dataVersion = CURRENT_DATA_VERSION;
 	}
 
+	public int getOriginalMinSpawnDelay() {
+		return originalMinSpawnDelay;
+	}
+
+	public void setOriginalMinSpawnDelay(int value) {
+		this.originalMinSpawnDelay = value;
+	}
+
+	public int getOriginalMaxSpawnDelay() {
+		return originalMaxSpawnDelay;
+	}
+
+	public void setOriginalMaxSpawnDelay(int value) {
+		this.originalMaxSpawnDelay = value;
+	}
+
+	public String getOriginalEntityId() {
+		return originalEntityId;
+	}
+
+	public void setOriginalEntityId(String id) {
+		this.originalEntityId = id != null ? id : "";
+	}
+
+	/* ---------------- Logic ---------------- */
+
+	public boolean hasExpired() {
+		return !infinite && lifeSpanInTicks <= 0;
+	}
+
+	public void decrementLifespan(long ticks) {
+		if (!infinite && lifeSpanInTicks > 0) {
+			lifeSpanInTicks -= ticks;
+			if (lifeSpanInTicks < 0) {
+				lifeSpanInTicks = 0;
+			}
+		}
+	}
+
+	/* ---------------- Serialization (1.21.6) ---------------- */
+
+	public void serialize(ValueOutput output) {
+		output.putInt("DataVersion", dataVersion);
+		output.putBoolean("Initialized", initialized);
+		output.putString("OriginalEntityId", originalEntityId);
+		output.putBoolean("Stunned", stunned);
+		output.putLong("Lifespan", lifeSpanInTicks);
+		output.putBoolean("Infinite", infinite);
+		output.putInt("OriginalMinSpawnDelay", originalMinSpawnDelay);
+		output.putInt("OriginalMaxSpawnDelay", originalMaxSpawnDelay);
+	}
+
+	public void deserialize(ValueInput input) {
+		dataVersion = input.getIntOr("DataVersion", 0);
+		initialized = input.getBooleanOr("Initialized", false);
+		originalEntityId = input.getStringOr("OriginalEntityId", "");
+		stunned = input.getBooleanOr("Stunned", false);
+		originalMinSpawnDelay = input.getIntOr("OriginalMinSpawnDelay", 200);
+		originalMaxSpawnDelay = input.getIntOr("OriginalMaxSpawnDelay", 800);
+
+		if (dataVersion < CURRENT_DATA_VERSION) {
+			lifeSpanInTicks = input.getLongOr("Lifespan", -1);
+			infinite = input.getBooleanOr("Infinite", false);
+
+			if (infinite) {
+				lifeSpanInTicks = Long.MAX_VALUE;
+			} else if (lifeSpanInTicks == -1) {
+				// legacy default: ~600 spawns
+				lifeSpanInTicks = 600L * ((originalMinSpawnDelay + originalMaxSpawnDelay) / 2L);
+			}
+
+			dataVersion = CURRENT_DATA_VERSION;
+		} else {
+			lifeSpanInTicks = input.getLongOr("Lifespan", 0L);
+			infinite = input.getBooleanOr("Infinite", false);
+		}
+
+		// --- Invariant enforcement ---
+		if (originalEntityId.isBlank()) {
+			initialized = false;
+			stunned = false;
+			infinite = false;
+			lifeSpanInTicks = 0;
+		}
+	}
 }
-

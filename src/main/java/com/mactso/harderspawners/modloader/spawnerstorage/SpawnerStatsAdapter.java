@@ -106,7 +106,7 @@ public final class SpawnerStatsAdapter {
 				MyUtilities.debugMsg(0,
 						"PRE-INIT STATS" + "\n  initialized=" + stats.isInitialized() + "\n  stunned="
 								+ stats.isStunned() + "\n  infinite=" + stats.isInfinite() + "\n  lifespanTicks="
-								+ stats.getLifeSpan());
+								+ stats.getLifespan());
 			stats.setStunned(false);
 
 			// Lifespan config
@@ -127,20 +127,21 @@ public final class SpawnerStatsAdapter {
 								+ stats.getOriginalMaxSpawnDelay());
 
 			if (MyConfig.isDebug())
-				MyUtilities.debugMsg(0, "Pre LIFESPAN CALCULATION" + "\n  LifespanValue=" + stats.getLifeSpan());
+				MyUtilities.debugMsg(0, "Pre LIFESPAN CALCULATION" + "\n  LifespanValue=" + stats.getLifespan());
 
 			// Initialize lifespan
 			if (!stats.isInfinite()) {
 				long avgTicks = averageSpawnDelay();
 				int lifespanValue = lifespanConfig.initLifespanValue();
 				long lifespan = avgTicks * lifespanValue;
-				stats.setLifeSpan(lifespan);
+				stats.setLifespan(lifespan);
+				
 				if (MyConfig.isDebug())
 					MyUtilities.debugMsg(0, "LIFESPAN CALCULATION" + "\n  avgSpawnDelayTicks=" + avgTicks
-							+ "\n  initLifespanValue=" + stats.getLifeSpan());
+							+ "\n  initLifespanValue=" + stats.getLifespan());
 
 			} else {
-				stats.setLifeSpan(Long.MAX_VALUE);
+				stats.setLifespan(Long.MAX_VALUE);
 			}
 
 			stats.setInitialized();
@@ -150,7 +151,7 @@ public final class SpawnerStatsAdapter {
 				MyUtilities.debugMsg(0,
 						"POST-INIT STATS @ " + sbe.getBlockPos() + "\n  initialized=" + stats.isInitialized()
 								+ "\n  stunned=" + stats.isStunned() + "\n  infinite=" + stats.isInfinite()
-								+ "\n  finalLifeSpanTicks=" + stats.getLifeSpan());
+								+ "\n  finalLifeSpanTicks=" + stats.getLifespan());
 
 			sbe.setChanged();
 		}
@@ -171,7 +172,7 @@ public final class SpawnerStatsAdapter {
 		}
 
 		public boolean isExpired() {
-			return !stats.isInfinite() && stats.getLifeSpan() <= 0;
+			return !stats.isInfinite() && stats.getLifespan() <= 0;
 		}
 
 		/** Returns average spawn delay from cached min/max */
@@ -184,21 +185,21 @@ public final class SpawnerStatsAdapter {
 			if (stats.isInfinite())
 				return -1;
 			long avgSpawn = averageSpawnDelay();
-			return (int) Math.max(stats.getLifeSpan() / avgSpawn, 0);
+			return (int) Math.max(stats.getLifespan() / avgSpawn, 0);
 		}
 
 		/** Decrement lifespan by average spawn delay */
 		public void decrementLifespan() {
 			long avgSpawn = averageSpawnDelay();
-			stats.setLifeSpan(stats.getLifeSpan() - avgSpawn);
-			if (stats.getLifeSpan() < 0)
-				stats.setLifeSpan(0);
+			stats.setLifespan(stats.getLifespan() - avgSpawn);
+			if (stats.getLifespan() < 0)
+				stats.setLifespan(0);;
 			sbe.setChanged();
 		}
 
 		/** Set lifespan explicitly */
 		public void setLifespan(long ticks) {
-			stats.setLifeSpan(ticks);
+			stats.setLifespan(ticks);
 			sbe.setChanged();
 		}
 
@@ -208,7 +209,7 @@ public final class SpawnerStatsAdapter {
 
 		// --- Accessors ---
 		public long getLifespan() {
-			return stats.getLifeSpan();
+			return stats.getLifespan();
 		}
 
 		public int getOriginalMinSpawnDelay() {

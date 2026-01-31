@@ -3,6 +3,7 @@ package com.mactso.harderspawners.common.logic;
 import java.util.List;
 
 import com.mactso.harderspawners.modloader.config.MyConfig;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -11,11 +12,14 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ProblemReporter.ScopedCollector;
 import net.minecraft.world.entity.Display.ItemDisplay;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 /**
@@ -29,6 +33,8 @@ import net.minecraft.world.phys.Vec3;
  */
 public class ExtraLifetimeItemDisplays {
 
+	private static final org.slf4j.Logger LOGGERUTIL =  LogUtils.getLogger();
+	
 	/**
 	 * Adds an ItemDisplay entity indicating low lifespan.
 	 * The item displayed is the item that adds lifespan
@@ -36,40 +42,39 @@ public class ExtraLifetimeItemDisplays {
 	 * Plays a sound effect to indicate display creation.
 	 */
 	public static void buildDisplay(ServerLevel sLevel, BlockEntity sbe) {
-
-		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
-		BlockPos pos = sbe.getBlockPos();
 		
-		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel, null, // no Consumer
-				pos, EntitySpawnReason.COMMAND, false, false);
-
-		if (itemDisplay == null) {
-			return;
-		}
-
+		sLevel.playSound(null, sbe.getBlockPos(), SoundEvents.ENDER_EYE_LAUNCH, SoundSource.AMBIENT, 0.5f, 0.2f);
+		ItemDisplay itemDisplay = EntityType.ITEM_DISPLAY.create(sLevel,EntitySpawnReason.COMMAND);
+		
 		itemDisplay.setCustomName(SpawnerLifespan.TIP);
 		itemDisplay.setCustomNameVisible(true);
-
-		CompoundTag tag = buildItemDisplayNBT(itemDisplay);
-		itemDisplay.load(tag);
-
-		Vec3 v = pos.getBottomCenter();
-		itemDisplay.setPos(v.x, v.y + 1.5, v.z);
-		itemDisplay.setDeltaMovement(0.0, 0.0, 0.0);
-
+		
+		CompoundTag temptag = buildItemDisplayNBT(itemDisplay);
+		ScopedCollector preport = new ScopedCollector((org.slf4j.Logger) LOGGERUTIL);
+		itemDisplay.load(TagValueInput.create(preport, sbe.getLevel().registryAccess(), temptag));
+		
+		// Position the display above the spawner
+		Vec3 vWork = sbe.getBlockPos().getBottomCenter();
+		itemDisplay.setPos(vWork.x, vWork.y + 1.5, vWork.z);
+		itemDisplay.setDeltaMovement(0.0f, 0.0f, 0.0f);
 		sLevel.addFreshEntity(itemDisplay);
+	
 	}
+	
 
 	private static CompoundTag buildItemDisplayNBT(ItemDisplay i) {
-
-		CompoundTag tag = new CompoundTag();
-		i.save(tag);
+		
+        ScopedCollector problemReporter = new ScopedCollector(LOGGERUTIL);
+        TagValueOutput vout = TagValueOutput.createWithoutContext(problemReporter);
+        i.save(vout);
+        CompoundTag tag = vout.buildResult(); 
 		tag.put("transformation", buildTransformationTag());
 		tag.put("item", buildItemTag());
 		tag.putString("billboard", "center");
 		return tag;
-
 	}
+
+
 
 	public static void showDisplay(ServerLevel sLevel, BlockEntity sbe) {
 		// Build an AABB centered on the spawner's block position, 2 blocks in each
