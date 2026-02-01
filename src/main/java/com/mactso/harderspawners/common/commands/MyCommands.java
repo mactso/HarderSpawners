@@ -41,18 +41,6 @@ public class MyCommands {
 
     private static final double MAX_LOOK_DISTANCE = 11.0D;
     
-	// ---------------------------
-	// Permission constants
-	// ---------------------------
-	public final class PermissionLevel {
-	    public static final int ALL   = 0; // All players; /say, /help, /spawnpoint
-	    public static final int MOD   = 1; // Moderators; /gamemode <mode>, /teleport <player>
-	    public static final int OP    = 2; // Operators; /setblock, /time set, /regrowth
-	    public static final int ADMIN = 3; // Admins; /stop, /ban, /kick
-	    public static final int OWNER = 4; // Server owner; /op <player>, /deop <player>, /reload
-	    // No constructor needed because the class is final and contains only static members
-	}
-    
     // ---------------------------
     // Command result constants
     // ---------------------------
@@ -65,8 +53,7 @@ public class MyCommands {
         MyUtilities.debugMsg(0, "Registering " + Main.MODID + " "+Main.MOD_VERSION + " commands.");
 
         dispatcher.register(
-        	    Commands.literal(Main.MODID)
-	            .requires(source -> source.hasPermission(PermissionLevel.OP))
+				Commands.literal(Main.MODID).requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
         	        .then(
         	        	    Commands.literal("help")
         	        	        .executes(ctx -> commandHelp(ctx.getSource().getPlayerOrException()))

@@ -16,8 +16,8 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
@@ -120,7 +120,7 @@ public class MyUtilities {
 	// Helper to allow methods to be the same in 1.21.1 and 1.21.5 .
 	// -------------------------------
 	
-    public static Item getItem(ServerLevel level, ResourceLocation id) {
+    public static Item getItem(ServerLevel level, Identifier id) {
         RegistryAccess access = level.registryAccess();
         HolderLookup.RegistryLookup<Item> lookup = access.lookup(Registries.ITEM).orElse(null);
         if (lookup == null) return null;

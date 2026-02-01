@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "harderspawners",
-	"version": "31.2",
+	"version": "31.3",
 	"name": "HarderSpawners",
 	"description": "Mob Spawners Fight Back.",
 	"authors": [
@@ -24,8 +24,8 @@
 	],
 
 	"depends": {
-		"fabricloader": ">=0.17.0",
-		"minecraft": "~1.21.6",
+		"fabricloader": ">=0.18.0",
+		"minecraft": "~1.21.11",
     "java": ">=21",
     "fabric-api": "*"
 	},

@@ -331,7 +331,8 @@ public class SpawnerLightLogic {
 
 		// TODO look at old isDay().   Consider !(isMoonVisible()) or time of day.
 		if (!level.isBrightOutside()) {
-			int moonPhase = level.getMoonPhase();
+
+			int moonPhase = (int) (4.0f * level.getMoonBrightness(pos));
 			int moonDarken = 4 - Math.abs(4 - moonPhase);
 			skyLight -= moonDarken;
 		}

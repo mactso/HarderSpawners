@@ -20,7 +20,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 public class Main implements ModInitializer {
 
 	public static final String MODID = "harderspawners";
-	public static final String MOD_VERSION = "v31.3 1.21.6";
+	public static final String MOD_VERSION = "v31.3 1.21.11";
 
 	@Override
 	public void onInitialize() {

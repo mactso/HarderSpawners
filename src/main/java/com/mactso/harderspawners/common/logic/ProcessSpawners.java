@@ -138,7 +138,6 @@ public class ProcessSpawners {
 	// this gets the private spawnDelay counter in BaseSpawner via reflection.
 	public static int getSpawnerDelay(SpawnerBlockEntity sbe, BaseSpawner spawner) {
 		int delay = -Integer.MAX_VALUE;
-		boolean tagSaved = false;
 
 		if (Adapters.isWorking()) {
 			delay = Adapters.getSpawnDelay(spawner);

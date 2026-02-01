@@ -14,7 +14,7 @@
 @rem limitations under the License.
 @rem
 @rem SPDX-License-Identifier: Apache-2.0
-@rem
+@rem asdfasdf
 
 @if "%DEBUG%"=="" @echo off
 @rem ##########################################################################
