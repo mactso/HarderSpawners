@@ -230,7 +230,7 @@ public class SpawnerLightLogic {
 
 		int lightLevel = MyConfig.getHostileSpawnerLightLevel();
 		int blocklight = lightLevel; // The light level
-		int skylight = 15; // open sky straight above (not above a nearby block)
+		int skylight = lightLevel;
 		CustomSpawnRules c = new SpawnData.CustomSpawnRules(new InclusiveRange<Integer>(0, blocklight),
 				new InclusiveRange<Integer>(0, skylight));
 
@@ -332,7 +332,7 @@ public class SpawnerLightLogic {
 		// TODO look at old isDay().   Consider !(isMoonVisible()) or time of day.
 		if (!level.isBrightOutside()) {
 
-			int moonPhase = (int) (4.0f * level.getMoonBrightness(pos));
+			int moonPhase =  level.getMoonPhase();
 			int moonDarken = 4 - Math.abs(4 - moonPhase);
 			skyLight -= moonDarken;
 		}

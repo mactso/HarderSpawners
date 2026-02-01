@@ -103,7 +103,7 @@ public final class SpawnerStatsAdapter {
 			CompoundTag spawnerTag = SpawnerUtilityMethods.saveSpawnerToTag(sbe);
 			SpawnerInitialization.applyConfigToMonsterSpawners(sbe, spawnerTag);
 			if (MyConfig.isDebug())
-				MyUtilities.debugMsg(0,
+				MyUtilities.debugMsg(1,
 						"PRE-INIT STATS" + "\n  initialized=" + stats.isInitialized() + "\n  stunned="
 								+ stats.isStunned() + "\n  infinite=" + stats.isInfinite() + "\n  lifespanTicks="
 								+ stats.getLifespan());
@@ -119,7 +119,7 @@ public final class SpawnerStatsAdapter {
             stats.setOriginalMaxSpawnDelay(spawnerTag.getIntOr("MaxSpawnDelay", 800));
 			// -------- INPUTS DUMP --------
 			if (MyConfig.isDebug())
-				MyUtilities.debugMsg(0,
+				MyUtilities.debugMsg(1,
 						"INIT INPUTS @ " + sbe.getBlockPos() + "\n  entityId=" + originalEntityId
 								+ "\n  lifespanConfig[min=" + lifespanConfig.getMinLifespan() + ", max="
 								+ lifespanConfig.getMaxLifespan() + "]" + "\n  originalMinDelay="
@@ -127,7 +127,7 @@ public final class SpawnerStatsAdapter {
 								+ stats.getOriginalMaxSpawnDelay());
 
 			if (MyConfig.isDebug())
-				MyUtilities.debugMsg(0, "Pre LIFESPAN CALCULATION" + "\n  LifespanValue=" + stats.getLifespan());
+				MyUtilities.debugMsg(1, "Pre LIFESPAN CALCULATION" + "\n  LifespanValue=" + stats.getLifespan());
 
 			// Initialize lifespan
 			if (!stats.isInfinite()) {
@@ -137,7 +137,7 @@ public final class SpawnerStatsAdapter {
 				stats.setLifespan(lifespan);
 				
 				if (MyConfig.isDebug())
-					MyUtilities.debugMsg(0, "LIFESPAN CALCULATION" + "\n  avgSpawnDelayTicks=" + avgTicks
+					MyUtilities.debugMsg(1, "LIFESPAN CALCULATION" + "\n  avgSpawnDelayTicks=" + avgTicks
 							+ "\n  initLifespanValue=" + stats.getLifespan());
 
 			} else {
@@ -148,7 +148,7 @@ public final class SpawnerStatsAdapter {
 
 			// ---------------- DEBUG INSTRUMENTATION ----------------
 			if (MyConfig.isDebug())
-				MyUtilities.debugMsg(0,
+				MyUtilities.debugMsg(1,
 						"POST-INIT STATS @ " + sbe.getBlockPos() + "\n  initialized=" + stats.isInitialized()
 								+ "\n  stunned=" + stats.isStunned() + "\n  infinite=" + stats.isInfinite()
 								+ "\n  finalLifeSpanTicks=" + stats.getLifespan());

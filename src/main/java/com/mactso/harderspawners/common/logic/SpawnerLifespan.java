@@ -12,7 +12,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
@@ -119,7 +119,7 @@ public class SpawnerLifespan {
 				return cachedExtraLifespanItem;
 		}
 
-		Identifier itemLocation = Identifier.tryParse(configExtraLifespanItem);
+		ResourceLocation itemLocation = ResourceLocation.tryParse(configExtraLifespanItem);
 		if (itemLocation == null) {
 			return Items.IRON_BLOCK;
 		}
@@ -172,7 +172,7 @@ public class SpawnerLifespan {
 		Double chance = serverLevel.random.nextDouble();
 		double explodeRoll = 100.0 * chance;
 		if (MyConfig.isDebug())
-			MyUtilities.debugMsg(0, "Explode chance was :" + explodeRoll);
+			MyUtilities.debugMsg(1, "Explode chance was :" + explodeRoll);
 		if (explodeRoll < MyConfig.getSpawnersExplodePercentage()) {
 			Vec3 v = new Vec3(pos.getX(), pos.getY(), pos.getZ());
 			serverLevel.explode(null, // no entity responsible
